@@ -30,15 +30,15 @@ app.use("/api/members", require("./routes/members"));
 
 // Route eg localhost:portno/api/users/router-enpoint
 
-app.get("/api/users", async (req, res) => {
-  try {
-    const { rows } = await query("SELECT * FROM users");
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
+// app.get("/api/users", async (req, res) => {
+//   try {
+//     const { rows } = await query("SELECT * FROM users");
+//     res.json(rows);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
 
 // // Middleware
 // app.use(cors()); // Enable CORS for all routes
