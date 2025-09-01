@@ -114,3 +114,62 @@ exports.getAllUsers = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+//adding institute and create the user for institute admin
+
+exports.addInstituteWithUser = async (req, res) => {
+  const { name, code, phone, email } = req.body;
+
+  if (!name || !code || !phone || !email) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  const defaultPassword = "defaultPassword123"; // choose your default password
+  try {
+    // Hash the default password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(defaultPassword, salt);
+
+    // Start a transaction
+    await pool.query("BEGIN");
+
+    // Insert into institute table
+    const instituteInsertQuery = `
+      INSERT INTO institute (name, code, phone)
+      VALUES ($1, $2, $3)
+      RETURNING id
+    `;
+    const instituteResult = await pool.query(instituteInsertQuery, [
+      name,
+      code,
+      phone,
+    ]);
+    const instituteId = instituteResult.rows[0].id;
+
+    // Insert into users table
+    const userInsertQuery = `
+      INSERT INTO users (email, pwd, usertypeid, instituteid)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, email, usertypeid
+    `;
+    const userResult = await pool.query(userInsertQuery, [
+      email,
+      hashedPassword,
+      2,
+      instituteId,
+    ]);
+
+    // Commit transaction
+    await pool.query("COMMIT");
+
+    res.status(201).json({
+      message: "Institute and user created successfully",
+      instituteId,
+      user: userResult.rows[0],
+    });
+  } catch (error) {
+    await pool.query("ROLLBACK");
+    console.error("Error inserting institute and user:", error);
+    res.status(500).json({ error: "Failed to create institute and user" });
+  }
+};
