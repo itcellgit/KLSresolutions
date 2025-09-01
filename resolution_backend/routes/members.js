@@ -3,7 +3,8 @@ const router = express.Router();
 const memberController = require("../controllers/memberController");
 const authMiddleware = require("../middlewares/auth");
 
-router.get("/", authMiddleware, memberController.getAllMembers);
 router.post("/", authMiddleware, memberController.createMember);
+router.get("/", authMiddleware, memberController.getAllMembers);
+
 
 module.exports = router;

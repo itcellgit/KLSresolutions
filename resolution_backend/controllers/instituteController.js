@@ -30,7 +30,8 @@ exports.createInstitute = async (req, res) => {
 		if (!name) {
 			return res.status(400).json({ error: "Name is required" });
 		}
-		const institute = await Institute.create({ name, phone });
+	// Do NOT include id, let PostgreSQL auto-generate it
+	const institute = await Institute.create({ name, phone });
 		res.status(201).json(institute);
 	} catch (err) {
 		res.status(400).json({ error: err.message });

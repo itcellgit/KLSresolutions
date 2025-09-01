@@ -18,11 +18,12 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Assuming User.create is a Sequelize model method
+    // Do NOT include id, let PostgreSQL auto-generate it
     const user = await User.create({
       username,
       password: hashedPassword,
-      usertypeid,
+      usertypeid
+      // institute_id can be added if needed
     });
 
     res.status(201).json({ id: user.id, username: user.username });

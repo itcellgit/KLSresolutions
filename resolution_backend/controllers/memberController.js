@@ -1,4 +1,3 @@
-
 const { Member, User } = require("../models");
 
 // Get all members (admin sees all, institute admin sees only their members)
@@ -40,7 +39,13 @@ exports.createMember = async (req, res) => {
         // KLS board member (no institute_id)
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = await User.create({ username, password: hashedPassword, usertypeid, institute_id: null });
-        const member = await Member.create({ name, phone, address, userid: user.id });
+  // Do NOT include id, let PostgreSQL auto-generate it
+  const member = await Member.create({
+    name,
+    phone,
+    address,
+    userid: user.id
+  });
         return res.status(201).json({ user, member });
       } else if (usertypeid === 2) {
         // Institute admin (must have institute_id)
@@ -49,7 +54,13 @@ exports.createMember = async (req, res) => {
         }
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = await User.create({ username, password: hashedPassword, usertypeid, institute_id });
-        const member = await Member.create({ name, phone, address, userid: user.id });
+  // Do NOT include id, let PostgreSQL auto-generate it
+  const member = await Member.create({
+    name,
+    phone,
+    address,
+    userid: user.id
+  });
         return res.status(201).json({ user, member });
       } else {
         return res.status(400).json({ error: "Admin can only create KLS board members (usertypeid: 1) or institute admins (usertypeid: 2)" });
@@ -62,7 +73,13 @@ exports.createMember = async (req, res) => {
       // Use institute_id from logged-in user
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = await User.create({ username, password: hashedPassword, usertypeid, institute_id: req.user.institute_id });
-      const member = await Member.create({ name, phone, address, userid: user.id });
+  // Do NOT include id, let PostgreSQL auto-generate it
+  const member = await Member.create({
+    name,
+    phone,
+    address,
+    userid: user.id
+  });
       return res.status(201).json({ user, member });
     } else {
       return res.status(403).json({ error: "Access denied" });
