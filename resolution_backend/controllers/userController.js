@@ -43,61 +43,71 @@ exports.validateUser = async (req, res) => {
 
   try {
     // Query user by username
-    const { rows } = await query("SELECT * FROM users WHERE username = $1", [
-      username,
-    ]);
-
+    const { rows } = await query("SELECT * FROM users WHERE username = $1", [username]);
     if (rows.length === 0) {
-      return res.status(404).json({ error: "User  not found" });
+      return res.status(404).json({ error: "User not found" });
     }
-
     const user = rows[0];
 
     // Compare password with hashed password stored in DB
-    const passwordMatch = await bcrypt.compare(password, user.pwd);
+    const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
     // Prepare user details to return
-    let userDetails = { ...user };
+    let userDetails = { id: user.id, username: user.username, usertypeid: user.usertypeid, institute_id: user.institute_id };
 
-    // Fetch additional info based on user type
-    if (user.usertypeid == 2) {
-      const { rows: instituteRows } = await query(
-        "SELECT * FROM users_institute WHERE userid = $1",
-        [user.id]
-      );
-      if (instituteRows.length === 0) {
-        return res.status(404).json({ error: "Institute not found" });
+    // KLS board member (usertypeid: 1)
+    if (user.usertypeid == 1) {
+      // Optionally fetch member info if needed
+      const { rows: memberRows } = await query("SELECT * FROM members WHERE userid = $1", [user.id]);
+      if (memberRows.length > 0) {
+        userDetails.member = memberRows[0];
       }
-      userDetails.institute = instituteRows[0];
-    } else if (user.usertypeid == 3) {
-      const { rows: memberRows } = await query(
-        "SELECT * FROM members WHERE userid = $1",
-        [user.id]
-      );
-      if (memberRows.length === 0) {
-        return res.status(404).json({ error: "Member not found" });
+    }
+    // Institute admin (usertypeid: 2)
+    else if (user.usertypeid == 2) {
+      // Fetch institute info
+      const { rows: instituteRows } = await query("SELECT * FROM institutes WHERE id = $1", [user.institute_id]);
+      if (instituteRows.length > 0) {
+        userDetails.institute = instituteRows[0];
       }
-      userDetails.member = memberRows[0];
-
-      const { rows: memberRoleRows } = await query(
-        "SELECT * FROM members_role WHERE memberid = $1",
-        [memberRows[0].id]
-      );
-      if (memberRoleRows.length === 0) {
-        return res.status(404).json({ error: "Member role not found" });
+      // Optionally fetch member info
+      const { rows: memberRows } = await query("SELECT * FROM members WHERE userid = $1", [user.id]);
+      if (memberRows.length > 0) {
+        userDetails.member = memberRows[0];
       }
-      userDetails.memberrole = memberRoleRows[0];
+    }
+    // Institute member (usertypeid: 3)
+    else if (user.usertypeid == 3) {
+      // Fetch member info
+      const { rows: memberRows } = await query("SELECT * FROM members WHERE userid = $1", [user.id]);
+      if (memberRows.length > 0) {
+        userDetails.member = memberRows[0];
+      }
+      // Fetch institute info
+      if (user.institute_id) {
+        const { rows: instituteRows } = await query("SELECT * FROM institutes WHERE id = $1", [user.institute_id]);
+        if (instituteRows.length > 0) {
+          userDetails.institute = instituteRows[0];
+        }
+      }
     }
 
-    // Optionally, generate a JWT token here if you want to implement authentication tokens
-    // const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
+    // Generate JWT token
+    const token = jwt.sign({
+      id: user.id,
+      username: user.username,
+      usertypeid: user.usertypeid,
+      institute_id: user.institute_id
+    }, JWT_SECRET, { expiresIn: "1h" });
 
-    res
-      .status(200)
-      .json({ message: "Login successful", user: userDetails /*, token */ });
+    res.status(200).json({
+      message: "Login successful",
+      user: userDetails,
+      token
+    });
   } catch (err) {
     console.error("Detailed Error: ", err);
     res.status(500).json({ error: "Internal server error" });
