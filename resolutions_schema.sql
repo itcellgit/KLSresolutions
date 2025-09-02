@@ -309,3 +309,8 @@ ALTER TABLE ONLY public.users
 
 \unrestrict gMtVYalErekBPEUUspgHx3rM27whe6HIZLbbPNrtQzUirF2pUMb0mOMtwTQZ2UE
 
+
+
+INSERT INTO usertype (id, type) VALUES (1, 'admin');
+INSERT INTO usertype (id, type) VALUES (2, 'institute_admin');
+INSERT INTO usertype (id, type) VALUES (3, 'institute_member');

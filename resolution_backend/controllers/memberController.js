@@ -31,41 +31,9 @@ exports.createMember = async (req, res) => {
       return res.status(400).json({ error: "Missing required fields (name, phone, username, password, usertypeid)" });
     }
 
-    // Admin can create KLS board members (usertypeid: 1) and institute admins (usertypeid: 2)
-    // Institute admin can create institute members (usertypeid: 3) for their own institute
-    if (req.user.usertypeid === 1) {
-      // Admin creating KLS board member or institute admin
-      if (usertypeid === 1) {
-        // KLS board member (no institute_id)
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await User.create({ username, password: hashedPassword, usertypeid, institute_id: null });
-  // Do NOT include id, let PostgreSQL auto-generate it
-  const member = await Member.create({
-    name,
-    phone,
-    address,
-    userid: user.id
-  });
-        return res.status(201).json({ user, member });
-      } else if (usertypeid === 2) {
-        // Institute admin (must have institute_id)
-        if (!institute_id) {
-          return res.status(400).json({ error: "Institute admin must have institute_id" });
-        }
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await User.create({ username, password: hashedPassword, usertypeid, institute_id });
-  // Do NOT include id, let PostgreSQL auto-generate it
-  const member = await Member.create({
-    name,
-    phone,
-    address,
-    userid: user.id
-  });
-        return res.status(201).json({ user, member });
-      } else {
-        return res.status(400).json({ error: "Admin can only create KLS board members (usertypeid: 1) or institute admins (usertypeid: 2)" });
-      }
-    } else if (req.user.usertypeid === 2) {
+    // Only institute admin can create members for their own institute
+    // Main admin can create members for any institute, but must provide institute_id
+    if (req.user.usertypeid === 2) {
       // Institute admin creating institute member (usertypeid: 3)
       if (usertypeid !== 3) {
         return res.status(403).json({ error: "Institute admin can only create institute members (usertypeid: 3)" });
@@ -73,13 +41,19 @@ exports.createMember = async (req, res) => {
       // Use institute_id from logged-in user
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = await User.create({ username, password: hashedPassword, usertypeid, institute_id: req.user.institute_id });
-  // Do NOT include id, let PostgreSQL auto-generate it
-  const member = await Member.create({
-    name,
-    phone,
-    address,
-    userid: user.id
-  });
+      const member = await Member.create({ name, phone, address, userid: user.id });
+      return res.status(201).json({ user, member });
+    } else if (req.user.usertypeid === 1) {
+      // Main admin creating member (must provide institute_id)
+      if (!institute_id) {
+        return res.status(400).json({ error: "Admin must provide institute_id to create institute member" });
+      }
+      if (usertypeid !== 3) {
+        return res.status(400).json({ error: "Admin can only create institute members (usertypeid: 3) with institute_id" });
+      }
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = await User.create({ username, password: hashedPassword, usertypeid, institute_id });
+      const member = await Member.create({ name, phone, address, userid: user.id });
       return res.status(201).json({ user, member });
     } else {
       return res.status(403).json({ error: "Access denied" });
