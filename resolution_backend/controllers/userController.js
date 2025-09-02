@@ -1,7 +1,7 @@
 const { User, UserType } = require("../models");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { query } = require("../db"); // Your DB query function
+const pool = require("../db"); // <-- Corrected import
 require("dotenv").config();
 
 const JWT_SECRET = process.env.JWT_SECRET || "klsbelagavibom"; // Use env variable in production
@@ -58,6 +58,11 @@ exports.validateUser = async (req, res) => {
     if (!passwordMatch) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
+    const token = jwt.sign(
+      { id: user.id, email: user.email, usertypeid: user.usertypeid },
+      JWT_SECRET, // <-- corrected here
+      { expiresIn: "1h" }
+    );
 
     // Prepare user details to return
     let userDetails = { ...user };
@@ -97,7 +102,7 @@ exports.validateUser = async (req, res) => {
 
     res
       .status(200)
-      .json({ message: "Login successful", user: userDetails /*, token */ });
+      .json({ message: "Login successful", user: userDetails, token });
   } catch (err) {
     console.error("Detailed Error: ", err);
     res.status(500).json({ error: "Internal server error" });
@@ -118,24 +123,24 @@ exports.getAllUsers = async (req, res) => {
 //adding institute and create the user for institute admin
 
 exports.addInstituteWithUser = async (req, res) => {
-  const { name, code, phone, email } = req.body;
+  const { name, code, phone, username } = req.body;
 
-  if (!name || !code || !phone || !email) {
+  if (!name || !code || !phone || !username) {
     return res.status(400).json({ error: "All fields are required" });
   }
 
-  const defaultPassword = "defaultPassword123"; // choose your default password
+  const defaultPassword = "kls12345"; // choose your default password
   try {
     // Hash the default password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(defaultPassword, salt);
-
+    console.log(name, code, phone, username);
     // Start a transaction
     await pool.query("BEGIN");
 
     // Insert into institute table
     const instituteInsertQuery = `
-      INSERT INTO institute (name, code, phone)
+      INSERT INTO institutes (name, code, phone)
       VALUES ($1, $2, $3)
       RETURNING id
     `;
@@ -145,15 +150,15 @@ exports.addInstituteWithUser = async (req, res) => {
       phone,
     ]);
     const instituteId = instituteResult.rows[0].id;
-
+    console.log("Inserted institute with ID:", instituteId);
     // Insert into users table
     const userInsertQuery = `
-      INSERT INTO users (email, pwd, usertypeid, instituteid)
+      INSERT INTO users (username, pwd, usertypeid, instituteid)
       VALUES ($1, $2, $3, $4)
-      RETURNING id, email, usertypeid
+      RETURNING id, username, usertypeid
     `;
     const userResult = await pool.query(userInsertQuery, [
-      email,
+      username,
       hashedPassword,
       2,
       instituteId,

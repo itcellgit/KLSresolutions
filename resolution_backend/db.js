@@ -10,18 +10,4 @@ const pool = new Pool({
   port: process.env.PG_PORT,
 });
 
-// Optional: Test the connection when the app starts
-pool.connect((err, client, done) => {
-  if (err) {
-    console.error("Database connection failed", err.stack);
-  } else {
-    console.log("Connected to the PostgreSQL database!");
-  }
-  if (client) {
-    done();
-  }
-});
-
-module.exports = {
-  query: (text, params) => pool.query(text, params),
-};
+module.exports = pool;
