@@ -1,4 +1,4 @@
-const Role = require("../models/Role"); // Adjust path if needed
+const Role = require("../models/roles"); // Adjust path if needed
 
 exports.getRoles = async (req, res) => {
   try {

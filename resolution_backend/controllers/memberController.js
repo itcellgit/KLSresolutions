@@ -1,5 +1,5 @@
-const { Member, User } = require("../models");
-
+const { Member, User, } = require("../models");
+const bcrypt = require('bcrypt')
 // Get all members (admin sees all, institute admin sees only their members)
 exports.getAllMembers = async (req, res) => {
   try {
@@ -23,68 +23,63 @@ exports.getAllMembers = async (req, res) => {
 // Institute admin can add institute members
 exports.createMember = async (req, res) => {
   try {
-    const bcrypt = require("bcrypt");
-    const { name, phone, address, username, password, usertypeid, institute_id } = req.body;
+    const { name: mName, phone: mPhone, address: mAddress, username: mUsername, password: mPassword } = req.body;
 
     // Validate required fields
-    if (!name || !phone || !username || !password || !usertypeid) {
-      return res.status(400).json({ error: "Missing required fields (name, phone, username, password, usertypeid)" });
+    if (!mName || !mPhone || !mUsername || !mPassword) {
+      return res.status(400).json({ error: "Missing required fields (name, phone, username, password)" });
     }
 
     // Only main admin can create members
-    const { role_id, level, tenure, status } = req.body;
     if (req.user.usertypeid !== 1) {
       return res.status(403).json({ error: "Only main admin can create members" });
     }
-    // Main admin creating member (must provide institute_id)
-    if (!institute_id) {
-      return res.status(400).json({ error: "Admin must provide institute_id to create institute member" });
-    }
-    if (usertypeid !== 3) {
-      return res.status(400).json({ error: "Admin can only create institute members (usertypeid: 3) with institute_id" });
-    }
-    if (!role_id || !tenure || !status) {
-      return res.status(400).json({ error: "role_id, tenure, and status are required" });
-    }
-    const bcrypt = require("bcrypt");
+    // usertypeid is always 3 for members
+    const mUsertypeid = 3;
     // Check if user already exists
-    let user = await User.findOne({ where: { username } });
+    let user = await User.findOne({ where: { username: mUsername } });
     if (!user) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      user = await User.create({ username, password: hashedPassword, usertypeid, institute_id });
+      const hashedPassword = await bcrypt.hash(mPassword, 10);
+      user = await User.create({ username: mUsername, password: hashedPassword, usertypeid: mUsertypeid });
     }
     // Create member for this user if not exists
     let member = await Member.findOne({ where: { userid: user.id } });
     if (!member) {
-      member = await Member.create({ name, phone, address, userid: user.id });
+      member = await Member.create({ name: mName, phone: mPhone, address: mAddress, userid: user.id });
     }
-    // Check if member_role already exists for this member, role, and institute
+    return res.status(201).json({ user, member });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+// Assign role to a member for an institute
+exports.assignRole = async (req, res) => {
+  try {
+    const { member_id, role_id, institute_id, level, tenure, status } = req.body;
+    if (!member_id || !role_id || !institute_id || !tenure || !status) {
+      return res.status(400).json({ error: "member_id, role_id, institute_id, tenure, and status are required" });
+    }
     const MemberRole = require("../models").MemberRole;
     let memberRole = await MemberRole.findOne({
-      where: {
-        member_id: member.id,
-        role_id,
-        institute_id
-      }
+      where: { member_id, role_id, institute_id }
     });
     if (memberRole) {
-      // Update existing member_role
       memberRole.level = level || memberRole.level;
       memberRole.tenure = tenure || memberRole.tenure;
       memberRole.status = status || memberRole.status;
       await memberRole.save();
-      return res.status(200).json({ user, member, memberRole, message: "Role updated for existing member" });
+      return res.status(200).json({ memberRole, message: "Role updated for existing member" });
     } else {
-      // Create new member_role entry
       memberRole = await MemberRole.create({
-        member_id: member.id,
+        member_id,
         role_id,
         institute_id,
         level: level || '',
         tenure,
         status
       });
-      return res.status(201).json({ user, member, memberRole, message: "New role added for member" });
+      return res.status(201).json({ memberRole, message: "New role assigned to member" });
     }
   } catch (err) {
     res.status(400).json({ error: err.message });
