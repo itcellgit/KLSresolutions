@@ -33,16 +33,30 @@ exports.createMember = async (req, res) => {
 
     // Only institute admin can create members for their own institute
     // Main admin can create members for any institute, but must provide institute_id
+    const { role_id, level, tenure, status } = req.body;
     if (req.user.usertypeid === 2) {
       // Institute admin creating institute member (usertypeid: 3)
       if (usertypeid !== 3) {
         return res.status(403).json({ error: "Institute admin can only create institute members (usertypeid: 3)" });
       }
+      if (!role_id || !tenure || !status) {
+        return res.status(400).json({ error: "role_id, tenure, and status are required" });
+      }
       // Use institute_id from logged-in user
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = await User.create({ username, password: hashedPassword, usertypeid, institute_id: req.user.institute_id });
       const member = await Member.create({ name, phone, address, userid: user.id });
-      return res.status(201).json({ user, member });
+      // Create member_role entry
+      const MemberRole = require("../models").MemberRole;
+      const memberRole = await MemberRole.create({
+        member_id: member.id,
+        role_id,
+        institute_id: req.user.institute_id,
+        level: level || '',
+        tenure,
+        status
+      });
+      return res.status(201).json({ user, member, memberRole });
     } else if (req.user.usertypeid === 1) {
       // Main admin creating member (must provide institute_id)
       if (!institute_id) {
@@ -51,10 +65,23 @@ exports.createMember = async (req, res) => {
       if (usertypeid !== 3) {
         return res.status(400).json({ error: "Admin can only create institute members (usertypeid: 3) with institute_id" });
       }
+      if (!role_id || !tenure || !status) {
+        return res.status(400).json({ error: "role_id, tenure, and status are required" });
+      }
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = await User.create({ username, password: hashedPassword, usertypeid, institute_id });
       const member = await Member.create({ name, phone, address, userid: user.id });
-      return res.status(201).json({ user, member });
+      // Create member_role entry
+      const MemberRole = require("../models").MemberRole;
+      const memberRole = await MemberRole.create({
+        member_id: member.id,
+        role_id,
+        institute_id,
+        level: level || '',
+        tenure,
+        status
+      });
+      return res.status(201).json({ user, member, memberRole });
     } else {
       return res.status(403).json({ error: "Access denied" });
     }

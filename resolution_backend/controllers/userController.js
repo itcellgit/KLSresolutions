@@ -44,9 +44,7 @@ exports.validateUser = async (req, res) => {
 
   try {
     // Query user by username
-    const user = await User.findOne({
-      where: { username },
-    });
+    const user = await User.findOne({ where: { username } });
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -56,11 +54,6 @@ exports.validateUser = async (req, res) => {
     if (!passwordMatch) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
-    // const token1 = jwt.sign(
-    //   { id: user.id, email: user.email, usertypeid: user.usertypeid },
-    //   JWT_SECRET, // <-- corrected here
-    //   { expiresIn: "1h" }
-    // );
 
     // Prepare user details to return
     let userDetails = {
@@ -69,77 +62,44 @@ exports.validateUser = async (req, res) => {
       usertypeid: user.usertypeid,
       institute_id: user.institute_id,
     };
-    // Generate JWT token
-    const token = jwt.sign(
-      {
-        id: user.id,
-        username: user.username,
-        usertypeid: user.usertypeid,
-        institute_id: user.institute_id,
-      },
-      JWT_SECRET,
-      { expiresIn: "1h" }
-    );
 
-    // Institute admin (usertypeid: 2)
-    if (user.usertypeid == 2) {
-      // Fetch institute info
-
-      const institute = await institute.findOne({
-        where: { id: user.institute_id },
-      });
-
-      res.status(200).json({
-        message: "Login successful",
-        user: userDetails,
-        institute: institute.rows[0],
-        token,
-      });
-    } else if (user.usertypeid == 3) {
-      // Optionally fetch member info
-      const { rows: member } = await pool.query(
-        "SELECT * FROM members WHERE userid = $1",
-        [user.id]
+    // Fetch all member_role associations for this user
+    const memberRows = await pool.query("SELECT * FROM members WHERE userid = $1", [user.id]);
+    let memberRolesWithInstitute = [];
+    if (memberRows.rows.length > 0) {
+      const memberId = memberRows.rows[0].id;
+      // Get all roles for this member
+      const memberRoles = await pool.query(
+        `SELECT mr.*, r.role_name, i.name as institute_name, i.id as institute_id
+         FROM member_role mr
+         JOIN roles r ON mr.role_id = r.id
+         LEFT JOIN institutes i ON mr.institute_id = i.id
+         WHERE mr.member_id = $1 AND mr.status = 'active'`,
+        [memberId]
       );
-      if (member) {
-        // Fetch active member roles
-
-        const { rows: member_roles } = await pool.query(
-          "SELECT * FROM member_role WHERE member_id = $1 AND status = 'active'",
-          [member.id]
-        );
-
-        // For each member_role, add institute details if institute_id is not null
-        const memberRolesWithInstitute = [];
-        for (const role of member_roles.rows) {
-          let roleWithInstitute = { ...role };
-          if (role.institute_id) {
-            const instituteResult = await pool.query(
-              "SELECT * FROM institutes WHERE id = $1",
-              [role.institute_id]
-            );
-            if (instituteResult.rows.length > 0) {
-              roleWithInstitute.institute = instituteResult.rows[0];
-            }
-          }
-          memberRolesWithInstitute.push(roleWithInstitute);
-        }
-
-        // Add to response
-        userDetails.member = member;
-        userDetails.member_roles = memberRolesWithInstitute;
-        res.status(200).json({
-          message: "Login successful",
-          user: userDetails,
-          memberRolesWithInstitute,
-          token,
-        });
-      }
+      memberRolesWithInstitute = memberRoles.rows.map(role => ({
+        role_id: role.role_id,
+        role_name: role.role_name,
+        institute_id: role.institute_id,
+        institute_name: role.institute_name,
+        level: role.level,
+        tenure: role.tenure,
+        status: role.status
+      }));
     }
+
+    // Generate JWT token
+    const token = jwt.sign({
+      id: user.id,
+      username: user.username,
+      usertypeid: user.usertypeid,
+      institute_id: user.institute_id,
+    }, JWT_SECRET, { expiresIn: "1h" });
 
     res.status(200).json({
       message: "Login successful",
       user: userDetails,
+      roles: memberRolesWithInstitute,
       token,
     });
   } catch (err) {
