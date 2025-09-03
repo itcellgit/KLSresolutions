@@ -1,67 +1,53 @@
 // Login.js
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser } from "../../redux/authSlice";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const { login, loading } = useAuth();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { user, loading, error: loginError } = useSelector((state) => state.auth);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(""); // Clear any previous errors
-
-    try {
-      const response = await fetch("/api/user/validateUser", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username: email, password: password }),
-      });
-
-      const data = await response.json();
-      setError(data.error || "Login failed. Please check your credentials.");
-      console.log("Response data:", data);
-      if (response.ok) {
-        // Handle successful login
-        console.log("Login successful:");
-        sessionStorage.setItem("token", data.token);
-        // You might store the user data or a token in localStorage or context
-        // localStorage.setItem('user', JSON.stringify(data.user));
-        // Redirect the user based on their user type
+    setError("");
+    dispatch(loginUser({ username: email, password }))
+      .unwrap()
+      .then((data) => {
+        // Redirect based on user type from login API
         if (data.user.usertypeid === 1) {
           navigate("/klsadmin/dashboard");
-        } //else {
-        //   navigate('/user-dashboard');
-        // }
-      } else {
-        // Handle login errors from the backend
-        setError(data.error || "Login failed. Please check your credentials.");
-      }
-    } catch (err) {
-      console.error("Login error:", JSON.stringify(err, null, 2));
-      setError("An error occurred. Please try again.");
-    }
+        } else if (data.user.usertypeid === 2) {
+          navigate("/instituteadmin/dashboard");
+        } else if (data.user.usertypeid === 3) {
+          navigate("/member/dashboard");
+        } else {
+          navigate("/login");
+        }
+      })
+      .catch((err) => {
+        setError(err);
+      });
   };
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-2xl">
         <h2 className="mb-6 text-2xl font-bold text-center text-gray-800">
           Login
         </h2>
-
-        {error && (
+        {(error || loginError) && (
           <div className="p-2 mb-4 text-sm font-medium text-red-600 bg-red-100 rounded">
-            {error}
+            {error || loginError}
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -127,19 +113,11 @@ const Login = () => {
           <button
             type="submit"
             className="w-full py-2 font-semibold text-white transition duration-200 bg-indigo-600 rounded-lg hover:bg-indigo-700"
+            disabled={loading}
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
-        {/* <p className="mt-6 text-sm text-center text-gray-600">
-          Don’t have an account?{" "}
-          <a
-            href="/register"
-            className="font-medium text-indigo-600 hover:underline"
-          >
-            Register
-          </a>
-        </p> */}
       </div>
     </div>
   );

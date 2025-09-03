@@ -1,9 +1,13 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useSelector, useDispatch } from "react-redux";
+import { logoutUser } from "../redux/authSlice";
+import { useNavigate } from "react-router-dom";
 
 const Sidebar = () => {
-  const { currentUser } = useAuth();
+  const user = useSelector((state) => state.auth.user);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const location = useLocation();
   const navigation = [
     {
@@ -120,6 +124,12 @@ const Sidebar = () => {
       //authRequired: true,
     },
   ];
+
+  const handleLogout = () => {
+    dispatch(logoutUser());
+    navigate("/login");
+  };
+
   return (
     <div className="hidden md:flex md:flex-shrink-0">
       <div className="flex flex-col w-64 bg-black border-r border-gray-800">
@@ -139,7 +149,7 @@ const Sidebar = () => {
           <nav className="flex-1 px-2 mt-5 space-y-1">
             {navigation.map((item) => {
               // Skip items that require auth if user is not authenticated
-              if (item.authRequired && !currentUser) return null;
+              if (item.authRequired && !user) return null;
               return (
                 <Link
                   key={item.name}
@@ -158,6 +168,12 @@ const Sidebar = () => {
               );
             })}
           </nav>
+          <button
+            onClick={handleLogout}
+            className="w-full py-2 mt-4 font-semibold text-white transition duration-200 bg-indigo-600 rounded-lg hover:bg-indigo-700"
+          >
+            Logout
+          </button>
         </div>
       </div>
     </div>

@@ -1,5 +1,11 @@
+
 // pages/MemberRoleManagementPage.js
 import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
+import { getMembers } from "../../api/members";
+import { getRoles } from "../../api/roles";
+import { getInstitutes } from "../../api/institutes";
+import { assignRole } from "../../api/memberRole";
 
 const MemberRoleManagementPage = () => {
   // State for modal visibility
@@ -24,7 +30,48 @@ const MemberRoleManagementPage = () => {
 
   // State for member roles (will be populated from backend)
   const [memberRoles, setMemberRoles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const token = useSelector((state) => state.auth.token) || localStorage.getItem("token");
 
+  // Debug: Log dropdown data whenever it changes
+  useEffect(() => {
+    console.log('Dropdown members:', members);
+    console.log('Dropdown roles:', roles);
+    console.log('Dropdown institutes:', institutes);
+  }, [members, roles, institutes]);
+
+  // Debug: Log dropdown data whenever it changes
+  useEffect(() => {
+    console.log('Dropdown members:', members);
+    console.log('Dropdown roles:', roles);
+    console.log('Dropdown institutes:', institutes);
+  }, [members, roles, institutes]);
+
+  // Fetch dropdown data
+  useEffect(() => {
+    const fetchDropdowns = async () => {
+      setLoading(true);
+      try {
+        const [membersData, rolesData, institutesData] = await Promise.all([
+          getMembers(token),
+          getRoles(token),
+          getInstitutes(token),
+        ]);
+        console.log('Fetched members:', membersData);
+        console.log('Fetched roles:', rolesData);
+        console.log('Fetched institutes:', institutesData);
+        setMembers(membersData);
+        setRoles(rolesData);
+        setInstitutes(institutesData);
+      } catch (err) {
+        setError("Failed to load dropdowns");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDropdowns();
+  }, [token]);
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -35,31 +82,38 @@ const MemberRoleManagementPage = () => {
   };
 
   // Handle form submission (placeholder for backend integration)
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Basic validation
-    if (
-      !formData.member_id ||
-      !formData.role_id ||
-      !formData.level ||
-      !formData.tenure
-    ) {
+    if (!formData.member_id || !formData.role_id || !formData.level || !formData.tenure) {
       alert("Please fill all required fields");
       return;
     }
-    // Placeholder for backend integration
-    console.log("Form submitted:", formData);
-    alert("This functionality will be implemented with backend integration");
-    // Reset form and close modal
-    setFormData({
-      member_id: "",
-      role_id: "",
-      level: "",
-      institute_id: "",
-      tenure: "",
-    });
-    setEditingId(null);
-    setIsModalOpen(false);
+    setLoading(true);
+    setError(null);
+    try {
+      // If institute_id is empty, treat as KLS Board assignment
+      const payload = {
+        ...formData,
+        institute_id: formData.institute_id || null,
+        status: "active"
+      };
+      await assignRole(payload, token);
+      alert("Role assigned successfully");
+      setFormData({
+        member_id: "",
+        role_id: "",
+        level: "",
+        institute_id: "",
+        tenure: "",
+      });
+      setEditingId(null);
+      setIsModalOpen(false);
+    } catch (err) {
+      setError(err.message || "Failed to assign role");
+      alert(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle edit button click (placeholder)
@@ -533,9 +587,7 @@ const MemberRoleManagementPage = () => {
                           onChange={handleInputChange}
                           className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         >
-                          <option value="">
-                            Select an institute (optional)
-                          </option>
+                          <option value="">KLS Board (No Institute)</option>
                           {institutes.map((institute) => (
                             <option key={institute.id} value={institute.id}>
                               {institute.name}

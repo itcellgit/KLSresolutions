@@ -1,13 +1,15 @@
 import React from "react";
-import { useAuth } from "../context/AuthContext";
+import { useSelector, useDispatch } from "react-redux";
+import { logoutUser } from "../redux/authSlice";
 import { useNavigate } from "react-router-dom";
 
 const Header = ({ toggleSidebar }) => {
-  const { currentUser, logout } = useAuth();
+  const user = useSelector((state) => state.auth.user);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
+    dispatch(logoutUser());
     navigate("/login");
   };
 
@@ -41,27 +43,11 @@ const Header = ({ toggleSidebar }) => {
           </div>
         </div>
 
-        {/* {currentUser && (
-          <div className="flex items-center">
-            <div className="hidden md:block">
-              <span className="mr-4 text-sm text-gray-600">
-                Welcome, {currentUser.email}
-              </span>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 ml-4 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Logout
-            </button>
-          </div>
-        )} */}
-
         <div className="flex items-center">
-          {currentUser && (
+          {user && (
             <div className="hidden md:block">
               <span className="mr-4 text-sm text-gray-600">
-                Welcome, {currentUser.email}
+                Welcome, {user.username}
               </span>
             </div>
           )}

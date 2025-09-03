@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
 import Layout from "../../components/Layout";
+import {
+  getMembers,
+  createMember,
+  updateMember,
+  deleteMember,
+} from "../../api/members";
+import { useSelector } from "react-redux";
 
 const Members = () => {
   // State for managing members - now empty array for dynamic data
@@ -15,56 +22,25 @@ const Members = () => {
   const [formData, setFormData] = useState({
     id: null,
     name: "",
-    phone: "", // Phone (optional)
-    address: "", // Address (optional)
+    phone: "",
+    address: "",
+    username: "",
+    password: "",
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const token = useSelector((state) => state.auth.token) || localStorage.getItem("token");
 
   // Fetch members from backend
   const fetchMembers = async () => {
     setLoading(true);
     setError(null);
     try {
-      const token = sessionStorage.getItem("token"); // or your auth logic
-      // Replace with your actual API endpoint
-      const response = await fetch("/api/members", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      console.log("Fetch response:", response);
-
-      // Check if the response is successful
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch members: ${response.status} ${response.statusText}`
-        );
-      }
-
-      const data = await response.json();
-
-      // Set members data (even if it's an empty array)
+      const data = await getMembers(token);
       setMembers(data);
-
-      // Only show error if there was an actual fetch error
-      // Empty array (0 members) is not an error
     } catch (err) {
-      console.error("Error fetching members:", err);
-      // Only set error state if it's a network error or server error
-      // Not for empty results
-      if (
-        err.message.includes("Failed to fetch") ||
-        err.message.includes("NetworkError")
-      ) {
-        setError(
-          "Network error: Could not connect to the server. Please check your connection."
-        );
-      } else if (!err.message.includes("Failed to fetch members: 404")) {
-        // Don't show error for 404 (not found) as that might mean no members exist yet
-        setError(err.message);
-      }
+      setError(err.message || "Failed to fetch members");
     } finally {
       setLoading(false);
     }
@@ -84,8 +60,10 @@ const Members = () => {
     setFormData({
       id: null,
       name: "",
-      phone: "", // Reset phone field
-      address: "", // Reset address field
+      phone: "",
+      address: "",
+      username: "",
+      password: "",
     });
     setIsModalOpen(false);
     setIsEditing(false);
@@ -96,8 +74,10 @@ const Members = () => {
     setFormData({
       id: null,
       name: "",
-      phone: "", // Reset phone field
-      address: "", // Reset address field
+      phone: "",
+      address: "",
+      username: "",
+      password: "",
     });
     setIsEditing(false);
     setIsModalOpen(true);
@@ -113,25 +93,15 @@ const Members = () => {
   // Handle form submission (both add and edit)
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Basic validation - only name is required
-    if (!formData.name.trim()) {
-      alert("Please fill all required fields");
+    if (!formData.name.trim() || !formData.phone.trim() || !formData.username.trim() || !formData.password.trim()) {
+      alert("Please fill all required fields: name, phone, username, password");
       return;
     }
 
     try {
       if (isEditing) {
         // Update existing member
-        const response = await fetch(`/api/members/${formData.id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        });
-        if (!response.ok) {
-          throw new Error("Failed to update member");
-        }
+        await updateMember(formData.id, formData, token);
         // Update local state
         setMembers(
           members.map((member) =>
@@ -140,18 +110,7 @@ const Members = () => {
         );
       } else {
         // Create new member
-        const response = await fetch("/api/members", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${sessionStorage.getItem("token")}`, // Or however you handle auth
-          },
-          body: JSON.stringify(formData),
-        });
-        if (!response.ok) {
-          throw new Error("Failed to create member");
-        }
-        const newMember = await response.json();
+        const newMember = await createMember(formData, token);
         // Add to members list
         setMembers([...members, newMember]);
       }
@@ -159,7 +118,6 @@ const Members = () => {
       resetForm();
     } catch (err) {
       setError(err.message);
-      console.error("Error saving member:", err);
       alert(`Error: ${err.message}`);
     }
   };
@@ -168,17 +126,11 @@ const Members = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this member?")) {
       try {
-        const response = await fetch(`/api/members/${id}`, {
-          method: "DELETE",
-        });
-        if (!response.ok) {
-          throw new Error("Failed to delete member");
-        }
+        await deleteMember(id, token);
         // Update local state
         setMembers(members.filter((member) => member.id !== id));
       } catch (err) {
         setError(err.message);
-        console.error("Error deleting member:", err);
         alert(`Error: ${err.message}`);
       }
     }
@@ -389,6 +341,18 @@ const Members = () => {
                   </th>
                   <th
                     scope="col"
+                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                  >
+                    Username
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                  >
+                    User Type
+                  </th>
+                  <th
+                    scope="col"
                     className="px-6 py-4 text-xs font-medium tracking-wider text-right text-gray-500 uppercase"
                   >
                     Actions
@@ -398,7 +362,7 @@ const Members = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center">
+                    <td colSpan="7" className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center">
                         <div className="w-12 h-12 mb-4 border-t-2 border-b-2 border-indigo-500 rounded-full animate-spin"></div>
                         <h3 className="mb-1 text-lg font-medium text-gray-900">
@@ -416,6 +380,14 @@ const Members = () => {
                       <td className="px-6 py-4">{member.name}</td>
                       <td className="px-6 py-4">{member.phone || "-"}</td>
                       <td className="px-6 py-4">{member.address || "-"}</td>
+                      <td className="px-6 py-4">{member.username}</td>
+                      <td className="px-6 py-4">
+                        {member.usertypeid === "1"
+                          ? "KLS Board Admin"
+                          : member.usertypeid === "2"
+                          ? "Institute Admin"
+                          : "Institute Member"}
+                      </td>
                       <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => openEditModal(member)}
@@ -462,7 +434,7 @@ const Members = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center">
+                    <td colSpan="7" className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -568,118 +540,78 @@ const Members = () => {
                 <div className="px-6 py-5 bg-white">
                   <form onSubmit={handleSubmit}>
                     <div className="mb-5">
-                      <label
-                        htmlFor="name"
-                        className="block mb-2 text-sm font-medium text-gray-700"
-                      >
+                      <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-700">
                         Member Name <span className="text-red-500">*</span>
                       </label>
-                      <div className="relative rounded-md shadow-sm">
-                        <input
-                          type="text"
-                          id="name"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleInputChange}
-                          className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                          placeholder="Enter member name"
-                          required
-                        />
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="w-5 h-5 text-gray-400"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                            />
-                          </svg>
-                        </div>
-                      </div>
+                      <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        placeholder="Enter member name"
+                        required
+                      />
                     </div>
-                    {/* Phone field */}
                     <div className="mb-5">
-                      <label
-                        htmlFor="phone"
-                        className="block mb-2 text-sm font-medium text-gray-700"
-                      >
-                        Phone
+                      <label htmlFor="phone" className="block mb-2 text-sm font-medium text-gray-700">
+                        Phone <span className="text-red-500">*</span>
                       </label>
-                      <div className="relative rounded-md shadow-sm">
-                        <input
-                          type="tel"
-                          id="phone"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleInputChange}
-                          className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                          placeholder="Enter phone number"
-                        />
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="w-5 h-5 text-gray-400"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                            />
-                          </svg>
-                        </div>
-                      </div>
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        placeholder="Enter phone number"
+                        required
+                      />
                     </div>
-                    {/* Address field */}
-                    <div className="mb-6">
-                      <label
-                        htmlFor="address"
-                        className="block mb-2 text-sm font-medium text-gray-700"
-                      >
+                    <div className="mb-5">
+                      <label htmlFor="address" className="block mb-2 text-sm font-medium text-gray-700">
                         Address
                       </label>
-                      <div className="relative rounded-md shadow-sm">
-                        <textarea
-                          id="address"
-                          name="address"
-                          value={formData.address}
-                          onChange={handleInputChange}
-                          rows={3}
-                          className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                          placeholder="Enter address (optional)"
-                        />
-                        <div className="absolute inset-y-0 right-0 flex items-start pt-3 pr-3 pointer-events-none">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="w-5 h-5 text-gray-400"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                            />
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                            />
-                          </svg>
-                        </div>
-                      </div>
+                      <textarea
+                        id="address"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleInputChange}
+                        rows={3}
+                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        placeholder="Enter address (optional)"
+                      />
+                    </div>
+                    <div className="mb-5">
+                      <label htmlFor="username" className="block mb-2 text-sm font-medium text-gray-700">
+                        Username (Email) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        id="username"
+                        name="username"
+                        value={formData.username}
+                        onChange={handleInputChange}
+                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        placeholder="Enter email"
+                        required
+                      />
+                    </div>
+                    <div className="mb-5">
+                      <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-700">
+                        Password <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        placeholder="Enter password"
+                        required
+                      />
                     </div>
                     <div className="flex justify-end space-x-4">
                       <button

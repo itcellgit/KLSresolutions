@@ -5,7 +5,8 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { Provider, useSelector } from "react-redux";
+import store from "./redux/store";
 import Login from "./components/auth/Login";
 import Register from "./components/auth/Register";
 import DashboardPage from "./pages/DashboardPage";
@@ -15,20 +16,17 @@ import AssignRole from "./pages/klsadmin/AssignRole";
 import MemberRole from "./pages/klsadmin/MemberRole";
 import GCResolution from "./pages/klsadmin/GCResolution";
 import BOMResolutions from "./pages/klsadmin/BOMResolutions";
-
 import Layout from "./components/Layout";
 
-// Member pages (create these files in your pages/member folder)
-
-// ✅ Private route wrapper
+// Private route wrapper using Redux
 function PrivateRoute({ children }) {
-  const { currentUser } = useAuth();
-  return currentUser ? children : <Navigate to="/login" />;
+  const { user } = useSelector((state) => state.auth);
+  return user ? children : <Navigate to="/login" />;
 }
 
 function App() {
   return (
-    <AuthProvider>
+    <Provider store={store}>
       <Router>
         <Routes>
           {/* Public routes */}
@@ -39,9 +37,11 @@ function App() {
           <Route
             path="/klsadmin/institutes"
             element={
-              <Layout>
-                <InstitutePage />
-              </Layout>
+              <PrivateRoute>
+                <Layout>
+                  <InstitutePage />
+                </Layout>
+              </PrivateRoute>
             }
           />
           <Route
@@ -112,7 +112,7 @@ function App() {
           <Route path="*" element={<Navigate to="/klsadmin/dashboard" />} />
         </Routes>
       </Router>
-    </AuthProvider>
+    </Provider>
   );
 }
 

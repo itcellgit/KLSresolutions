@@ -1,9 +1,9 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useSelector } from "react-redux";
 
 const memberSidebar = () => {
-  const { currentUser } = useAuth();
+  const user = useSelector((state) => state.auth.user);
   const location = useLocation();
   const navigation = [
     {
@@ -74,7 +74,7 @@ const memberSidebar = () => {
           <nav className="flex-1 px-2 mt-5 space-y-1">
             {navigation.map((item) => {
               // Skip items that require auth if user is not authenticated
-              if (item.authRequired && !currentUser) return null;
+              if (item.authRequired && !user) return null;
               return (
                 <Link
                   key={item.name}
