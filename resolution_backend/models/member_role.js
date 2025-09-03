@@ -25,6 +25,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING(128),
         allowNull: false,
       },
+      status: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+      },
     },
     {
       tableName: "member_role",

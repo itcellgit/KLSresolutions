@@ -5,6 +5,7 @@ module.exports = (sequelize, DataTypes) => {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
+        autoIncrement: true,
       },
       name: {
         type: DataTypes.STRING(256),
@@ -12,6 +13,10 @@ module.exports = (sequelize, DataTypes) => {
       },
       phone: {
         type: DataTypes.BIGINT,
+      },
+      code: {
+        type: DataTypes.STRING(10), // Added code column
+        allowNull: true,
       },
     },
     {

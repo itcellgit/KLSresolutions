@@ -1,8 +1,15 @@
 const { Sequelize, DataTypes } = require("sequelize");
-const sequelize = new Sequelize("your_db_name", "your_user", "your_password", {
-  host: "localhost",
-  dialect: "postgres",
-});
+require("dotenv").config();
+const sequelize = new Sequelize(
+  process.env.PG_DATABASE,
+  process.env.PG_USER,
+  process.env.PG_PASSWORD,
+  {
+    host: process.env.PG_HOST,
+    port: process.env.PG_PORT,
+    dialect: "postgres",
+  }
+);
 
 const UserType = require("./usertype")(sequelize, DataTypes);
 const User = require("./users")(sequelize, DataTypes);
@@ -22,6 +29,18 @@ Institute.hasMany(GCResolution, { foreignKey: "institute_id" });
 GCResolution.belongsTo(Institute, { foreignKey: "institute_id" });
 GCResolution.hasMany(BOMResolution, { foreignKey: "gc_resolution_id" });
 BOMResolution.belongsTo(GCResolution, { foreignKey: "gc_resolution_id" });
+Institute.hasMany(User, { foreignKey: "institute_id" });
+User.belongsTo(Institute, { foreignKey: "institute_id" });
+
+// Sync database
+sequelize
+  .sync({ alter: true }) // or { force: true } to drop and recreate tables
+  .then(() => {
+    console.log("Database synced!");
+  })
+  .catch((err) => {
+    console.error("Sync error:", err);
+  });
 
 // Export models and sequelize instance
 module.exports = {

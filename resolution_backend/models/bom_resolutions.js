@@ -5,6 +5,7 @@ module.exports = (sequelize, DataTypes) => {
       id: {
         type: DataTypes.BIGINT,
         primaryKey: true,
+        autoIncrement:true,
       },
       agenda: {
         type: DataTypes.TEXT,

@@ -1,4 +1,4 @@
-const { User, UserType } = require("../models");
+const { User, UserType, members, member_role } = require("../models");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("../db"); // <-- Corrected import
@@ -18,11 +18,12 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Assuming User.create is a Sequelize model method
+    // Do NOT include id, let PostgreSQL auto-generate it
     const user = await User.create({
       username,
       password: hashedPassword,
       usertypeid,
+      // institute_id can be added if needed
     });
 
     res.status(201).json({ id: user.id, username: user.username });
@@ -43,66 +44,104 @@ exports.validateUser = async (req, res) => {
 
   try {
     // Query user by username
-    const { rows } = await query("SELECT * FROM users WHERE username = $1", [
-      username,
-    ]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ error: "User  not found" });
+    const user = await User.findOne({
+      where: { username },
+    });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
     }
 
-    const user = rows[0];
-
     // Compare password with hashed password stored in DB
-    const passwordMatch = await bcrypt.compare(password, user.pwd);
+    const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
+    // const token1 = jwt.sign(
+    //   { id: user.id, email: user.email, usertypeid: user.usertypeid },
+    //   JWT_SECRET, // <-- corrected here
+    //   { expiresIn: "1h" }
+    // );
+
+    // Prepare user details to return
+    let userDetails = {
+      id: user.id,
+      username: user.username,
+      usertypeid: user.usertypeid,
+      institute_id: user.institute_id,
+    };
+    // Generate JWT token
     const token = jwt.sign(
-      { id: user.id, email: user.email, usertypeid: user.usertypeid },
-      JWT_SECRET, // <-- corrected here
+      {
+        id: user.id,
+        username: user.username,
+        usertypeid: user.usertypeid,
+        institute_id: user.institute_id,
+      },
+      JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    // Prepare user details to return
-    let userDetails = { ...user };
-
-    // Fetch additional info based on user type
+    // Institute admin (usertypeid: 2)
     if (user.usertypeid == 2) {
-      const { rows: instituteRows } = await query(
-        "SELECT * FROM users_institute WHERE userid = $1",
-        [user.id]
-      );
-      if (instituteRows.length === 0) {
-        return res.status(404).json({ error: "Institute not found" });
-      }
-      userDetails.institute = instituteRows[0];
+      // Fetch institute info
+
+      const institute = await institute.findOne({
+        where: { id: user.institute_id },
+      });
+
+      res.status(200).json({
+        message: "Login successful",
+        user: userDetails,
+        institute: institute.rows[0],
+        token,
+      });
     } else if (user.usertypeid == 3) {
-      const { rows: memberRows } = await query(
+      // Optionally fetch member info
+      const { rows: member } = await pool.query(
         "SELECT * FROM members WHERE userid = $1",
         [user.id]
       );
-      if (memberRows.length === 0) {
-        return res.status(404).json({ error: "Member not found" });
-      }
-      userDetails.member = memberRows[0];
+      if (member) {
+        // Fetch active member roles
 
-      const { rows: memberRoleRows } = await query(
-        "SELECT * FROM members_role WHERE memberid = $1",
-        [memberRows[0].id]
-      );
-      if (memberRoleRows.length === 0) {
-        return res.status(404).json({ error: "Member role not found" });
+        const { rows: member_roles } = await pool.query(
+          "SELECT * FROM member_role WHERE member_id = $1 AND status = 'active'",
+          [member.id]
+        );
+
+        // For each member_role, add institute details if institute_id is not null
+        const memberRolesWithInstitute = [];
+        for (const role of member_roles.rows) {
+          let roleWithInstitute = { ...role };
+          if (role.institute_id) {
+            const instituteResult = await pool.query(
+              "SELECT * FROM institutes WHERE id = $1",
+              [role.institute_id]
+            );
+            if (instituteResult.rows.length > 0) {
+              roleWithInstitute.institute = instituteResult.rows[0];
+            }
+          }
+          memberRolesWithInstitute.push(roleWithInstitute);
+        }
+
+        // Add to response
+        userDetails.member = member;
+        userDetails.member_roles = memberRolesWithInstitute;
+        res.status(200).json({
+          message: "Login successful",
+          user: userDetails,
+          memberRolesWithInstitute,
+          token,
+        });
       }
-      userDetails.memberrole = memberRoleRows[0];
     }
 
-    // Optionally, generate a JWT token here if you want to implement authentication tokens
-    // const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
-
-    res
-      .status(200)
-      .json({ message: "Login successful", user: userDetails, token });
+    res.status(200).json({
+      message: "Login successful",
+      user: userDetails,
+      token,
+    });
   } catch (err) {
     console.error("Detailed Error: ", err);
     res.status(500).json({ error: "Internal server error" });
@@ -123,12 +162,12 @@ exports.getAllUsers = async (req, res) => {
 //adding institute and create the user for institute admin
 
 exports.addInstituteWithUser = async (req, res) => {
-  const { name, code, phone, username } = req.body;
+  const { name, code, phone, email } = req.body;
 
-  if (!name || !code || !phone || !username) {
+  if (!name || !code || !phone || !email) {
     return res.status(400).json({ error: "All fields are required" });
   }
-
+  const username = email;
   const defaultPassword = "kls12345"; // choose your default password
   try {
     // Hash the default password
@@ -153,7 +192,7 @@ exports.addInstituteWithUser = async (req, res) => {
     console.log("Inserted institute with ID:", instituteId);
     // Insert into users table
     const userInsertQuery = `
-      INSERT INTO users (username, pwd, usertypeid, instituteid)
+      INSERT INTO users (username, password, usertypeid, institute_id)
       VALUES ($1, $2, $3, $4)
       RETURNING id, username, usertypeid
     `;
