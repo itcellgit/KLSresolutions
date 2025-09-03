@@ -1,3 +1,4 @@
+
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
@@ -16,5 +17,11 @@ router.post(
   authMiddleware,
   userController.addInstituteWithUser
 );
+
+// Forgot password (send OTP)
+router.post("/forgotPassword", userController.forgotPassword);
+
+// Reset password (with OTP)
+router.post("/resetPassword", userController.resetPassword);
 
 module.exports = router;

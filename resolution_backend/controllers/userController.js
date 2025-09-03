@@ -1,6 +1,37 @@
 const { User, UserType, members, member_role } = require("../models");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { sendOtpEmail } = require("../service/emailService");
+const otpStore = {};
+// Forgot password (send OTP)
+exports.forgotPassword = async (req, res) => {
+  const { username: fpUsername } = req.body;
+  if (!fpUsername) return res.status(400).json({ error: "Username required" });
+  const fpUser = await User.findOne({ where: { username: fpUsername } });
+  if (!fpUser) return res.status(404).json({ error: "User not found" });
+  // Generate OTP
+  const fpOtp = Math.floor(100000 + Math.random() * 900000).toString();
+  otpStore[fpUsername] = fpOtp;
+  try {
+    await sendOtpEmail(fpUsername, fpOtp);
+    res.json({ message: "OTP sent to email" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to send OTP" });
+  }
+};
+
+// Reset password (with OTP)
+exports.resetPassword = async (req, res) => {
+  const { username: rpUsername, otp: rpOtp, newPassword } = req.body;
+  if (!rpUsername || !rpOtp || !newPassword) return res.status(400).json({ error: "All fields required" });
+  if (otpStore[rpUsername] !== rpOtp) return res.status(400).json({ error: "Invalid OTP" });
+  const rpUser = await User.findOne({ where: { username: rpUsername } });
+  if (!rpUser) return res.status(404).json({ error: "User not found" });
+  rpUser.password = await bcrypt.hash(newPassword, 10);
+  await rpUser.save();
+  delete otpStore[rpUsername];
+  res.json({ message: "Password reset successful" });
+};
 const pool = require("../db"); // <-- Corrected import
 require("dotenv").config();
 

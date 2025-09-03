@@ -3,13 +3,19 @@ const { GCResolution } = require("../models");
 // Get all GC resolutions (admin sees all, institute admin sees only their own)
 exports.getAllGCResolutions = async (req, res) => {
   try {
-    let resolutions;
-    if (req.user.usertypeid === 1) { // admin
+    const { usertypeid, id } = req.user;
+    let resolutions = [];
+    if (usertypeid === 1) {
+      // Admin: all resolutions
       resolutions = await GCResolution.findAll();
-    } else if (req.user.usertypeid === 2) { // institute admin
-      resolutions = await GCResolution.findAll({
-        where: { institute_id: req.user.institute_id }
-      });
+    } else if (usertypeid === 3) {
+      // Member: get all institutes where member has a role
+      const { Member, MemberRole } = require("../models");
+      const member = await Member.findOne({ where: { userid: id } });
+      if (!member) return res.status(404).json({ error: "Member not found" });
+      const memberRoles = await MemberRole.findAll({ where: { member_id: member.id, status: 'active' } });
+      const instituteIds = [...new Set(memberRoles.map(mr => mr.institute_id))];
+      resolutions = await GCResolution.findAll({ where: { institute_id: instituteIds } });
     } else {
       return res.status(403).json({ error: "Access denied" });
     }
