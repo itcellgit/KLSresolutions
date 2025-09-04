@@ -19,6 +19,7 @@ const MemberRole = require("./member_role")(sequelize, DataTypes);
 const Institute = require("./institutes")(sequelize, DataTypes);
 const GCResolution = require("./gc_resolutions")(sequelize, DataTypes);
 const BOMResolution = require("./bom_resolutions")(sequelize, DataTypes);
+const AGM = require("./agm")(sequelize, DataTypes);
 
 // Associations
 UserType.hasMany(User, { foreignKey: "usertypeid" });
@@ -31,6 +32,9 @@ GCResolution.hasMany(BOMResolution, { foreignKey: "gc_resolution_id" });
 BOMResolution.belongsTo(GCResolution, { foreignKey: "gc_resolution_id" });
 Institute.hasMany(User, { foreignKey: "institute_id" });
 User.belongsTo(Institute, { foreignKey: "institute_id" });
+
+Institute.hasMany(AGM, { foreignKey: "institute_id" });
+AGM.belongsTo(Institute, { foreignKey: "institute_id" });
 
 // Sync database
 sequelize
@@ -53,4 +57,5 @@ module.exports = {
   Institute,
   GCResolution,
   BOMResolution,
+    AGM,
 };

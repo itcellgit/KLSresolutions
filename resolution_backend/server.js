@@ -29,6 +29,7 @@ app.use("/api/gc_resolutions", gcResolutionRoutes);
 app.use("/api/bom_resolutions", bomResolutionRoutes);
 app.use("/api/members", require("./routes/members"));
 app.use("/api/roles", roleRoutes);
+app.use("/api/agm", require("./routes/agm"));
 
 // Error logging middleware (should be after all routes)
 app.use((err, req, res, next) => {
