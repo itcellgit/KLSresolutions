@@ -48,8 +48,9 @@ const MemberRoleManagementPage = () => {
     console.log('Dropdown institutes:', institutes);
   }, [members, roles, institutes]);
 
-  // Fetch dropdown data
+  // Fetch dropdown data only when modal opens
   useEffect(() => {
+    if (!isModalOpen) return;
     const fetchDropdowns = async () => {
       setLoading(true);
       try {
@@ -71,7 +72,7 @@ const MemberRoleManagementPage = () => {
       }
     };
     fetchDropdowns();
-  }, [token]);
+  }, [isModalOpen, token]);
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;

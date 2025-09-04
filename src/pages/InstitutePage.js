@@ -1,9 +1,17 @@
 // pages/InstitutePage.js
+
 import React, { useState, useEffect } from "react";
 import Layout from "../components/Layout";
+import { 
+  getInstitutes, 
+  createInstitute, 
+  updateInstitute, 
+  deleteInstitute 
+} from "../api/institutes";
+import { useSelector } from "react-redux";
 
 const InstitutePage = () => {
-  // const [i, setI] = useState[1];
+
   // State for modal visibility
   const [isModalOpen, setIsModalOpen] = useState(false);
   // State for form inputs
@@ -19,9 +27,11 @@ const InstitutePage = () => {
   // State for institutes list
   const [institutes, setInstitutes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState(""); // Add this state
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  // Get token from Redux
+  const token = useSelector((state) => state.auth.token) || localStorage.getItem("token");
 
   // Filter institutes based on search term
   const filteredInstitutes = institutes.filter(
@@ -40,32 +50,31 @@ const InstitutePage = () => {
     currentPage * itemsPerPage
   );
 
-  // Fetch institutes from backend
+  // Fetch institutes from backend using API function
   useEffect(() => {
     const fetchInstitutes = async () => {
       setLoading(true);
       try {
-        const token = sessionStorage.getItem("token");
-        const response = await fetch("/api/institute", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = await response.json();
-        console.log("Fetched institutes:", data);
-        if (response.ok) {
-          setInstitutes(data || []);
-        } else {
-          setInstitutes([]);
+        if (!token) {
+          alert("Session expired. Please login again.");
+          window.location.href = "/login";
+          return;
         }
+        const data = await getInstitutes(token);
+        setInstitutes(data || []);
       } catch (err) {
+        if (err.response?.status === 401) {
+          alert("Session expired. Please login again.");
+          window.location.href = "/login";
+        } else {
+          alert("Failed to fetch institutes. Please try again.");
+        }
         setInstitutes([]);
       }
       setLoading(false);
     };
     fetchInstitutes();
-  }, [isModalOpen]); // refetch when modal closes (after add)
+  }, [isModalOpen, token]);
 
   // Handle input changes
   const handleInputChange = (e) => {
@@ -75,28 +84,26 @@ const InstitutePage = () => {
       [name]: value,
     }));
   };
-  // Handle delete button click (placeholder)
+
+  // Handle delete button click
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this institute?"))
-      return;
-    const token = sessionStorage.getItem("token"); // or localStorage if you use that
+    if (!window.confirm("Are you sure you want to delete this institute?")) return;
     try {
-      const response = await fetch(`/api/institute/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      if (response.ok) {
-        setInstitutes((prev) => prev.filter((inst) => inst.id !== id));
-        alert("Institute deleted successfully!");
-      } else {
-        const data = await response.json();
-        alert(data.error || "Failed to delete institute");
+      if (!token) {
+        alert("Session expired. Please login again.");
+        window.location.href = "/login";
+        return;
       }
+      await deleteInstitute(id, token);
+      setInstitutes((prev) => prev.filter((inst) => inst.id !== id));
+      alert("Institute deleted successfully!");
     } catch (err) {
-      alert("An error occurred");
+      if (err.response?.status === 401) {
+        alert("Session expired. Please login again.");
+        window.location.href = "/login";
+      } else {
+        alert(err.response?.data?.error || "Failed to delete institute");
+      }
     }
   };
 
@@ -118,57 +125,30 @@ const InstitutePage = () => {
   // Handle form submission (add or edit)
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const token = sessionStorage.getItem("token");
     if (!token) {
       alert("Session expired. Please login again.");
       window.location.href = "/login";
       return;
     }
-
     try {
-      let response, data;
       if (editingId) {
-        // Edit mode: update institute
-        response = await fetch(`/api/institute/${editingId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(formData),
-        });
-        data = await response.json();
-        if (response.ok) {
-          alert("Institute updated successfully!");
-        } else {
-          alert(data.error || "Failed to update institute");
-          return;
-        }
+        await updateInstitute(editingId, formData, token);
+        alert("Institute updated successfully!");
       } else {
-        // Add mode: create institute
-        response = await fetch("/api/institute", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(formData),
-        });
-        data = await response.json();
-        if (response.ok) {
-          alert("Institute and user created successfully!");
-        } else {
-          alert(data.error || "Failed to create institute and user");
-          return;
-        }
+        await createInstitute(formData, token);
+        alert("Institute and user created successfully!");
       }
       setFormData({ name: "", code: "", phone: "", email: "" });
       setEditingId(null);
       setIsModalOpen(false);
     } catch (err) {
-      console.error(err);
-      alert("An error occurred");
+      if (err.response?.status === 401) {
+        alert("Session expired. Please login again.");
+        window.location.href = "/login";
+      } else {
+        const errorMessage = err.response?.data?.error || (editingId ? "Failed to update institute" : "Failed to create institute and user");
+        alert(errorMessage);
+      }
     }
   };
 
@@ -268,7 +248,10 @@ const InstitutePage = () => {
                 {loading ? (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center">
-                      Loading...
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                        <p className="text-gray-600">Loading institutes...</p>
+                      </div>
                     </td>
                   </tr>
                 ) : paginatedInstitutes.length === 0 ? (
@@ -292,36 +275,41 @@ const InstitutePage = () => {
                         <h3 className="mb-1 text-lg font-medium text-gray-900">
                           No institutes found
                         </h3>
+                        <p className="text-gray-500">
+                          {searchTerm ? "Try adjusting your search criteria" : "Get started by adding your first institute"}
+                        </p>
                       </div>
                     </td>
                   </tr>
                 ) : (
                   paginatedInstitutes.map((inst, index) => (
-                    <tr key={inst.id}>
-                      <td className="px-6 py-4">
+                    <tr key={inst.id} className="hover:bg-gray-50 transition-colors duration-200">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </td>
-                      <td className="px-6 py-4">{inst.name}</td>
-                      <td className="px-6 py-4">{inst.code}</td>
-                      <td className="px-6 py-4">{inst.phone}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-sm text-gray-900">{inst.name}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{inst.code}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{inst.phone}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">
                         {inst.users && inst.users.length > 0
                           ? inst.users[0].email
-                          : ""}
+                          : "N/A"}
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleEdit(inst)}
-                          className="mr-2 text-indigo-600 hover:underline"
-                        >
-                          Edit
-                        </button>
-                        {/* <button
-                          onClick={() => handleDelete(inst.id)}
-                          className="text-red-600 hover:underline"
-                        >
-                          Delete
-                        </button> */}
+                      <td className="px-6 py-4 text-right text-sm font-medium">
+                        <div className="flex justify-end space-x-2">
+                          <button
+                            onClick={() => handleEdit(inst)}
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(inst.id)}
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -337,22 +325,22 @@ const InstitutePage = () => {
             <button
               onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
-              className={`px-3 py-1 rounded ${
+              className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${
                 currentPage === 1
-                  ? "bg-gray-200 text-gray-400"
-                  : "bg-indigo-600 text-white"
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-indigo-600 text-white hover:bg-indigo-700"
               }`}
             >
-              Prev
+              Previous
             </button>
             {[...Array(totalPages)].map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentPage(i + 1)}
-                className={`px-3 py-1 rounded ${
+                className={`px-3 py-2 rounded-lg font-medium transition-colors duration-200 ${
                   currentPage === i + 1
                     ? "bg-indigo-700 text-white"
-                    : "bg-gray-100 text-gray-700"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
                 {i + 1}
@@ -361,10 +349,10 @@ const InstitutePage = () => {
             <button
               onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className={`px-3 py-1 rounded ${
+              className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${
                 currentPage === totalPages
-                  ? "bg-gray-200 text-gray-400"
-                  : "bg-indigo-600 text-white"
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-indigo-600 text-white hover:bg-indigo-700"
               }`}
             >
               Next
@@ -426,7 +414,7 @@ const InstitutePage = () => {
                         htmlFor="name"
                         className="block mb-2 text-sm font-medium text-gray-700"
                       >
-                        Institute Name
+                        Institute Name *
                       </label>
                       <div className="relative rounded-md shadow-sm">
                         <input
@@ -473,7 +461,6 @@ const InstitutePage = () => {
                           onChange={handleInputChange}
                           className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                           placeholder="Enter institute code"
-                          required
                         />
                         <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                           <svg
@@ -509,7 +496,6 @@ const InstitutePage = () => {
                           onChange={handleInputChange}
                           className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                           placeholder="Enter phone number"
-                          required
                         />
                         <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                           <svg
@@ -534,7 +520,7 @@ const InstitutePage = () => {
                         htmlFor="email"
                         className="block mb-2 text-sm font-medium text-gray-700"
                       >
-                        Email
+                        Email *
                       </label>
                       <div className="relative rounded-md shadow-sm">
                         <input
@@ -546,6 +532,7 @@ const InstitutePage = () => {
                           className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                           placeholder="Enter email address"
                           required
+                          disabled={editingId} // Disable email editing in edit mode
                         />
                         <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                           <svg
@@ -564,18 +551,23 @@ const InstitutePage = () => {
                           </svg>
                         </div>
                       </div>
+                      {editingId && (
+                        <p className="mt-1 text-sm text-gray-500">
+                          Email cannot be changed in edit mode
+                        </p>
+                      )}
                     </div>
                     <div className="flex justify-end space-x-4">
                       <button
                         type="button"
                         onClick={() => setIsModalOpen(false)}
-                        className="inline-flex justify-center px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        className="inline-flex justify-center px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-                        className="inline-flex justify-center px-6 py-3 text-sm font-medium text-white border border-transparent rounded-lg shadow-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        className="inline-flex justify-center px-6 py-3 text-sm font-medium text-white border border-transparent rounded-lg shadow-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
                       >
                         {editingId ? "Update Institute" : "Add Institute"}
                       </button>
