@@ -2,7 +2,7 @@
   "name": "resolutions_admin",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://localhost:3000",
+  "proxy": "http://31.97.239.8:3000",
   "dependencies": {
     "@reduxjs/toolkit": "^2.9.0",
     "@tailwindcss/postcss": "^4.1.12",
