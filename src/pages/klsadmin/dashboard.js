@@ -183,7 +183,7 @@ const DashboardPage = () => {
               </Link>
 
               <Link
-                to="/members"
+                to="/klsadmin/members"
                 className="flex flex-col items-center justify-center p-6 text-center transition-all duration-300 rounded-lg bg-green-50 hover:bg-green-100 hover:shadow-md"
               >
                 <div className="p-3 mb-3 bg-green-100 rounded-full">

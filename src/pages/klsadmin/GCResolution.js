@@ -1,5 +1,7 @@
 // pages/GCResolutionPage.js
 import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
+import { getInstitutes } from "../../api/institutes";
 
 const GCResolutionPage = () => {
   // State for modal visibility
@@ -16,12 +18,38 @@ const GCResolutionPage = () => {
   const [editingId, setEditingId] = useState(null);
   // State for search
   const [searchTerm, setSearchTerm] = useState("");
-
   // State for dropdown data (will be populated from backend)
   const [institutes, setInstitutes] = useState([]);
-
+  // State for loading
+  const [loading, setLoading] = useState(true);
+  // State for errors
+  const [error, setError] = useState(null);
   // State for resolutions (will be populated from backend)
   const [resolutions, setResolutions] = useState([]);
+
+  // Get token from Redux store
+  const token = useSelector((state) => state.auth.token);
+
+  // Fetch institutes when component mounts
+  useEffect(() => {
+    const fetchInstitutes = async () => {
+      try {
+        setLoading(true);
+        const data = await getInstitutes(token);
+        setInstitutes(data);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching institutes:", err);
+        setError("Failed to load institutes. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (token) {
+      fetchInstitutes();
+    }
+  }, [token]);
 
   // Handle input changes
   const handleInputChange = (e) => {
@@ -91,7 +119,6 @@ const GCResolutionPage = () => {
   // Filter resolutions based on search term
   const filteredResolutions = resolutions.filter((resolution) => {
     const institute = institutes.find((i) => i.id === resolution.institute_id);
-
     return (
       resolution.agenda.toLowerCase().includes(searchTerm.toLowerCase()) ||
       resolution.resolution.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -467,7 +494,6 @@ const GCResolutionPage = () => {
                         required
                       />
                     </div>
-
                     <div className="mb-4">
                       <label
                         htmlFor="resolution"
@@ -486,7 +512,6 @@ const GCResolutionPage = () => {
                         required
                       />
                     </div>
-
                     <div className="mb-4">
                       <label
                         htmlFor="compliance"
@@ -504,7 +529,6 @@ const GCResolutionPage = () => {
                         placeholder="Enter compliance details"
                       />
                     </div>
-
                     <div className="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2">
                       <div>
                         <label
@@ -513,23 +537,38 @@ const GCResolutionPage = () => {
                         >
                           Institute
                         </label>
-                        <select
-                          id="institute_id"
-                          name="institute_id"
-                          value={formData.institute_id}
-                          onChange={handleInputChange}
-                          className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                          required
-                        >
-                          <option value="">Select an institute</option>
-                          {institutes.map((institute) => (
-                            <option key={institute.id} value={institute.id}>
-                              {institute.name}
-                            </option>
-                          ))}
-                        </select>
+                        {loading ? (
+                          <select
+                            disabled
+                            className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg bg-gray-100 sm:text-sm"
+                          >
+                            <option>Loading institutes...</option>
+                          </select>
+                        ) : error ? (
+                          <select
+                            disabled
+                            className="block w-full py-3 pl-4 pr-10 border border-red-300 rounded-lg bg-red-50 sm:text-sm"
+                          >
+                            <option>Error loading institutes</option>
+                          </select>
+                        ) : (
+                          <select
+                            id="institute_id"
+                            name="institute_id"
+                            value={formData.institute_id}
+                            onChange={handleInputChange}
+                            className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            required
+                          >
+                            <option value="">Select an institute</option>
+                            {institutes.map((institute) => (
+                              <option key={institute.id} value={institute.id}>
+                                {institute.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
                       </div>
-
                       <div>
                         <label
                           htmlFor="gc_date"
@@ -548,7 +587,6 @@ const GCResolutionPage = () => {
                         />
                       </div>
                     </div>
-
                     <div className="flex justify-end space-x-4">
                       <button
                         type="button"

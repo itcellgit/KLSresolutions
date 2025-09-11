@@ -1,4 +1,3 @@
-
 // pages/MemberRoleManagementPage.js
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
@@ -22,57 +21,115 @@ const MemberRoleManagementPage = () => {
   const [editingId, setEditingId] = useState(null);
   // State for search
   const [searchTerm, setSearchTerm] = useState("");
-
-  // State for dropdown data (will be populated from backend)
+  // State for dropdown data
   const [members, setMembers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [institutes, setInstitutes] = useState([]);
-
-  // State for member roles (will be populated from backend)
+  // State for member roles
   const [memberRoles, setMemberRoles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const token = useSelector((state) => state.auth.token) || localStorage.getItem("token");
+  const [dropdownLoading, setDropdownLoading] = useState(false);
+  const [apiErrors, setApiErrors] = useState({
+    members: null,
+    roles: null,
+    institutes: null,
+  });
 
-  // Debug: Log dropdown data whenever it changes
-  useEffect(() => {
-    console.log('Dropdown members:', members);
-    console.log('Dropdown roles:', roles);
-    console.log('Dropdown institutes:', institutes);
-  }, [members, roles, institutes]);
+  const token =
+    useSelector((state) => state.auth.token) || localStorage.getItem("token");
 
-  // Debug: Log dropdown data whenever it changes
+  // Debug: Check if token is available
   useEffect(() => {
-    console.log('Dropdown members:', members);
-    console.log('Dropdown roles:', roles);
-    console.log('Dropdown institutes:', institutes);
-  }, [members, roles, institutes]);
+    //console.log("Token available:", !!token);
+    if (!token) {
+      setError("Authentication token not found. Please log in again.");
+    }
+  }, [token]);
 
-  // Fetch dropdown data only when modal opens
+  // Fetch dropdown data on component mount and when modal opens
   useEffect(() => {
-    if (!isModalOpen) return;
-    const fetchDropdowns = async () => {
-      setLoading(true);
-      try {
-        const [membersData, rolesData, institutesData] = await Promise.all([
-          getMembers(token),
-          getRoles(token),
-          getInstitutes(token),
-        ]);
-        console.log('Fetched members:', membersData);
-        console.log('Fetched roles:', rolesData);
-        console.log('Fetched institutes:', institutesData);
-        setMembers(membersData);
-        setRoles(rolesData);
-        setInstitutes(institutesData);
-      } catch (err) {
-        setError("Failed to load dropdowns");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDropdowns();
+    if (token) {
+      fetchDropdownData();
+    }
+  }, [token]);
+
+  // Fetch dropdown data when modal opens to ensure fresh data
+  useEffect(() => {
+    if (isModalOpen && token) {
+      fetchDropdownData();
+    }
   }, [isModalOpen, token]);
+
+  // Function to fetch dropdown data
+  const fetchDropdownData = async () => {
+    if (!token) {
+      setError("Authentication token not found. Please log in again.");
+      return;
+    }
+
+    setDropdownLoading(true);
+    setError(null);
+    setApiErrors({ members: null, roles: null, institutes: null });
+
+    try {
+      //console.log("Fetching dropdown data...");
+      // Fetch members
+      let membersData = [];
+      try {
+        membersData = await getMembers(token);
+        //console.log("Members API response:", membersData);
+        setMembers(Array.isArray(membersData) ? membersData : []);
+      } catch (err) {
+        console.error("Error fetching members:", err);
+        setApiErrors((prev) => ({
+          ...prev,
+          members: err.message || "Failed to load members",
+        }));
+      }
+
+      // Fetch roles
+      let rolesData = [];
+      try {
+        rolesData = await getRoles(token);
+        //console.log("Roles API response:", rolesData);
+        setRoles(Array.isArray(rolesData) ? rolesData : []);
+      } catch (err) {
+        console.error("Error fetching roles:", err);
+        setApiErrors((prev) => ({
+          ...prev,
+          roles: err.message || "Failed to load roles",
+        }));
+      }
+
+      // Fetch institutes
+      let institutesData = [];
+      try {
+        institutesData = await getInstitutes(token);
+        //console.log("Institutes API response:", institutesData);
+        setInstitutes(Array.isArray(institutesData) ? institutesData : []);
+      } catch (err) {
+        console.error("Error fetching institutes:", err);
+        setApiErrors((prev) => ({
+          ...prev,
+          institutes: err.message || "Failed to load institutes",
+        }));
+      }
+
+      // Check if all API calls failed
+      if (!membersData.length && !rolesData.length && !institutesData.length) {
+        setError(
+          "Failed to load any dropdown data. Please check your connection and try again."
+        );
+      }
+    } catch (err) {
+      console.error("Unexpected error in fetchDropdownData:", err);
+      setError("An unexpected error occurred while loading dropdown data.");
+    } finally {
+      setDropdownLoading(false);
+    }
+  };
+
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -82,22 +139,29 @@ const MemberRoleManagementPage = () => {
     }));
   };
 
-  // Handle form submission (placeholder for backend integration)
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.member_id || !formData.role_id || !formData.level || !formData.tenure) {
+    if (
+      !formData.member_id ||
+      !formData.role_id ||
+      !formData.level ||
+      !formData.tenure
+    ) {
       alert("Please fill all required fields");
       return;
     }
     setLoading(true);
     setError(null);
+
     try {
       // If institute_id is empty, treat as KLS Board assignment
       const payload = {
         ...formData,
         institute_id: formData.institute_id || null,
-        status: "active"
+        status: "active",
       };
+
       await assignRole(payload, token);
       alert("Role assigned successfully");
       setFormData({
@@ -117,14 +181,14 @@ const MemberRoleManagementPage = () => {
     }
   };
 
-  // Handle edit button click (placeholder)
+  // Handle edit button click
   const handleEdit = (memberRole) => {
     // Placeholder for backend integration
     console.log("Edit member role:", memberRole);
-    //alert("Edit functionality will be implemented with backend integration");
+    alert("Edit functionality will be implemented with backend integration");
   };
 
-  // Handle delete button click (placeholder)
+  // Handle delete button click
   const handleDelete = (id) => {
     // Placeholder for backend integration
     console.log("Delete member role:", id);
@@ -150,14 +214,10 @@ const MemberRoleManagementPage = () => {
     const member = members.find((m) => m.id === memberRole.member_id);
     const role = roles.find((r) => r.id === memberRole.role_id);
     const institute = institutes.find((i) => i.id === memberRole.institute_id);
-
     return (
       member?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      "" ||
       role?.role_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      "" ||
       institute?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      "" ||
       memberRole.level.toLowerCase().includes(searchTerm.toLowerCase()) ||
       memberRole.tenure.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -166,19 +226,25 @@ const MemberRoleManagementPage = () => {
   // Helper function to get member name by id
   const getMemberName = (memberId) => {
     const member = members.find((m) => m.id === memberId);
-    return member ? member.name : "Unknown";
+    return member
+      ? member.name || member.full_name || member.email || "Unknown"
+      : "Unknown";
   };
 
   // Helper function to get role name by id
   const getRoleName = (roleId) => {
     const role = roles.find((r) => r.id === roleId);
-    return role ? role.role_name : "Unknown";
+    return role
+      ? role.role_name || role.name || role.title || "Unknown"
+      : "Unknown";
   };
 
   // Helper function to get institute name by id
   const getInstituteName = (instituteId) => {
     const institute = institutes.find((i) => i.id === instituteId);
-    return institute ? institute.name : "Not Assigned";
+    return institute
+      ? institute.name || institute.institute_name || "Unknown"
+      : "Not Assigned";
   };
 
   return (
@@ -193,6 +259,29 @@ const MemberRoleManagementPage = () => {
             Manage and assign roles to members at specific institutes
           </p>
         </div>
+
+        {/* Error message for token issues */}
+        {error && !isModalOpen && (
+          <div className="p-4 mb-6 text-red-700 bg-red-100 rounded-lg">
+            <div className="flex items-center">
+              <svg
+                className="w-6 h-6 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                ></path>
+              </svg>
+              <span>{error}</span>
+            </div>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 gap-6 mb-10 md:grid-cols-3">
@@ -210,7 +299,7 @@ const MemberRoleManagementPage = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                   />
                 </svg>
               </div>
@@ -415,9 +504,9 @@ const MemberRoleManagementPage = () => {
                       <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            memberRole.level === "High"
+                            memberRole.level === "GC"
                               ? "bg-red-100 text-red-800"
-                              : memberRole.level === "Mid"
+                              : memberRole.level === "BOM"
                               ? "bg-yellow-100 text-yellow-800"
                               : "bg-green-100 text-green-800"
                           }`}
@@ -468,6 +557,7 @@ const MemberRoleManagementPage = () => {
                 aria-hidden="true"
                 onClick={() => setIsModalOpen(false)}
               ></div>
+
               {/* Modal container */}
               <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                 <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600">
@@ -500,7 +590,59 @@ const MemberRoleManagementPage = () => {
                     </button>
                   </div>
                 </div>
+
                 <div className="px-6 py-5 bg-white">
+                  {/* Error message */}
+                  {error && (
+                    <div className="p-3 mb-4 text-red-700 bg-red-100 rounded-lg">
+                      <div className="flex items-center">
+                        <svg
+                          className="w-5 h-5 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          ></path>
+                        </svg>
+                        <span>{error}</span>
+                      </div>
+                    </div>
+                  )}
+                  {/* API-specific errors */}
+                  {(apiErrors.members ||
+                    apiErrors.roles ||
+                    apiErrors.institutes) && (
+                    <div className="p-3 mb-4 text-yellow-700 bg-yellow-100 rounded-lg">
+                      <div className="flex items-start">
+                        <svg
+                          className="w-5 h-5 mr-2 mt-0.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          ></path>
+                        </svg>
+                        <div>
+                          <p className="font-medium">
+                            Some data couldn't be loaded:
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <form onSubmit={handleSubmit}>
                     <div className="grid gap-2 space-y-2 lg:grid-cols-2 lg:space-y-0">
                       <div className="mb-4">
@@ -510,21 +652,37 @@ const MemberRoleManagementPage = () => {
                         >
                           Member
                         </label>
-                        <select
-                          id="member_id"
-                          name="member_id"
-                          value={formData.member_id}
-                          onChange={handleInputChange}
-                          className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                          required
-                        >
-                          <option value="">Select a member</option>
-                          {members.map((member) => (
-                            <option key={member.id} value={member.id}>
-                              {member.name}
-                            </option>
-                          ))}
-                        </select>
+                        {dropdownLoading ? (
+                          <div className="py-2 text-center text-gray-500">
+                            Loading members...
+                          </div>
+                        ) : (
+                          <>
+                            <select
+                              id="member_id"
+                              name="member_id"
+                              value={formData.member_id}
+                              onChange={handleInputChange}
+                              className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              required
+                            >
+                              <option value="">Select a member</option>
+                              {members.map((member) => (
+                                <option key={member.id} value={member.id}>
+                                  {member.name ||
+                                    member.full_name ||
+                                    member.email ||
+                                    "Unknown"}
+                                </option>
+                              ))}
+                            </select>
+                            {apiErrors.members && (
+                              <p className="mt-1 text-xs text-red-600">
+                                {apiErrors.members}
+                              </p>
+                            )}
+                          </>
+                        )}
                       </div>
 
                       <div className="mb-4">
@@ -534,23 +692,40 @@ const MemberRoleManagementPage = () => {
                         >
                           Role
                         </label>
-                        <select
-                          id="role_id"
-                          name="role_id"
-                          value={formData.role_id}
-                          onChange={handleInputChange}
-                          className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                          required
-                        >
-                          <option value="">Select a role</option>
-                          {roles.map((role) => (
-                            <option key={role.id} value={role.id}>
-                              {role.role_name}
-                            </option>
-                          ))}
-                        </select>
+                        {dropdownLoading ? (
+                          <div className="py-2 text-center text-gray-500">
+                            Loading roles...
+                          </div>
+                        ) : (
+                          <>
+                            <select
+                              id="role_id"
+                              name="role_id"
+                              value={formData.role_id}
+                              onChange={handleInputChange}
+                              className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              required
+                            >
+                              <option value="">Select a role</option>
+                              {roles.map((role) => (
+                                <option key={role.id} value={role.id}>
+                                  {role.role_name ||
+                                    role.name ||
+                                    role.title ||
+                                    "Unknown"}
+                                </option>
+                              ))}
+                            </select>
+                            {apiErrors.roles && (
+                              <p className="mt-1 text-xs text-red-600">
+                                {apiErrors.roles}
+                              </p>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
+
                     <div className="grid gap-2 space-y-2 lg:grid-cols-2 lg:space-y-0">
                       <div className="mb-4">
                         <label
@@ -568,9 +743,8 @@ const MemberRoleManagementPage = () => {
                           required
                         >
                           <option value="">Select level</option>
-                          <option value="High">High</option>
-                          <option value="Mid">Mid</option>
-                          <option value="Low">Low</option>
+                          <option value="GC">GC</option>
+                          <option value="BOM">BOM</option>
                         </select>
                       </div>
 
@@ -581,23 +755,39 @@ const MemberRoleManagementPage = () => {
                         >
                           Institute
                         </label>
-                        <select
-                          id="institute_id"
-                          name="institute_id"
-                          value={formData.institute_id}
-                          onChange={handleInputChange}
-                          className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        >
-                          <option value="">KLS Board (No Institute)</option>
-                          {institutes.map((institute) => (
-                            <option key={institute.id} value={institute.id}>
-                              {institute.name}
-                            </option>
-                          ))}
-                        </select>
+                        {dropdownLoading ? (
+                          <div className="py-2 text-center text-gray-500">
+                            Loading institutes...
+                          </div>
+                        ) : (
+                          <>
+                            <select
+                              id="institute_id"
+                              name="institute_id"
+                              value={formData.institute_id}
+                              onChange={handleInputChange}
+                              className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            >
+                              <option value="">KLS Board (No Institute)</option>
+                              {institutes.map((institute) => (
+                                <option key={institute.id} value={institute.id}>
+                                  {institute.name ||
+                                    institute.institute_name ||
+                                    "Unknown"}
+                                </option>
+                              ))}
+                            </select>
+                            {apiErrors.institutes && (
+                              <p className="mt-1 text-xs text-red-600">
+                                {apiErrors.institutes}
+                              </p>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
-                    <div className="grid gap-2 space-y-2 lg:grid-cols-2 lg:space-y-0">
+
+                    {/* <div className="grid gap-2 space-y-2 lg:grid-cols-2 lg:space-y-0">
                       <div className="mb-6">
                         <label
                           htmlFor="tenure"
@@ -617,22 +807,59 @@ const MemberRoleManagementPage = () => {
                           required
                         />
                       </div>
+                    </div> */}
+
+                    <div className="grid gap-2 space-y-2 lg:grid-cols-2 lg:space-y-0">
+                      <div className="mb-6">
+                        <label
+                          htmlFor="tenure"
+                          className="block mb-2 text-sm font-medium text-gray-700"
+                        >
+                          Tenure
+                        </label>
+                        <select
+                          id="tenure"
+                          name="tenure"
+                          value={formData.tenure}
+                          onChange={handleInputChange}
+                          className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          required
+                        >
+                          <option value="">Select Tenure</option>
+                          {Array.from({ length: 6 }, (_, i) => {
+                            const start = 2021 + i;
+                            const end = start + 2;
+                            return (
+                              <option key={start} value={`${start}-${end}`}>
+                                {start}-{end}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
                     </div>
 
-                    <div className="flex justify-end space-x-4">
-                      <button
-                        type="button"
-                        onClick={() => setIsModalOpen(false)}
-                        className="inline-flex justify-center px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="inline-flex justify-center px-6 py-3 text-sm font-medium text-white border border-transparent rounded-lg shadow-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      >
-                        {editingId ? "Update Assignment" : "Assign Role"}
-                      </button>
+                    <div className="flex justify-between">
+                      <div className="flex space-x-4">
+                        <button
+                          type="button"
+                          onClick={() => setIsModalOpen(false)}
+                          className="inline-flex justify-center px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={loading || dropdownLoading}
+                          className="inline-flex justify-center px-6 py-3 text-sm font-medium text-white border border-transparent rounded-lg shadow-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                        >
+                          {loading
+                            ? "Processing..."
+                            : editingId
+                            ? "Update Assignment"
+                            : "Assign Role"}
+                        </button>
+                      </div>
                     </div>
                   </form>
                 </div>

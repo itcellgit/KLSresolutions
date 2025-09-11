@@ -9,7 +9,7 @@ import {
 import { useSelector } from "react-redux";
 
 const Members = () => {
-  // State for managing members - now empty array for dynamic data
+  // State for managing members
   const [members, setMembers] = useState([]);
   // State for loading and errors
   const [loading, setLoading] = useState(true);
@@ -18,7 +18,7 @@ const Members = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   // State to track if we're editing or adding
   const [isEditing, setIsEditing] = useState(false);
-  // State for form inputs - now only name, phone, and address
+  // State for form inputs
   const [formData, setFormData] = useState({
     id: null,
     name: "",
@@ -26,11 +26,16 @@ const Members = () => {
     address: "",
     username: "",
     password: "",
+    confirmPassword: "",
+    showPassword: false,
+    showConfirmPassword: false,
+    changePassword: false,
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const token = useSelector((state) => state.auth.token) || localStorage.getItem("token");
+  const token =
+    useSelector((state) => state.auth.token) || localStorage.getItem("token");
 
   // Fetch members from backend
   const fetchMembers = async () => {
@@ -48,10 +53,10 @@ const Members = () => {
 
   // Handle input changes
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
@@ -64,6 +69,10 @@ const Members = () => {
       address: "",
       username: "",
       password: "",
+      confirmPassword: "",
+      showPassword: false,
+      showConfirmPassword: false,
+      changePassword: false,
     });
     setIsModalOpen(false);
     setIsEditing(false);
@@ -78,14 +87,29 @@ const Members = () => {
       address: "",
       username: "",
       password: "",
+      confirmPassword: "",
+      showPassword: false,
+      showConfirmPassword: false,
+      changePassword: false,
     });
     setIsEditing(false);
     setIsModalOpen(true);
   };
 
-  // Open modal for editing a member
+  // Open modal for editing a member - FIXED to extract username from nested user object
   const openEditModal = (member) => {
-    setFormData(member);
+    setFormData({
+      id: member.id,
+      name: member.name,
+      phone: member.phone,
+      address: member.address,
+      username: member.user.username, // Extract username from nested user object
+      password: "",
+      confirmPassword: "",
+      showPassword: false,
+      showConfirmPassword: false,
+      changePassword: false,
+    });
     setIsEditing(true);
     setIsModalOpen(true);
   };
@@ -93,24 +117,74 @@ const Members = () => {
   // Handle form submission (both add and edit)
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.phone.trim() || !formData.username.trim() || !formData.password.trim()) {
-      alert("Please fill all required fields: name, phone, username, password");
+
+    // Validate required fields
+    if (
+      !formData.name.trim() ||
+      !formData.phone.trim() ||
+      !formData.username.trim()
+    ) {
+      alert("Please fill all required fields: name, phone, username");
       return;
+    }
+
+    // Password validation
+    if (!isEditing) {
+      // For new members, password is required
+      if (!formData.password.trim()) {
+        alert("Password is required for new members");
+        return;
+      }
+      // Check if passwords match
+      if (formData.password !== formData.confirmPassword) {
+        alert("Passwords do not match");
+        return;
+      }
+    } else {
+      // For editing, password is only required if changePassword is checked
+      if (formData.changePassword) {
+        if (!formData.password.trim()) {
+          alert("Please enter a new password");
+          return;
+        }
+        if (formData.password !== formData.confirmPassword) {
+          alert("Passwords do not match");
+          return;
+        }
+      }
     }
 
     try {
       if (isEditing) {
         // Update existing member
-        await updateMember(formData.id, formData, token);
+        const updateData = { ...formData };
+        // Only include password in update if changePassword is checked
+        if (!updateData.changePassword) {
+          delete updateData.password;
+        }
+        delete updateData.confirmPassword;
+        delete updateData.changePassword;
+        delete updateData.showPassword;
+        delete updateData.showConfirmPassword;
+
+        await updateMember(formData.id, updateData, token);
         // Update local state
         setMembers(
           members.map((member) =>
-            member.id === formData.id ? { ...formData } : member
+            member.id === formData.id
+              ? { ...formData, user: { username: formData.username } }
+              : member
           )
         );
       } else {
         // Create new member
-        const newMember = await createMember(formData, token);
+        const createData = { ...formData };
+        delete createData.confirmPassword;
+        delete createData.changePassword;
+        delete createData.showPassword;
+        delete createData.showConfirmPassword;
+
+        const newMember = await createMember(createData, token);
         // Add to members list
         setMembers([...members, newMember]);
       }
@@ -142,7 +216,12 @@ const Members = () => {
       (member.phone &&
         member.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (member.address &&
-        member.address.toLowerCase().includes(searchTerm.toLowerCase()))
+        member.address.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (member.username &&
+        member.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (member.user &&
+        member.user.username &&
+        member.user.username.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
@@ -380,7 +459,7 @@ const Members = () => {
                       <td className="px-6 py-4">{member.name}</td>
                       <td className="px-6 py-4">{member.phone || "-"}</td>
                       <td className="px-6 py-4">{member.address || "-"}</td>
-                      <td className="px-6 py-4">{member.username}</td>
+                      <td className="px-6 py-4">{member.user.username}</td>
                       <td className="px-6 py-4">
                         {member.usertypeid === "1"
                           ? "KLS Board Admin"
@@ -463,9 +542,10 @@ const Members = () => {
                 )}
               </tbody>
             </table>
+
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex justify-center items-center py-4 space-x-2">
+              <div className="flex items-center justify-center py-4 space-x-2">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                   disabled={currentPage === 1}
@@ -505,6 +585,7 @@ const Members = () => {
                 aria-hidden="true"
                 onClick={resetForm}
               ></div>
+
               {/* Modal container */}
               <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                 <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600">
@@ -537,10 +618,14 @@ const Members = () => {
                     </button>
                   </div>
                 </div>
+
                 <div className="px-6 py-5 bg-white">
                   <form onSubmit={handleSubmit}>
                     <div className="mb-5">
-                      <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="name"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
                         Member Name <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -554,8 +639,12 @@ const Members = () => {
                         required
                       />
                     </div>
+
                     <div className="mb-5">
-                      <label htmlFor="phone" className="block mb-2 text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="phone"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
                         Phone <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -569,8 +658,12 @@ const Members = () => {
                         required
                       />
                     </div>
+
                     <div className="mb-5">
-                      <label htmlFor="address" className="block mb-2 text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="address"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
                         Address
                       </label>
                       <textarea
@@ -583,8 +676,12 @@ const Members = () => {
                         placeholder="Enter address (optional)"
                       />
                     </div>
+
                     <div className="mb-5">
-                      <label htmlFor="username" className="block mb-2 text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="username"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
                         Username (Email) <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -598,21 +695,189 @@ const Members = () => {
                         required
                       />
                     </div>
-                    <div className="mb-5">
-                      <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-700">
-                        Password <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        placeholder="Enter password"
-                        required
-                      />
-                    </div>
+
+                    {isEditing && (
+                      <div className="mb-5">
+                        <div className="flex items-center">
+                          <input
+                            id="changePassword"
+                            name="changePassword"
+                            type="checkbox"
+                            checked={formData.changePassword}
+                            onChange={handleInputChange}
+                            className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                          />
+                          <label
+                            htmlFor="changePassword"
+                            className="ml-2 block text-sm text-gray-700"
+                          >
+                            Change Password
+                          </label>
+                        </div>
+                      </div>
+                    )}
+
+                    {(formData.changePassword || !isEditing) && (
+                      <>
+                        <div className="mb-5">
+                          <label
+                            htmlFor="password"
+                            className="block mb-2 text-sm font-medium text-gray-700"
+                          >
+                            Password{" "}
+                            {!isEditing && (
+                              <span className="text-red-500">*</span>
+                            )}
+                          </label>
+                          <div className="relative">
+                            <input
+                              type={formData.showPassword ? "text" : "password"}
+                              id="password"
+                              name="password"
+                              value={formData.password}
+                              onChange={handleInputChange}
+                              className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              placeholder={
+                                isEditing
+                                  ? "Enter new password"
+                                  : "Enter password"
+                              }
+                              required={!isEditing}
+                            />
+                            <button
+                              type="button"
+                              className="absolute inset-y-0 right-0 flex items-center pr-3"
+                              onClick={() =>
+                                setFormData({
+                                  ...formData,
+                                  showPassword: !formData.showPassword,
+                                })
+                              }
+                            >
+                              {formData.showPassword ? (
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="w-5 h-5 text-gray-500"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                  />
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                  />
+                                </svg>
+                              ) : (
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="w-5 h-5 text-gray-500"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                                  />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="mb-5">
+                          <label
+                            htmlFor="confirmPassword"
+                            className="block mb-2 text-sm font-medium text-gray-700"
+                          >
+                            Confirm Password{" "}
+                            {!isEditing && (
+                              <span className="text-red-500">*</span>
+                            )}
+                          </label>
+                          <div className="relative">
+                            <input
+                              type={
+                                formData.showConfirmPassword
+                                  ? "text"
+                                  : "password"
+                              }
+                              id="confirmPassword"
+                              name="confirmPassword"
+                              value={formData.confirmPassword}
+                              onChange={handleInputChange}
+                              className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              placeholder={
+                                isEditing
+                                  ? "Confirm new password"
+                                  : "Confirm password"
+                              }
+                              required={!isEditing}
+                            />
+                            <button
+                              type="button"
+                              className="absolute inset-y-0 right-0 flex items-center pr-3"
+                              onClick={() =>
+                                setFormData({
+                                  ...formData,
+                                  showConfirmPassword:
+                                    !formData.showConfirmPassword,
+                                })
+                              }
+                            >
+                              {formData.showConfirmPassword ? (
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="w-5 h-5 text-gray-500"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                  />
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                  />
+                                </svg>
+                              ) : (
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="w-5 h-5 text-gray-500"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                                  />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
                     <div className="flex justify-end space-x-4">
                       <button
                         type="button"

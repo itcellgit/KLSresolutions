@@ -4,7 +4,8 @@ import { useSelector } from "react-redux";
 
 const InstitutesPage = () => {
   const [institutes, setInstitutes] = useState([]);
-  const token = useSelector((state) => state.auth.token) || localStorage.getItem("token");
+  const token =
+    useSelector((state) => state.auth.token) || localStorage.getItem("token");
 
   useEffect(() => {
     const fetchInstitutes = async () => {
