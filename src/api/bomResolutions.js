@@ -4,7 +4,7 @@ import axios from "axios";
 const API_URL =
   process.env.NODE_ENV === "development"
     ? ""
-    : process.env.REACT_APP_API_URL || "http://localhost:3000/api";
+    : process.env.REACT_APP_API_URL || "https://resolutions.klsbelagavi.org/api";
 
 export const getBOMResolutions = async (token) => {
   const response = await axios.get(`${API_URL}/bom_resolutions`, {
