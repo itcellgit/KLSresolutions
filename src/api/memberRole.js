@@ -1,12 +1,30 @@
+import axios from "axios";
+const API_URL = process.env.REACT_APP_API_URL || "http://10.22.0.152:3000";
 
-import axios from 'axios';
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+// export const assignRole = async (data, token) => {
+//   const response = await axios.post(`${API_URL}/members/assignRole`, data, {
+//     headers: { Authorization: `Bearer ${token}` },
+//   });
+//   return response.data;
+// };
 
+// In ../../api/memberRole.js
 export const assignRole = async (data, token) => {
-  const response = await axios.post(`${API_URL}/members/assignRole`, data, {
-    headers: { Authorization: `Bearer ${token}` },
+  const response = await fetch("/memberRoles", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
   });
-  return response.data;
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || "Failed to assign role");
+  }
+
+  return response.json();
 };
 
 export const getMemberRoles = async (member_id, token) => {

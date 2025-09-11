@@ -1,15 +1,20 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { login, storeAuth, logout } from '../api/auth';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { login, storeAuth, logout } from "../api/auth";
 
-export const loginUser = createAsyncThunk('auth/loginUser', async ({ username, password }, thunkAPI) => {
-  try {
-    const data = await login(username, password);
-    storeAuth(data);
-    return data;
-  } catch (error) {
-    return thunkAPI.rejectWithValue(error.response?.data?.error || 'Login failed');
+export const loginUser = createAsyncThunk(
+  "auth/loginUser",
+  async ({ username, password }, thunkAPI) => {
+    try {
+      const data = await login(username, password);
+      storeAuth(data);
+      return data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.error || "Login failed"
+      );
+    }
   }
-});
+);
 
 const initialState = {
   user: null,
@@ -20,7 +25,7 @@ const initialState = {
 };
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     logoutUser: (state) => {

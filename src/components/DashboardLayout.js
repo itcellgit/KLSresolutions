@@ -12,7 +12,9 @@ const DashboardLayout = ({ children }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-blue-100 flex flex-col">
       <nav className="bg-white shadow-lg py-4 px-8 flex items-center justify-between">
-        <span className="text-2xl font-extrabold text-blue-700 tracking-wide">KLS Resolutions</span>
+        <span className="text-2xl font-extrabold text-blue-700 tracking-wide">
+          KLS Resolutions
+        </span>
         <button
           onClick={handleLogout}
           className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold px-6 py-2 rounded-full shadow-lg hover:from-indigo-600 hover:to-blue-500 transition-all duration-200 focus:outline-none"

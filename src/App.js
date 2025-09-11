@@ -6,11 +6,9 @@ import {
   Navigate,
 } from "react-router-dom";
 import { Provider } from "react-redux";
-import { AuthProvider, useAuth } from "./context/AuthContext";
 import store from "./redux/store";
 import Login from "./components/auth/Login";
 import Register from "./components/auth/Register";
-
 import DashboardPage from "./pages/DashboardPage";
 import InstitutePage from "./pages/InstitutePage";
 import Members from "./pages/klsadmin/Members";
@@ -20,164 +18,210 @@ import GCResolution from "./pages/klsadmin/GCResolution";
 import BOMResolutions from "./pages/klsadmin/BOMResolutions";
 import AGM from "./pages/klsadmin/AGM";
 import DashboardLayout from "./components/DashboardLayout";
+// Members pages imports
 import Dashboard from "./pages/members/Dashboard";
-
+import GCResolutionPage from "./pages/members/GCResolutionPage";
+import BOMResolutionPage from "./pages/members/BOMResolutionPage";
+import AGMResolutionPage from "./pages/members/AGMResolutionPage";
 // Institute admin pages
 import InstituteAdminDashboard from "./instituteadmin/Dashboard";
 import AddGCResolution from "./instituteadmin/AddGCResolution";
 import BOMResolutionsInstitute from "./instituteadmin/BOMResolutions";
 import MembersInstitute from "./instituteadmin/Members";
 import AddAGM from "./instituteadmin/AddAGM";
-
 import Layout from "./components/Layout";
-
-// Member pages (create these files in your pages/member folder)
-
-// ✅ Private route wrapper
-function PrivateRoute({ children }) {
-  const { currentUser } = useAuth();
-  return currentUser ? children : <Navigate to="/login" />;
-}
+import PrivateRoute from "./components/PrivateRoute"; // Import the Redux-based PrivateRoute
 
 function App() {
   return (
     <Provider store={store}>
-      <AuthProvider>
-        <Router>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+      <Router>
+        <Routes>
+          {/* Root route - handles authentication-based redirect */}
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <Navigate to="/login" />
+              </PrivateRoute>
+            }
+          />
+          {/* Public routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-            {/* Member dashboard/cards routes with DashboardLayout */}
-            <Route
-              path="/member/dashboard"
-              element={
+          {/* Member dashboard/cards routes with DashboardLayout */}
+          <Route
+            path="/member/dashboard"
+            element={
+              <PrivateRoute>
                 <DashboardLayout>
                   <Dashboard />
                 </DashboardLayout>
-              }
-            />
-            <Route
-              path="/member/agm-resolutions"
-              element={
-                <DashboardLayout>
-                  {/* AGM resolutions page component */}
-                </DashboardLayout>
-              }
-            />
-            <Route
-              path="/member/gc-resolutions"
-              element={
-                <DashboardLayout>
-                  {/* GC resolutions page component */}
-                </DashboardLayout>
-              }
-            />
-            <Route
-              path="/member/bom-resolutions"
-              element={
-                <DashboardLayout>
-                  {/* BOM resolutions page component */}
-                </DashboardLayout>
-              }
-            />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/member/agm-resolutions"
+            element={
+              // <PrivateRoute>
+              <DashboardLayout>
+                <AGMResolutionPage />
+              </DashboardLayout>
+              // </PrivateRoute>
+            }
+          />
+          <Route
+            path="/member/gc-resolutions"
+            element={
+              // <PrivateRoute>
+              <DashboardLayout>
+                <GCResolutionPage />
+              </DashboardLayout>
+              // </PrivateRoute>
+            }
+          />
+          <Route
+            path="/member/bom-resolutions"
+            element={
+              // <PrivateRoute>
+              <DashboardLayout>
+                <BOMResolutionPage />
+              </DashboardLayout>
+              // </PrivateRoute>
+            }
+          />
 
-            {/* Institute Admin Routes */}
-            <Route path="/instituteadmin/dashboard" element={<InstituteAdminDashboard />} />
-            <Route path="/instituteadmin/add-gc-resolution" element={<AddGCResolution />} />
-            <Route path="/instituteadmin/bom-resolutions" element={<BOMResolutionsInstitute />} />
-            <Route path="/instituteadmin/members" element={<MembersInstitute />} />
-            <Route path="/instituteadmin/add-agm" element={<AddAGM />} />
+          {/* Institute Admin Routes */}
+          <Route
+            path="/instituteadmin/dashboard"
+            element={
+              <PrivateRoute>
+                <InstituteAdminDashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/instituteadmin/add-gc-resolution"
+            element={
+              <PrivateRoute>
+                <AddGCResolution />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/instituteadmin/bom-resolutions"
+            element={
+              <PrivateRoute>
+                <BOMResolutionsInstitute />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/instituteadmin/members"
+            element={
+              <PrivateRoute>
+                <MembersInstitute />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/instituteadmin/add-agm"
+            element={
+              <PrivateRoute>
+                <AddAGM />
+              </PrivateRoute>
+            }
+          />
 
-            {/* Routes with Layout */}
-            <Route
-              path="/klsadmin/institutes"
-              element={
+          {/* Routes with Layout */}
+          <Route
+            path="/klsadmin/institutes"
+            element={
+              <PrivateRoute>
                 <Layout>
                   <InstitutePage />
                 </Layout>
-              }
-            />
-   
-      <Route
-              path="/klsadmin/AGM"
-              element={
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/klsadmin/AGM"
+            element={
+              <PrivateRoute>
                 <Layout>
                   <AGM />
                 </Layout>
-              }
-            />
-
-            <Route
-              path="/members"
-              element={
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/klsadmin/members"
+            element={
+              <PrivateRoute>
                 <Layout>
                   <Members />
                 </Layout>
-              }
-            />
+              </PrivateRoute>
+            }
+          />
 
-            {/* Admin routes with Layout */}
-            <Route
-              path="/klsadmin/dashboard"
-              element={
-                // <PrivateRoute>
+          {/* Admin routes with Layout - now protected */}
+          <Route
+            path="/klsadmin/dashboard"
+            element={
+              <PrivateRoute>
                 <Layout>
                   <DashboardPage />
                 </Layout>
-                // </PrivateRoute>
-              }
-            />
-
-            <Route
-              path="/klsadmin/assignrole"
-              element={
-                // <PrivateRoute>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/klsadmin/assignrole"
+            element={
+              <PrivateRoute>
                 <Layout>
                   <AssignRole />
                 </Layout>
-                // </PrivateRoute>
-              }
-            />
-
-            <Route
-              path="/klsadmin/memberrole"
-              element={
-                // <PrivateRoute>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/klsadmin/memberrole"
+            element={
+              <PrivateRoute>
                 <Layout>
                   <MemberRole />
                 </Layout>
-                // </PrivateRoute>
-              }
-            />
-            <Route
-              path="/klsadmin/gcresolution"
-              element={
-                // <PrivateRoute>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/klsadmin/gcresolution"
+            element={
+              <PrivateRoute>
                 <Layout>
                   <GCResolution />
                 </Layout>
-                // </PrivateRoute>
-              }
-            />
-
-            <Route
-              path="/klsadmin/bomresolutions"
-              element={
-                // <PrivateRoute>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/klsadmin/bomresolutions"
+            element={
+              <PrivateRoute>
                 <Layout>
                   <BOMResolutions />
                 </Layout>
-                // </PrivateRoute>
-              }
-            />
+              </PrivateRoute>
+            }
+          />
 
-            {/* Default redirect */}
-            <Route path="*" element={<Navigate to="/klsadmin/dashboard" />} />
-          </Routes>
-        </Router>
-      </AuthProvider>
+          {/* Catch-all route - redirect to root */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
     </Provider>
   );
 }

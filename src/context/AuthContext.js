@@ -86,8 +86,8 @@ export const AuthProvider = ({ children }) => {
 
     <AuthContext.Provider
       value={{
-        currentUser: user, // 👈 add this alias
-        user, // optional, keep both if you want
+        currentUser: user,
+        user,
         isAuthenticated,
         loading,
         login,

@@ -1,5 +1,5 @@
-import axios from 'axios';
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+import axios from "axios";
+const API_URL = process.env.REACT_APP_API_URL || "http://10.22.0.152:3000";
 
 export const getAGMs = async (token) => {
   const response = await axios.get(`${API_URL}/agm`, {
@@ -7,6 +7,8 @@ export const getAGMs = async (token) => {
   });
   return response.data;
 };
+
+// In getAGMs function
 
 export const getAGMById = async (id, token) => {
   const response = await axios.get(`${API_URL}/agm/${id}`, {

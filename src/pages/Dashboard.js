@@ -31,9 +31,11 @@ const cardData = [
 
 const Dashboard = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-blue-100 py-12 px-4 flex flex-col items-center">
-      <h1 className="text-5xl font-extrabold mb-12 text-gray-800 drop-shadow-lg tracking-tight">KLS Resolutions Dashboard</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 w-full max-w-5xl mb-16">
+    <div className="flex flex-col items-center min-h-screen px-4 py-12 bg-gradient-to-br from-gray-100 to-blue-100">
+      <h1 className="mb-12 text-5xl font-extrabold tracking-tight text-gray-800 drop-shadow-lg">
+        KLS Resolutions Dashboard
+      </h1>
+      <div className="grid w-full max-w-5xl grid-cols-1 gap-10 mb-16 sm:grid-cols-2 md:grid-cols-3">
         {cardData.map((card) => (
           <a
             key={card.title}
@@ -42,37 +44,56 @@ const Dashboard = () => {
             style={{ minHeight: 220 }}
           >
             <div className="flex flex-col items-center justify-center h-full">
-              <span className="text-6xl mb-6 animate-bounce-slow">{card.icon}</span>
-              <h2 className={`text-2xl font-bold mb-3 text-${card.color}-900 group-hover:text-white transition-colors`}>{card.title}</h2>
-              <p className="text-gray-100 text-center text-lg group-hover:text-white transition-colors font-medium drop-shadow-sm">{card.description}</p>
+              <span className="mb-6 text-6xl animate-bounce-slow">
+                {card.icon}
+              </span>
+              <h2
+                className={`text-2xl font-bold mb-3 text-${card.color}-900 group-hover:text-white transition-colors`}
+              >
+                {card.title}
+              </h2>
+              <p className="text-lg font-medium text-center text-gray-100 transition-colors group-hover:text-white drop-shadow-sm">
+                {card.description}
+              </p>
             </div>
           </a>
         ))}
       </div>
       {/* Recent agendas display */}
       <div className="w-full max-w-4xl mt-2">
-        <h2 className="text-2xl font-bold mb-6 text-gray-700">Recent GC & BOM Agendas</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h3 className="font-semibold mb-4 text-indigo-700 text-xl">GC Resolutions</h3>
+        <h2 className="mb-6 text-2xl font-bold text-gray-700">
+          Recent GC & BOM Agendas
+        </h2>
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+          <div className="p-6 bg-white shadow-lg rounded-2xl">
+            <h3 className="mb-4 text-xl font-semibold text-indigo-700">
+              GC Resolutions
+            </h3>
             <ul>
               {gcResolutions.slice(0, 3).map((gc) => (
                 <li key={gc.id} className="mb-4">
-                  <span className="font-semibold text-lg">{gc.agenda}</span>
+                  <span className="text-lg font-semibold">{gc.agenda}</span>
                   <br />
-                  <span className="text-sm text-gray-500">{gc.institute} &middot; {new Date(gc.time).toLocaleString()}</span>
+                  <span className="text-sm text-gray-500">
+                    {gc.institute} &middot; {new Date(gc.time).toLocaleString()}
+                  </span>
                 </li>
               ))}
             </ul>
           </div>
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h3 className="font-semibold mb-4 text-green-700 text-xl">BOM Resolutions</h3>
+          <div className="p-6 bg-white shadow-lg rounded-2xl">
+            <h3 className="mb-4 text-xl font-semibold text-green-700">
+              BOM Resolutions
+            </h3>
             <ul>
               {bomResolutions.slice(0, 3).map((bom) => (
                 <li key={bom.id} className="mb-4">
-                  <span className="font-semibold text-lg">{bom.agenda}</span>
+                  <span className="text-lg font-semibold">{bom.agenda}</span>
                   <br />
-                  <span className="text-sm text-gray-500">{bom.institute} &middot; {new Date(bom.time).toLocaleString()}</span>
+                  <span className="text-sm text-gray-500">
+                    {bom.institute} &middot;{" "}
+                    {new Date(bom.time).toLocaleString()}
+                  </span>
                 </li>
               ))}
             </ul>

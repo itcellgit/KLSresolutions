@@ -11,7 +11,11 @@ const Login = () => {
   const [error, setError] = useState("");
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { user, loading, error: loginError } = useSelector((state) => state.auth);
+  const {
+    user,
+    loading,
+    error: loginError,
+  } = useSelector((state) => state.auth);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,6 +26,7 @@ const Login = () => {
         // Redirect based on user type from login API
         if (data.user.usertypeid === 1) {
           navigate("/klsadmin/dashboard");
+          //navigate("/klsadmin/AGM");
         } else if (data.user.usertypeid === 2) {
           navigate("/instituteadmin/dashboard");
         } else if (data.user.usertypeid === 3) {
