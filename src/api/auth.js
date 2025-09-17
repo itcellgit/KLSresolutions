@@ -14,13 +14,16 @@ export const logout = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
   localStorage.removeItem("roles");
+  sessionStorage.removeItem("auth");
 };
 
-export const storeAuth = (data) => {
-  localStorage.setItem("token", data.token);
-  localStorage.setItem("user", JSON.stringify(data.user));
-  localStorage.setItem("roles", JSON.stringify(data.roles));
-};
+export function storeAuth(data) {
+  if (data.user && data.user.usertype_id === 3) {
+    localStorage.setItem("auth", JSON.stringify(data));
+  } else {
+    sessionStorage.setItem("auth", JSON.stringify(data));
+  }
+}
 
 export const getToken = () => localStorage.getItem("token");
 export const getUser = () => JSON.parse(localStorage.getItem("user"));

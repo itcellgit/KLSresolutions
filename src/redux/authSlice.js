@@ -16,10 +16,15 @@ export const loginUser = createAsyncThunk(
   }
 );
 
+const storedAuth =
+  JSON.parse(sessionStorage.getItem("auth")) ||
+  JSON.parse(localStorage.getItem("auth")) ||
+  {};
+
 const initialState = {
-  user: null,
-  roles: [],
-  token: null,
+  user: storedAuth.user || null,
+  roles: storedAuth.roles || [],
+  token: storedAuth.token || null,
   loading: false,
   error: null,
 };
@@ -30,6 +35,8 @@ const authSlice = createSlice({
   reducers: {
     logoutUser: (state) => {
       logout();
+      sessionStorage.removeItem("auth");
+      localStorage.removeItem("auth");
       state.user = null;
       state.roles = [];
       state.token = null;
@@ -58,3 +65,5 @@ const authSlice = createSlice({
 
 export const { logoutUser } = authSlice.actions;
 export default authSlice.reducer;
+
+// In your login/logout logic, also use sessionStorage instead of localStorage

@@ -4,7 +4,12 @@ import { useSelector } from "react-redux";
 import { getMembers } from "../../api/members";
 import { getRoles } from "../../api/roles";
 import { getInstitutes } from "../../api/institutes";
-import { assignRole } from "../../api/memberRole";
+import {
+  assignRole,
+  updateMemberRole,
+  deleteMemberRole,
+} from "../../api/memberRole"; // Added deleteMemberRole
+import { getAllMemberRoles } from "../../api/memberRole";
 
 const MemberRoleManagementPage = () => {
   // State for modal visibility
@@ -35,13 +40,20 @@ const MemberRoleManagementPage = () => {
     roles: null,
     institutes: null,
   });
+  // Add state for table loading
+  const [tableLoading, setTableLoading] = useState(false);
+  // Add state for delete confirmation
+  const [deleteConfirmation, setDeleteConfirmation] = useState({
+    isOpen: false,
+    id: null,
+    name: "",
+  });
 
   const token =
     useSelector((state) => state.auth.token) || localStorage.getItem("token");
 
   // Debug: Check if token is available
   useEffect(() => {
-    //console.log("Token available:", !!token);
     if (!token) {
       setError("Authentication token not found. Please log in again.");
     }
@@ -51,6 +63,7 @@ const MemberRoleManagementPage = () => {
   useEffect(() => {
     if (token) {
       fetchDropdownData();
+      fetchMemberRoles();
     }
   }, [token]);
 
@@ -60,6 +73,27 @@ const MemberRoleManagementPage = () => {
       fetchDropdownData();
     }
   }, [isModalOpen, token]);
+
+  // Add function to fetch member roles
+  const fetchMemberRoles = async () => {
+    if (!token) {
+      setError("Authentication token not found. Please log in again.");
+      return;
+    }
+
+    setTableLoading(true);
+    setError(null);
+
+    try {
+      const data = await getAllMemberRoles(token);
+      setMemberRoles(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error fetching member roles:", err);
+      setError(err.message || "Failed to load member roles");
+    } finally {
+      setTableLoading(false);
+    }
+  };
 
   // Function to fetch dropdown data
   const fetchDropdownData = async () => {
@@ -73,12 +107,10 @@ const MemberRoleManagementPage = () => {
     setApiErrors({ members: null, roles: null, institutes: null });
 
     try {
-      //console.log("Fetching dropdown data...");
       // Fetch members
       let membersData = [];
       try {
         membersData = await getMembers(token);
-        //console.log("Members API response:", membersData);
         setMembers(Array.isArray(membersData) ? membersData : []);
       } catch (err) {
         console.error("Error fetching members:", err);
@@ -92,7 +124,6 @@ const MemberRoleManagementPage = () => {
       let rolesData = [];
       try {
         rolesData = await getRoles(token);
-        //console.log("Roles API response:", rolesData);
         setRoles(Array.isArray(rolesData) ? rolesData : []);
       } catch (err) {
         console.error("Error fetching roles:", err);
@@ -106,7 +137,6 @@ const MemberRoleManagementPage = () => {
       let institutesData = [];
       try {
         institutesData = await getInstitutes(token);
-        //console.log("Institutes API response:", institutesData);
         setInstitutes(Array.isArray(institutesData) ? institutesData : []);
       } catch (err) {
         console.error("Error fetching institutes:", err);
@@ -151,6 +181,7 @@ const MemberRoleManagementPage = () => {
       alert("Please fill all required fields");
       return;
     }
+
     setLoading(true);
     setError(null);
 
@@ -162,8 +193,17 @@ const MemberRoleManagementPage = () => {
         status: "active",
       };
 
-      await assignRole(payload, token);
-      alert("Role assigned successfully");
+      if (editingId) {
+        // Update existing member role
+        await updateMemberRole(editingId, payload, token);
+        alert("Role updated successfully");
+      } else {
+        // Create new member role
+        await assignRole(payload, token);
+        alert("Role assigned successfully");
+      }
+
+      // Reset form and close modal
       setFormData({
         member_id: "",
         role_id: "",
@@ -173,8 +213,11 @@ const MemberRoleManagementPage = () => {
       });
       setEditingId(null);
       setIsModalOpen(false);
+
+      // Refresh the member roles list
+      fetchMemberRoles();
     } catch (err) {
-      setError(err.message || "Failed to assign role");
+      setError(err.message || "Failed to save role assignment");
       alert(`Error: ${err.message}`);
     } finally {
       setLoading(false);
@@ -183,16 +226,62 @@ const MemberRoleManagementPage = () => {
 
   // Handle edit button click
   const handleEdit = (memberRole) => {
-    // Placeholder for backend integration
-    console.log("Edit member role:", memberRole);
-    alert("Edit functionality will be implemented with backend integration");
+    // Set form data with current member role values
+    setFormData({
+      member_id: memberRole.member_id?.toString() || "",
+      role_id: memberRole.role_id?.toString() || "",
+      level: memberRole.level || "",
+      institute_id: memberRole.institute_id?.toString() || "",
+      tenure: memberRole.tenure || "",
+    });
+
+    // Set editing ID
+    setEditingId(memberRole.id);
+
+    // Open modal
+    setIsModalOpen(true);
   };
 
   // Handle delete button click
-  const handleDelete = (id) => {
-    // Placeholder for backend integration
-    console.log("Delete member role:", id);
-    alert("Delete functionality will be implemented with backend integration");
+  const handleDeleteClick = (id) => {
+    const memberRole = memberRoles.find((mr) => mr.id === id);
+    if (memberRole) {
+      const memberName = getMemberName(memberRole.member_id);
+      const roleName = getRoleName(memberRole.role_id);
+
+      setDeleteConfirmation({
+        isOpen: true,
+        id: id,
+        name: `${memberName} - ${roleName}`,
+      });
+    }
+  };
+
+  // Confirm delete action
+  const confirmDelete = async () => {
+    if (!deleteConfirmation.id) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      await deleteMemberRole(deleteConfirmation.id, token);
+      alert("Role assignment deleted successfully");
+
+      // Refresh the member roles list
+      fetchMemberRoles();
+    } catch (err) {
+      setError(err.message || "Failed to delete role assignment");
+      alert(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+      setDeleteConfirmation({ isOpen: false, id: null, name: "" });
+    }
+  };
+
+  // Cancel delete action
+  const cancelDelete = () => {
+    setDeleteConfirmation({ isOpen: false, id: null, name: "" });
   };
 
   // Reset form when modal closes
@@ -214,6 +303,7 @@ const MemberRoleManagementPage = () => {
     const member = members.find((m) => m.id === memberRole.member_id);
     const role = roles.find((r) => r.id === memberRole.role_id);
     const institute = institutes.find((i) => i.id === memberRole.institute_id);
+
     return (
       member?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       role?.role_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -313,6 +403,7 @@ const MemberRoleManagementPage = () => {
               </div>
             </div>
           </div>
+
           <div className="p-6 bg-white border-l-4 border-green-500 shadow-md rounded-xl">
             <div className="flex items-center">
               <div className="p-3 mr-4 bg-green-100 rounded-full">
@@ -341,6 +432,7 @@ const MemberRoleManagementPage = () => {
               </div>
             </div>
           </div>
+
           <div className="p-6 bg-white border-l-4 border-yellow-500 shadow-md rounded-xl">
             <div className="flex items-center">
               <div className="p-3 mr-4 bg-yellow-100 rounded-full">
@@ -394,6 +486,7 @@ const MemberRoleManagementPage = () => {
               />
             </svg>
           </div>
+
           <button
             onClick={() => setIsModalOpen(true)}
             className="flex items-center justify-center w-full px-6 py-3 font-medium text-white transition-all duration-300 transform rounded-lg shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:-translate-y-1 hover:scale-105 sm:w-auto"
@@ -424,7 +517,7 @@ const MemberRoleManagementPage = () => {
                     scope="col"
                     className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
                   >
-                    ID
+                    S.NO
                   </th>
                   <th
                     scope="col"
@@ -465,7 +558,37 @@ const MemberRoleManagementPage = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredMemberRoles.length === 0 ? (
+                {tableLoading ? (
+                  <tr>
+                    <td colSpan="7" className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center">
+                        <svg
+                          className="animate-spin h-10 w-10 text-indigo-600 mb-4"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        <h3 className="mb-1 text-lg font-medium text-gray-900">
+                          Loading role assignments...
+                        </h3>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredMemberRoles.length === 0 ? (
                   <tr>
                     <td colSpan="7" className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center">
@@ -498,10 +621,10 @@ const MemberRoleManagementPage = () => {
                       <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                         {getMemberName(memberRole.member_id)}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap break-words w-72">
                         {getRoleName(memberRole.role_id)}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap break-words w-72">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                             memberRole.level === "GC"
@@ -514,7 +637,7 @@ const MemberRoleManagementPage = () => {
                           {memberRole.level}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap break-words w-72">
                         {getInstituteName(memberRole.institute_id)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
@@ -525,13 +648,42 @@ const MemberRoleManagementPage = () => {
                           onClick={() => handleEdit(memberRole)}
                           className="mr-3 text-indigo-600 hover:text-indigo-900"
                         >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-4 h-4 mr-1"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDelete(memberRole.id)}
+                          onClick={() => handleDeleteClick(memberRole.id)}
                           className="text-red-600 hover:text-red-900"
                         >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-4 h-4 mr-1"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
                           Delete
+                          {/* Delete Button */}
                         </button>
                       </td>
                     </tr>
@@ -614,6 +766,7 @@ const MemberRoleManagementPage = () => {
                       </div>
                     </div>
                   )}
+
                   {/* API-specific errors */}
                   {(apiErrors.members ||
                     apiErrors.roles ||
@@ -787,28 +940,6 @@ const MemberRoleManagementPage = () => {
                       </div>
                     </div>
 
-                    {/* <div className="grid gap-2 space-y-2 lg:grid-cols-2 lg:space-y-0">
-                      <div className="mb-6">
-                        <label
-                          htmlFor="tenure"
-                          className="block mb-2 text-sm font-medium text-gray-700"
-                        >
-                          Tenure
-                        </label>
-                        <input
-                          type="text"
-                          id="tenure"
-                          name="tenure"
-                          value={formData.tenure}
-                          onChange={handleInputChange}
-                          className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                          placeholder="e.g., 2020-2025"
-                          maxLength="128"
-                          required
-                        />
-                      </div>
-                    </div> */}
-
                     <div className="grid gap-2 space-y-2 lg:grid-cols-2 lg:space-y-0">
                       <div className="mb-6">
                         <label
@@ -839,7 +970,7 @@ const MemberRoleManagementPage = () => {
                       </div>
                     </div>
 
-                    <div className="flex justify-between">
+                    <div className="flex justify-end">
                       <div className="flex space-x-4">
                         <button
                           type="button"
@@ -862,6 +993,113 @@ const MemberRoleManagementPage = () => {
                       </div>
                     </div>
                   </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteConfirmation.isOpen && (
+          <div
+            className="fixed inset-0 z-50 overflow-y-auto"
+            aria-labelledby="modal-title"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+              {/* Background overlay */}
+              <div
+                className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+                aria-hidden="true"
+                onClick={cancelDelete}
+              ></div>
+
+              {/* Modal container */}
+              <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div className="px-6 py-4 bg-gradient-to-r from-red-600 to-red-700">
+                  <div className="flex items-center justify-between">
+                    <h3
+                      className="text-lg font-medium leading-6 text-white"
+                      id="modal-title"
+                    >
+                      Confirm Deletion
+                    </h3>
+                    <button
+                      type="button"
+                      className="text-white hover:text-gray-200 focus:outline-none"
+                      onClick={cancelDelete}
+                    >
+                      <svg
+                        className="w-6 h-6"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="px-6 py-5 bg-white">
+                  <div className="flex items-start mb-4">
+                    <div className="flex-shrink-0">
+                      <svg
+                        className="w-12 h-12 text-red-600"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="text-lg font-medium text-gray-900">
+                        Delete Role Assignment
+                      </h3>
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-500">
+                          Are you sure you want to delete the role assignment
+                          for{" "}
+                          <span className="font-medium text-gray-900">
+                            {deleteConfirmation.name}
+                          </span>
+                          ? This action cannot be undone.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end mt-6 space-x-3">
+                    <button
+                      type="button"
+                      onClick={cancelDelete}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={confirmDelete}
+                      disabled={loading}
+                      className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                    >
+                      {loading ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

@@ -5,8 +5,6 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { Provider } from "react-redux";
-import store from "./redux/store";
 import Login from "./components/auth/Login";
 import Register from "./components/auth/Register";
 import DashboardPage from "./pages/DashboardPage";
@@ -34,195 +32,193 @@ import PrivateRoute from "./components/PrivateRoute"; // Import the Redux-based 
 
 function App() {
   return (
-    <Provider store={store}>
-      <Router>
-        <Routes>
-          {/* Root route - handles authentication-based redirect */}
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <Navigate to="/login" />
-              </PrivateRoute>
-            }
-          />
-          {/* Public routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+    <Router>
+      <Routes>
+        {/* Root route - handles authentication-based redirect */}
+        <Route
+          path="/"
+          element={
+            <PrivateRoute>
+              <Navigate to="/login" />
+            </PrivateRoute>
+          }
+        />
+        {/* Public routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-          {/* Member dashboard/cards routes with DashboardLayout */}
-          <Route
-            path="/member/dashboard"
-            element={
-              <PrivateRoute>
-                <DashboardLayout>
-                  <Dashboard />
-                </DashboardLayout>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/member/agm-resolutions"
-            element={
-              // <PrivateRoute>
+        {/* Member dashboard/cards routes with DashboardLayout */}
+        <Route
+          path="/member/dashboard"
+          element={
+            <PrivateRoute>
               <DashboardLayout>
-                <AGMResolutionPage />
+                <Dashboard />
               </DashboardLayout>
-              // </PrivateRoute>
-            }
-          />
-          <Route
-            path="/member/gc-resolutions"
-            element={
-              // <PrivateRoute>
-              <DashboardLayout>
-                <GCResolutionPage />
-              </DashboardLayout>
-              // </PrivateRoute>
-            }
-          />
-          <Route
-            path="/member/bom-resolutions"
-            element={
-              // <PrivateRoute>
-              <DashboardLayout>
-                <BOMResolutionPage />
-              </DashboardLayout>
-              // </PrivateRoute>
-            }
-          />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/member/agm-resolutions"
+          element={
+            // <PrivateRoute>
+            <DashboardLayout>
+              <AGMResolutionPage />
+            </DashboardLayout>
+            // </PrivateRoute>
+          }
+        />
+        <Route
+          path="/member/gc-resolutions"
+          element={
+            // <PrivateRoute>
+            <DashboardLayout>
+              <GCResolutionPage />
+            </DashboardLayout>
+            // </PrivateRoute>
+          }
+        />
+        <Route
+          path="/member/bom-resolutions"
+          element={
+            // <PrivateRoute>
+            <DashboardLayout>
+              <BOMResolutionPage />
+            </DashboardLayout>
+            // </PrivateRoute>
+          }
+        />
 
-          {/* Institute Admin Routes */}
-          <Route
-            path="/instituteadmin/dashboard"
-            element={
-              <PrivateRoute>
-                <InstituteAdminDashboard />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/instituteadmin/add-gc-resolution"
-            element={
-              <PrivateRoute>
-                <AddGCResolution />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/instituteadmin/bom-resolutions"
-            element={
-              <PrivateRoute>
-                <BOMResolutionsInstitute />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/instituteadmin/members"
-            element={
-              <PrivateRoute>
-                <MembersInstitute />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/instituteadmin/add-agm"
-            element={
-              <PrivateRoute>
-                <AddAGM />
-              </PrivateRoute>
-            }
-          />
+        {/* Institute Admin Routes */}
+        <Route
+          path="/instituteadmin/dashboard"
+          element={
+            <PrivateRoute>
+              <InstituteAdminDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/instituteadmin/add-gc-resolution"
+          element={
+            <PrivateRoute>
+              <AddGCResolution />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/instituteadmin/bom-resolutions"
+          element={
+            <PrivateRoute>
+              <BOMResolutionsInstitute />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/instituteadmin/members"
+          element={
+            <PrivateRoute>
+              <MembersInstitute />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/instituteadmin/add-agm"
+          element={
+            <PrivateRoute>
+              <AddAGM />
+            </PrivateRoute>
+          }
+        />
 
-          {/* Routes with Layout */}
-          <Route
-            path="/klsadmin/institutes"
-            element={
-              <PrivateRoute>
-                <Layout>
-                  <InstitutePage />
-                </Layout>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/klsadmin/AGM"
-            element={
-              <PrivateRoute>
-                <Layout>
-                  <AGM />
-                </Layout>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/klsadmin/members"
-            element={
-              <PrivateRoute>
-                <Layout>
-                  <Members />
-                </Layout>
-              </PrivateRoute>
-            }
-          />
+        {/* Routes with Layout */}
+        <Route
+          path="/klsadmin/institutes"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <InstitutePage />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/klsadmin/AGM"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <AGM />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/klsadmin/members"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <Members />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
 
-          {/* Admin routes with Layout - now protected */}
-          <Route
-            path="/klsadmin/dashboard"
-            element={
-              <PrivateRoute>
-                <Layout>
-                  <DashboardPage />
-                </Layout>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/klsadmin/assignrole"
-            element={
-              <PrivateRoute>
-                <Layout>
-                  <AssignRole />
-                </Layout>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/klsadmin/memberrole"
-            element={
-              <PrivateRoute>
-                <Layout>
-                  <MemberRole />
-                </Layout>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/klsadmin/gcresolution"
-            element={
-              <PrivateRoute>
-                <Layout>
-                  <GCResolution />
-                </Layout>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/klsadmin/bomresolutions"
-            element={
-              <PrivateRoute>
-                <Layout>
-                  <BOMResolutions />
-                </Layout>
-              </PrivateRoute>
-            }
-          />
+        {/* Admin routes with Layout - now protected */}
+        <Route
+          path="/klsadmin/dashboard"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <DashboardPage />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/klsadmin/assignrole"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <AssignRole />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/klsadmin/memberrole"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <MemberRole />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/klsadmin/gcresolution"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <GCResolution />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/klsadmin/bomresolutions"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <BOMResolutions />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
 
-          {/* Catch-all route - redirect to root */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-    </Provider>
+        {/* Catch-all route - redirect to root */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
   );
 }
 

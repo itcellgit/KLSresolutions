@@ -1,11 +1,18 @@
 import axios from "axios";
-const API_URL = process.env.REACT_APP_API_URL || "http://10.22.0.152:3000";
+const API_URL =
+  process.env.REACT_APP_API_URL || "https://resolutions.klsbelagavi.org";
 
 export const getMembers = async (token) => {
-  const response = await axios.get(`${API_URL}/members`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data;
+  try {
+    const response = await axios.get(`${API_URL}/members`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    console.log("Members API response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching members:", error);
+    throw error;
+  }
 };
 
 export const getMemberById = async (id, token) => {

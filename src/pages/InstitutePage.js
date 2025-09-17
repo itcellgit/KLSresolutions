@@ -2,16 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import Layout from "../components/Layout";
-import { 
-  getInstitutes, 
-  createInstitute, 
-  updateInstitute, 
-  deleteInstitute 
+import {
+  getInstitutes,
+  createInstitute,
+  updateInstitute,
+  deleteInstitute,
 } from "../api/institutes";
 import { useSelector } from "react-redux";
 
 const InstitutePage = () => {
-
   // State for modal visibility
   const [isModalOpen, setIsModalOpen] = useState(false);
   // State for form inputs
@@ -31,7 +30,8 @@ const InstitutePage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   // Get token from Redux
-  const token = useSelector((state) => state.auth.token) || localStorage.getItem("token");
+  const token =
+    useSelector((state) => state.auth.token) || localStorage.getItem("token");
 
   // Filter institutes based on search term
   const filteredInstitutes = institutes.filter(
@@ -87,7 +87,8 @@ const InstitutePage = () => {
 
   // Handle delete button click
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this institute?")) return;
+    if (!window.confirm("Are you sure you want to delete this institute?"))
+      return;
     try {
       if (!token) {
         alert("Session expired. Please login again.");
@@ -146,7 +147,11 @@ const InstitutePage = () => {
         alert("Session expired. Please login again.");
         window.location.href = "/login";
       } else {
-        const errorMessage = err.response?.data?.error || (editingId ? "Failed to update institute" : "Failed to create institute and user");
+        const errorMessage =
+          err.response?.data?.error ||
+          (editingId
+            ? "Failed to update institute"
+            : "Failed to create institute and user");
         alert(errorMessage);
       }
     }
@@ -225,7 +230,7 @@ const InstitutePage = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                    ID
+                    S.NO
                   </th>
                   <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                     Institute Name
@@ -276,21 +281,32 @@ const InstitutePage = () => {
                           No institutes found
                         </h3>
                         <p className="text-gray-500">
-                          {searchTerm ? "Try adjusting your search criteria" : "Get started by adding your first institute"}
+                          {searchTerm
+                            ? "Try adjusting your search criteria"
+                            : "Get started by adding your first institute"}
                         </p>
                       </div>
                     </td>
                   </tr>
                 ) : (
                   paginatedInstitutes.map((inst, index) => (
-                    <tr key={inst.id} className="hover:bg-gray-50 transition-colors duration-200">
+                    <tr
+                      key={inst.id}
+                      className="hover:bg-gray-50 transition-colors duration-200"
+                    >
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{inst.name}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{inst.code}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{inst.phone}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900 break-words w-72">
+                        {inst.name}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 break-words w-72">
+                        {inst.code}
+                      </td>
                       <td className="px-6 py-4 text-sm text-gray-900">
+                        {inst.phone}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 break-words w-72">
                         {inst.users && inst.users.length > 0
                           ? inst.users[0].email
                           : "N/A"}
@@ -299,14 +315,42 @@ const InstitutePage = () => {
                         <div className="flex justify-end space-x-2">
                           <button
                             onClick={() => handleEdit(inst)}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                            className="mr-3 text-indigo-600 hover:text-indigo-900"
                           >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="w-4 h-4 mr-1"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
                             Edit
                           </button>
                           <button
                             onClick={() => handleDelete(inst.id)}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                            className="text-red-600 hover:text-red-900"
                           >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="w-4 h-4 mr-1"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
                             Delete
                           </button>
                         </div>

@@ -45,9 +45,23 @@ const Login = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-2xl">
-        <h2 className="mb-6 text-2xl font-bold text-center text-gray-800">
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="w-full max-w-lg p-10 md:p-12 sm:p-8 bg-white shadow-2xl rounded-3xl border border-gray-200 flex flex-col justify-center">
+        <div className="flex flex-col items-center mb-8">
+          <img
+            src={process.env.PUBLIC_URL + "/image.png"}
+            alt="KLS Resolutions Logo"
+            className="w-20 h-20 mb-4 rounded-full shadow"
+          />
+          <h1 className="text-3xl md:text-4xl font-extrabold text-indigo-700 mb-2 text-center">
+            KLS Resolutions Portal
+          </h1>
+          <p className="text-gray-600 text-center text-base md:text-lg mb-2">
+            A secure portal for KLS management and institutions to view and
+            manage all GC and BOM resolutions, AGMs, and members.
+          </p>
+        </div>
+        <h2 className="mb-8 text-2xl font-bold text-center text-gray-800">
           Login
         </h2>
         {(error || loginError) && (
@@ -55,9 +69,9 @@ const Login = () => {
             {error || loginError}
           </div>
         )}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-7">
           <div>
-            <label className="block mb-1 font-medium text-gray-700">
+            <label className="block mb-2 font-medium text-gray-700 text-base">
               Email
             </label>
             <input
@@ -65,11 +79,12 @@ const Login = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-base"
+              placeholder="Enter your email"
             />
           </div>
           <div className="relative">
-            <label className="block mb-1 font-medium text-gray-700">
+            <label className="block mb-2 font-medium text-gray-700 text-base">
               Password
             </label>
             <input
@@ -77,12 +92,13 @@ const Login = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-base"
+              placeholder="Enter your password"
             />
             <button
               type="button"
               onClick={togglePasswordVisibility}
-              className="absolute inset-y-0 right-0 flex items-center pt-6 pr-3"
+              className="absolute inset-y-0 right-0 flex items-center pr-3"
             >
               {showPassword ? (
                 <svg
@@ -117,12 +133,24 @@ const Login = () => {
           </div>
           <button
             type="submit"
-            className="w-full py-2 font-semibold text-white transition duration-200 bg-indigo-600 rounded-lg hover:bg-indigo-700"
+            className="w-full py-3 font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition text-lg"
             disabled={loading}
           >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
+        <div className="mt-6 flex flex-col items-center">
+          <a
+            href="#"
+            className="text-indigo-600 hover:underline text-sm md:text-base mb-2"
+          >
+            Forgot Password?
+          </a>
+          <div className="text-xs text-gray-500 text-center">
+            &copy; {new Date().getFullYear()} KLS Resolutions Portal. All rights
+            reserved.
+          </div>
+        </div>
       </div>
     </div>
   );

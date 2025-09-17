@@ -183,7 +183,7 @@ const Members = () => {
         delete createData.changePassword;
         delete createData.showPassword;
         delete createData.showConfirmPassword;
-
+        // alert("Member.js in klsadmin 186");
         const newMember = await createMember(createData, token);
         // Add to members list
         setMembers([...members, newMember]);
@@ -398,7 +398,7 @@ const Members = () => {
                     scope="col"
                     className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
                   >
-                    ID
+                    S.NO
                   </th>
                   <th
                     scope="col"
@@ -458,7 +458,9 @@ const Members = () => {
                       </td>
                       <td className="px-6 py-4">{member.name}</td>
                       <td className="px-6 py-4">{member.phone || "-"}</td>
-                      <td className="px-6 py-4">{member.address || "-"}</td>
+                      <td className="px-6 py-4 break-words w-72">
+                        {member.address || "-"}
+                      </td>
                       <td className="px-6 py-4">{member.user.username}</td>
                       <td className="px-6 py-4">
                         {member.usertypeid === "1"
@@ -709,7 +711,7 @@ const Members = () => {
                           />
                           <label
                             htmlFor="changePassword"
-                            className="ml-2 block text-sm text-gray-700"
+                            className="block ml-2 text-sm text-gray-700"
                           >
                             Change Password
                           </label>

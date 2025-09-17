@@ -7,25 +7,19 @@ import {
   deleteAGM,
   getAGMsByMember,
 } from "../../api/agm";
-import { getInstitutes } from "../../api/institutes"; // Import this
 import { useSelector } from "react-redux";
 
 const AGM = () => {
   const [agms, setAGMs] = useState([]);
-  const [institutes, setInstitutes] = useState([]); // Add this
   const [loading, setLoading] = useState(true);
-  const [institutesLoading, setInstitutesLoading] = useState(true); // Add this
   const [error, setError] = useState(null);
-  const [institutesError, setInstitutesError] = useState(null); // Add this
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     id: null,
-    date: "",
-    //location: "",
+    agm_date: "",
     agenda: "",
     notes: "",
-    institute_id: "",
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,23 +41,8 @@ const AGM = () => {
     }
   };
 
-  // Fetch institutes from backend
-  const fetchInstitutes = async () => {
-    setInstitutesLoading(true);
-    setInstitutesError(null);
-    try {
-      const data = await getInstitutes(token);
-      setInstitutes(data);
-    } catch (err) {
-      setInstitutesError(err.message);
-    } finally {
-      setInstitutesLoading(false);
-    }
-  };
-
   useEffect(() => {
     fetchAGMs();
-    fetchInstitutes(); // Add this
   }, []);
 
   // Handle form input changes
@@ -76,11 +55,9 @@ const AGM = () => {
   const openAddModal = () => {
     setFormData({
       id: null,
-      date: "",
-      //location: "",
+      agm_date: "",
       agenda: "",
       notes: "",
-      institute_id: "",
     });
     setIsEditing(false);
     setIsModalOpen(true);
@@ -88,13 +65,15 @@ const AGM = () => {
 
   // Open modal for editing AGM
   const handleEdit = (agm) => {
+    // Format date to YYYY-MM-DD for input[type="date"]
+    const formattedDate = agm.agm_date
+      ? new Date(agm.agm_date).toISOString().slice(0, 10)
+      : "";
     setFormData({
       id: agm.id,
-      date: agm.date,
-      //location: agm.location,
+      agm_date: formattedDate,
       agenda: agm.agenda,
       notes: agm.notes,
-      institute_id: agm.institute_id,
     });
     setIsEditing(true);
     setIsModalOpen(true);
@@ -132,11 +111,9 @@ const AGM = () => {
     if (!isModalOpen) {
       setFormData({
         id: null,
-        date: "",
-        //location: "",
+        agm_date: "",
         agenda: "",
         notes: "",
-        institute_id: "",
       });
       setIsEditing(false);
     }
@@ -144,18 +121,8 @@ const AGM = () => {
 
   // Filter AGMs based on search term
   const filteredAGMs = agms.filter((agm) =>
-    //agm.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    agm.date.includes(searchTerm)
+    (agm.agm_date || "").includes(searchTerm)
   );
-
-  // Helper function to get institute name by id
-
-  /*
-  const getInstituteName = (instituteId) => {
-    const institute = institutes.find((i) => i.id === instituteId);
-    return institute ? institute.name : "Not specified";
-  };
-  */
 
   return (
     <div className="min-h-screen px-4 py-12 bg-gradient-to-br from-gray-50 to-gray-100 sm:px-6 lg:px-8">
@@ -169,7 +136,6 @@ const AGM = () => {
             Manage and organize all Annual General Meetings
           </p>
         </div>
-
         {/* Action Bar */}
         <div className="flex flex-col items-start justify-between gap-4 mb-6 sm:flex-row sm:items-center">
           <div className="relative w-full sm:w-64">
@@ -214,47 +180,25 @@ const AGM = () => {
             Add New AGM
           </button>
         </div>
-
         {/* AGMs Table */}
         <div className="mb-10 overflow-hidden bg-white shadow-xl rounded-xl">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 table-fixed">
               <thead className="bg-gray-50">
                 <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
+                  <th className="w-16 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
                     ID
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-28">
                     Date
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-72">
                     Agenda
                   </th>
-                  {/* <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
-                    Location
-                  </th> */}
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
-                    Notes
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-52">
+                    Resolution
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-right text-gray-500 uppercase"
-                  >
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-36">
                     Actions
                   </th>
                 </tr>
@@ -308,49 +252,68 @@ const AGM = () => {
                             ? "No AGMs match your search"
                             : "Get started by adding your first AGM"}
                         </p>
-                        {!searchTerm && (
-                          <button
-                            onClick={openAddModal}
-                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                          >
-                            Add AGM
-                          </button>
-                        )}
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  filteredAGMs.map((agm) => (
+                  filteredAGMs.map((agm, idx) => (
                     <tr key={agm.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {agm.id}
+                      <td className="w-16 px-6 py-4 text-sm font-medium text-center text-gray-900">
+                        {(currentPage - 1) * itemsPerPage + idx + 1}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(agm.date).toLocaleDateString()}
+                      <td className="px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap w-28">
+                        {agm.agm_date
+                          ? new Date(agm.agm_date).toLocaleDateString()
+                          : ""}
                       </td>
-                      {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {agm.location}
-                      </td> */}
-                      {/*
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {getInstituteName(agm.institute_id)}
+                      <td className="px-6 py-4 text-sm text-justify text-gray-500 w-72 break-words">
+                        {agm.agenda || ""}
                       </td>
-                      */}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {agm.notes}
+                      <td className="px-6 py-4 text-sm text-justify text-gray-500 w-52 break-words">
+                        {agm.notes || ""}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="px-6 py-4 text-sm font-medium text-center whitespace-nowrap w-36">
                         <button
                           onClick={() => handleEdit(agm)}
                           className="mr-3 text-indigo-600 hover:text-indigo-900"
                         >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-4 h-4 mr-1"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
                           Edit
+                          {/* Edit Button */}
                         </button>
                         <button
                           onClick={() => handleDelete(agm.id)}
                           className="text-red-600 hover:text-red-900"
                         >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-4 h-4 mr-1"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
                           Delete
+                          {/* Delete Button */}
                         </button>
                       </td>
                     </tr>
@@ -412,39 +375,21 @@ const AGM = () => {
                   <form onSubmit={handleSubmit}>
                     <div className="mb-4">
                       <label
-                        htmlFor="date"
+                        htmlFor="agm_date"
                         className="block mb-2 text-sm font-medium text-gray-700"
                       >
                         Date
                       </label>
                       <input
                         type="date"
-                        id="date"
-                        name="date"
-                        value={formData.date}
+                        id="agm_date"
+                        name="agm_date"
+                        value={formData.agm_date}
                         onChange={handleChange}
-                        className="block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         required
                       />
                     </div>
-                    {/*  <div className="mb-4">
-                      <label
-                        htmlFor="location"
-                        className="block mb-2 text-sm font-medium text-gray-700"
-                      >
-                        Location
-                      </label>
-                      <input
-                        type="text"
-                        id="location"
-                        name="location"
-                        value={formData.location}
-                        onChange={handleChange}
-                        className="block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        placeholder="Enter location"
-                        required
-                      />
-                    </div> */}
                     <div className="mb-4">
                       <label
                         htmlFor="agenda"
@@ -458,11 +403,11 @@ const AGM = () => {
                         value={formData.agenda}
                         onChange={handleChange}
                         rows="3"
-                        className="block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         placeholder="Enter agenda"
                       ></textarea>
                     </div>
-                    <div className="mb-4">
+                    <div className="mb-6">
                       <label
                         htmlFor="notes"
                         className="block mb-2 text-sm font-medium text-gray-700"
@@ -475,47 +420,9 @@ const AGM = () => {
                         value={formData.notes}
                         onChange={handleChange}
                         rows="3"
-                        className="block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         placeholder="Enter notes"
                       ></textarea>
-                    </div>
-                    <div className="mb-6">
-                      <label
-                        htmlFor="institute_id"
-                        className="block mb-2 text-sm font-medium text-gray-700"
-                      >
-                        Institute
-                      </label>
-                      {institutesLoading ? (
-                        <select
-                          disabled
-                          className="block w-full py-2 px-3 border border-gray-300 rounded-md bg-gray-100 sm:text-sm"
-                        >
-                          <option>Loading institutes...</option>
-                        </select>
-                      ) : institutesError ? (
-                        <select
-                          disabled
-                          className="block w-full py-2 px-3 border border-red-300 rounded-md bg-red-50 sm:text-sm"
-                        >
-                          <option>Error loading institutes</option>
-                        </select>
-                      ) : (
-                        <select
-                          id="institute_id"
-                          name="institute_id"
-                          value={formData.institute_id}
-                          onChange={handleChange}
-                          className="block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        >
-                          <option value="">Select an institute</option>
-                          {institutes.map((institute) => (
-                            <option key={institute.id} value={institute.id}>
-                              {institute.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
                     </div>
                     <div className="flex justify-end space-x-4">
                       <button
