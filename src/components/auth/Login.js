@@ -54,7 +54,7 @@ const Login = () => {
             className="w-20 h-20 mb-4 rounded-full shadow"
           />
           <h1 className="text-3xl md:text-4xl font-extrabold text-indigo-700 mb-2 text-center">
-            KLS Resolutions Portal
+            Karnataka Law Society
           </h1>
           <p className="text-gray-600 text-center text-base md:text-lg mb-2">
             A secure portal for KLS management and institutions to view and
@@ -147,7 +147,7 @@ const Login = () => {
             Forgot Password?
           </a>
           <div className="text-xs text-gray-500 text-center">
-            &copy; {new Date().getFullYear()} KLS Resolutions Portal. All rights
+            &copy; {new Date().getFullYear()} Karnataka Law Society. All rights
             reserved.
           </div>
         </div>

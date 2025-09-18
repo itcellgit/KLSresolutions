@@ -1,11 +1,12 @@
 // ../../api/memberRole.js
 import axios from "axios";
 
-const API_URL = process.env.REACT_APP_API_URL || "http://10.22.0.152:3000";
+const API_URL =
+  process.env.REACT_APP_API_URL || "https://resolutions.klsbelagavi.org";
 
 export const assignRole = async (data, token) => {
   try {
-    const response = await axios.post(`${API_URL}/member_roles`, data, {
+    const response = await axios.post(`${API_URL}/memberrole`, data, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -23,7 +24,7 @@ export const assignRole = async (data, token) => {
 // Updated function to fetch all member roles
 export const getAllMemberRoles = async (token) => {
   try {
-    const response = await axios.get(`${API_URL}/member_roles`, {
+    const response = await axios.get(`${API_URL}/memberrole`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -42,7 +43,7 @@ export const getAllMemberRoles = async (token) => {
 // Function to update a member role
 export const updateMemberRole = async (id, data, token) => {
   try {
-    const response = await axios.put(`${API_URL}/member_roles/${id}`, data, {
+    const response = await axios.put(`${API_URL}/memberrole/${id}`, data, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -61,7 +62,7 @@ export const updateMemberRole = async (id, data, token) => {
 // Function to delete a member role
 export const deleteMemberRole = async (id, token) => {
   try {
-    const response = await axios.delete(`${API_URL}/member_roles/${id}`, {
+    const response = await axios.delete(`${API_URL}/memberrole/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",

@@ -19,10 +19,10 @@ const DashboardPage = () => {
         {/* Header Section */}
         <div className="mb-12 text-center">
           <h1 className="mb-4 text-4xl font-extrabold text-gray-900">
-            KLS RESOLUTIONS DASHBOARD
+            DASHBOARD
           </h1>
           <p className="max-w-2xl mx-auto text-lg text-gray-600">
-            Overview of KLS RESOLUTIONS system
+            Overview of Karnataka Law Society
           </p>
         </div>
 
@@ -291,12 +291,12 @@ const DashboardPage = () => {
                     >
                       Type
                     </th>
-                    <th
+                    {/* <th
                       scope="col"
                       className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
                     >
                       Institute
-                    </th>
+                    </th> */}
                     <th
                       scope="col"
                       className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
@@ -322,9 +322,9 @@ const DashboardPage = () => {
                           {resolution.type}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
+                      {/* <td className="px-4 py-3 text-sm text-gray-500">
                         {resolution.institute}
-                      </td>
+                      </td> */}
                       <td className="px-4 py-3 text-sm text-gray-500">
                         {resolution.date}
                       </td>

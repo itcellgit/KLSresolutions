@@ -1,9 +1,9 @@
 import React from "react";
-import Header from "../..//components/Header";
+import Header from "../../components/Header";
 
 const cardData = [
   {
-    title: "AGM Resolutions",
+    title: "AGM",
     description: "Annual General Meeting decisions and updates.",
     color: "#FFD600",
     // icon: "ðŸŽ¯",
@@ -12,7 +12,7 @@ const cardData = [
     text: "text-yellow-900",
   },
   {
-    title: "BOM Resolutions",
+    title: "BOM",
     description: "Board of Management resolutions and actions.",
     color: "#43A047",
     // icon: "ðŸ“‘",
@@ -21,7 +21,7 @@ const cardData = [
     text: "text-green-900",
   },
   {
-    title: "GC Resolutions",
+    title: "GC",
     description: "General Council resolutions and agendas.",
     color: "#3F51B5",
     // icon: "ðŸ—‚ï¸",
@@ -33,10 +33,10 @@ const cardData = [
 
 const Dashboard = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-indigo-100 flex flex-col">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-indigo-50 via-white to-indigo-100">
       <Header />
       <main className="flex flex-col items-center w-full px-0 py-10 md:py-16">
-        <div className="grid w-full grid-cols-1 gap-8 md:grid-cols-3 px-4 md:px-12 lg:px-24 xl:px-32">
+        <div className="grid w-full grid-cols-1 gap-8 px-4 md:grid-cols-3 md:px-12 lg:px-24 xl:px-32">
           {cardData.map((card) => (
             <a
               key={card.title}
@@ -56,7 +56,7 @@ const Dashboard = () => {
                 >
                   {card.title}
                 </h2>
-                <p className="text-lg md:text-xl font-medium text-center text-gray-900 group-hover:text-white drop-shadow-sm">
+                <p className="text-lg font-medium text-center text-gray-900 md:text-xl group-hover:text-white drop-shadow-sm">
                   {card.description}
                 </p>
               </div>

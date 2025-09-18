@@ -107,18 +107,25 @@ const BOMResolutionsView = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-100 to-blue-100">
       {/* Header with Logout */}
-      <nav className="flex items-center justify-between px-8 py-4 bg-white shadow-lg">
-        <span className="text-2xl font-extrabold tracking-wide text-blue-700">
-          KLS Resolutions
-        </span>
+      <nav className="bg-white shadow-lg py-4 px-8 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <img
+            src={process.env.PUBLIC_URL + "/image.png"}
+            alt="KLS Logo"
+            className="w-16 h-16 rounded-full shadow-lg"
+          />
+          <span className="text-2xl font-extrabold text-blue-700 tracking-wide">
+            Karnataka Law Society
+          </span>
+        </div>
         <button
           onClick={handleLogout}
-          className="px-6 py-2 font-bold text-white transition-all duration-200 rounded-full shadow-lg bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-indigo-600 hover:to-blue-500 focus:outline-none"
+          className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold px-6 py-2 rounded-full shadow-lg hover:from-indigo-600 hover:to-blue-500 transition-all duration-200 focus:outline-none"
         >
           Logout
         </button>
       </nav>
-      <div className="flex justify-end mt-5 mr-3">
+      <div className="flex justify-start mt-5 mr-3">
         <button
           onClick={goToDashboard}
           className="flex items-center text-gray-600 transition-colors duration-200 hover:text-blue-700"
@@ -274,22 +281,22 @@ const BOMResolutionsView = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="w-16 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
+                    <th className="w-16 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words">
                       SL.NO
                     </th>
-                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-36">
+                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-72">
                       BOM No
                     </th>
-                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-72">
+                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-72">
                       Agenda
                     </th>
-                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-72">
+                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-72">
                       Resolution
                     </th>
-                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-36">
+                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-72">
                       Compliance
                     </th>
-                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-72">
+                    <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-72">
                       GC Resolution
                     </th>
                     <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-36">

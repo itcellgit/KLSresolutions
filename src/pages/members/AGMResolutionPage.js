@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import Header from "../../components/Header";
 
 const AGMResolutionPage = () => {
   const [agmResolutions, setAGMResolutions] = useState([]);
@@ -13,6 +14,98 @@ const AGMResolutionPage = () => {
   const [expandedId, setExpandedId] = useState(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const expandedContentRef = useRef(null);
+
+  // For print
+  const handlePrint = () => {
+    if (!expandedContentRef.current) return;
+    // Get the expanded date for heading
+    let heading = "AGM Resolutions";
+    let dateText = "Date: N/A";
+    if (expandedId && expandedId !== "N/A") {
+      heading = "AGM Resolutions";
+      const date = new Date(expandedId);
+      dateText = `Date: ${date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })}`;
+    }
+    const printContents = `
+      <div style='text-align:center; margin-bottom: 16px;'>
+        <h2 style='margin:0; font-size: 2em;'>${heading}</h2>
+        <div style='font-size: 1.1em; margin-top: 4px;'>${dateText}</div>
+        <hr style='margin: 12px 0 24px 0; border: none; border-top: 2px solid #444;' />
+      </div>
+      ${expandedContentRef.current.innerHTML}
+    `;
+    const printWindow = window.open("", "", "height=800,width=900");
+    printWindow.document.write(
+      "<html><head><title>Print AGM Resolutions</title>"
+    );
+    printWindow.document.write('<link rel="stylesheet" href="/index.css" />');
+    printWindow.document.write("</head><body >");
+    printWindow.document.write(printContents);
+    printWindow.document.write("</body></html>");
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
+  };
+
+  // For PDF of group
+  const generateGroupPDF = async () => {
+    if (!expandedContentRef.current) return;
+    setIsGeneratingPDF(true);
+    try {
+      const canvas = await html2canvas(expandedContentRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const heading = "AGM RESOLUTIONS";
+      const agmDate = expandedId !== "N/A" ? expandedId : null;
+      const dateText = agmDate ? `Date: ${formatDate(agmDate)}` : "Date: N/A";
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      const headingWidth = pdf.getTextWidth(heading);
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const headingX = (pageWidth - headingWidth) / 2;
+      pdf.text(heading, headingX, 20);
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      const dateWidth = pdf.getTextWidth(dateText);
+      const dateX = (pageWidth - dateWidth) / 2;
+      pdf.text(dateText, dateX, 30);
+      pdf.line(15, 35, pageWidth - 15, 35);
+      const imgWidth = 210;
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 40;
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight - position;
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      const filename = agmDate
+        ? `AGM_Resolutions_${formatDate(agmDate).replace(/\s/g, "_")}.pdf`
+        : "AGM_Resolutions.pdf";
+      pdf.save(filename);
+    } catch (err) {
+      console.error("Error generating PDF:", err);
+      alert("Failed to generate PDF. Please try again.");
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   const token =
     useSelector((state) => state.auth.token) || localStorage.getItem("token");
@@ -139,6 +232,7 @@ const AGMResolutionPage = () => {
     }
   };
 
+  // Filter and group resolutions by date
   const filteredData = agmResolutions.filter((item) => {
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -148,9 +242,20 @@ const AGMResolutionPage = () => {
     );
   });
 
+  // Group by date
+  const groupedByDate = filteredData.reduce((acc, item) => {
+    const dateKey = item.agm_date || "N/A";
+    if (!acc[dateKey]) acc[dateKey] = [];
+    acc[dateKey].push(item);
+    return acc;
+  }, {});
+  const groupedDates = Object.keys(groupedByDate).sort(
+    (a, b) => new Date(b) - new Date(a)
+  );
+
   return (
-    <div className="min-h-screen p-4 bg-gray-50 md:p-8">
-      {/* Header Section */}
+    <div className="w-full">
+      <Header />
       <div className="mx-auto mb-8 max-w-7xl">
         <div className="flex items-center justify-between mb-6">
           <button
@@ -283,7 +388,7 @@ const AGMResolutionPage = () => {
           </div>
         )}
 
-        {/* Table */}
+        {/* Table - Grouped by Date */}
         {!isLoading && (
           <div className="overflow-hidden bg-white border border-gray-200 shadow-lg rounded-xl">
             <div className="overflow-x-auto">
@@ -302,29 +407,28 @@ const AGMResolutionPage = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredData.length > 0 ? (
-                    filteredData.map((item, index) => {
-                      const itemId = item.id || index;
-                      const isExpanded = expandedId === itemId;
-
+                  {groupedDates.length > 0 ? (
+                    groupedDates.map((dateKey, idx) => {
+                      const isExpanded = expandedId === dateKey;
+                      const items = groupedByDate[dateKey];
                       return [
                         <tr
-                          key={`row-${itemId}`}
+                          key={`row-${dateKey}`}
                           className="transition-colors duration-150 hover:bg-indigo-50"
                         >
                           <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
-                            {index + 1}
+                            {idx + 1}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
-                              {item.agm_date
-                                ? formatDate(item.agm_date)
-                                : "N/A"}
+                              {dateKey !== "N/A" ? formatDate(dateKey) : "N/A"}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <button
-                              onClick={() => toggleExpand(itemId)}
+                              onClick={() =>
+                                setExpandedId(isExpanded ? null : dateKey)
+                              }
                               className="inline-flex items-center px-4 py-2 text-sm font-medium text-white transition-all duration-200 bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                             >
                               {isExpanded ? (
@@ -368,52 +472,29 @@ const AGMResolutionPage = () => {
                           </td>
                         </tr>,
                         isExpanded && (
-                          <tr key={`expand-${itemId}`} className="bg-indigo-50">
+                          <tr
+                            key={`expand-${dateKey}`}
+                            className="bg-indigo-50"
+                          >
                             <td colSpan="3" className="px-0 py-0">
                               <div className="overflow-hidden bg-white border-t-4 border-indigo-500 shadow-lg rounded-b-xl">
-                                {/* Header */}
                                 <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-600">
                                   <div>
                                     <h3 className="text-xl font-bold text-white">
-                                      AGM Resolution Details
-                                    </h3>
-                                    <p className="mt-1 text-indigo-100">
-                                      <span className="font-medium">Date:</span>{" "}
-                                      {item.agm_date
-                                        ? formatDate(item.agm_date)
+                                      AGM Resolutions for{" "}
+                                      {dateKey !== "N/A"
+                                        ? formatDate(dateKey)
                                         : "N/A"}
-                                    </p>
+                                    </h3>
                                   </div>
                                   <div className="flex space-x-2">
                                     <button
-                                      onClick={generatePDF}
+                                      onClick={generateGroupPDF}
                                       disabled={isGeneratingPDF}
-                                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-white transition-all duration-200 bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                                      className="flex items-center px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-60"
                                     >
                                       {isGeneratingPDF ? (
-                                        <>
-                                          <svg
-                                            className="w-4 h-4 mr-2 -ml-1 text-white animate-spin"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                          >
-                                            <circle
-                                              className="opacity-25"
-                                              cx="12"
-                                              cy="12"
-                                              r="10"
-                                              stroke="currentColor"
-                                              strokeWidth="4"
-                                            ></circle>
-                                            <path
-                                              className="opacity-75"
-                                              fill="currentColor"
-                                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                            ></path>
-                                          </svg>
-                                          Generating...
-                                        </>
+                                        <span>Generating PDF...</span>
                                       ) : (
                                         <>
                                           <svg
@@ -427,12 +508,44 @@ const AGMResolutionPage = () => {
                                               strokeLinecap="round"
                                               strokeLinejoin="round"
                                               strokeWidth="2"
-                                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                            ></path>
+                                              d="M12 4v16m8-8H4"
+                                            />
                                           </svg>
-                                          PDF
+                                          Download PDF
                                         </>
                                       )}
+                                    </button>
+                                    <button
+                                      onClick={handlePrint}
+                                      className="flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    >
+                                      <svg
+                                        className="w-4 h-4 mr-1"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth="2"
+                                          d="M6 9V2h12v7"
+                                        />
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth="2"
+                                          d="M6 18H4a2 2 0 01-2-2V7a2 2 0 012-2h16a2 2 0 012 2v9a2 2 0 01-2 2h-2"
+                                        />
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth="2"
+                                          d="M6 14h12v7H6z"
+                                        />
+                                      </svg>
+                                      Print
                                     </button>
                                     <button
                                       onClick={() => setExpandedId(null)}
@@ -450,110 +563,66 @@ const AGMResolutionPage = () => {
                                           strokeLinejoin="round"
                                           strokeWidth="2"
                                           d="M6 18L18 6M6 6l12 12"
-                                        ></path>
+                                        />
                                       </svg>
                                     </button>
                                   </div>
                                 </div>
-                                {/* Content - This is what will be captured for PDF */}
-                                <div ref={expandedContentRef} className="p-6">
+                                <div className="p-6" ref={expandedContentRef}>
                                   <div className="grid grid-cols-1 gap-6">
-                                    {/* AGM Date */}
-                                    <div className="p-5 border border-gray-200 rounded-lg shadow-sm bg-gray-50">
-                                      <div className="flex items-start">
-                                        <div className="flex-shrink-0 p-2 bg-green-100 rounded-md">
-                                          <svg
-                                            className="w-6 h-6 text-green-600"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                          >
-                                            <path
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              strokeWidth="2"
-                                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                            />
-                                          </svg>
-                                        </div>
-                                        <div className="ml-4">
-                                          <h4 className="text-lg font-medium text-gray-900">
-                                            AGM Date
-                                          </h4>
-                                          <p className="mt-2 text-gray-700">
+                                    {items.map((item, i) => (
+                                      <React.Fragment key={item.id || i}>
+                                        <div className="p-5 border border-gray-200 rounded-lg shadow-sm bg-gray-50">
+                                          <div className="mb-2 text-sm font-semibold text-indigo-700">
+                                            Resolution No:-{i + 1}
+                                          </div>
+                                          <div className="mb-2 text-xs text-gray-500">
+                                            <span className="font-medium">
+                                              Date:
+                                            </span>{" "}
                                             {item.agm_date
                                               ? formatDate(item.agm_date)
                                               : "N/A"}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {/* AGM Agenda */}
-                                    <div className="p-5 border border-gray-200 rounded-lg shadow-sm bg-gray-50">
-                                      <div className="flex items-start">
-                                        <div className="flex-shrink-0 p-2 bg-purple-100 rounded-md">
-                                          <svg
-                                            className="w-6 h-6 text-purple-600"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                          >
-                                            <path
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              strokeWidth="2"
-                                              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                                            />
-                                          </svg>
-                                        </div>
-                                        <div className="flex-1 ml-4">
-                                          <h4 className="text-lg font-medium text-gray-900">
-                                            AGM Agenda
-                                          </h4>
-                                          <div className="p-4 mt-2 bg-white border border-gray-300 rounded-md shadow-inner">
-                                            <p className="text-gray-700 whitespace-pre-line">
-                                              {item.agenda || "N/A"}
-                                            </p>
+                                          </div>
+                                          <div className="mb-2">
+                                            <span className="font-medium">
+                                              Agenda:
+                                            </span>{" "}
+                                            {item.agenda || "N/A"}
+                                          </div>
+                                          <div className="mb-2">
+                                            <span className="font-medium">
+                                              Resolution:
+                                            </span>{" "}
+                                            {item.notes ? (
+                                              <ul className="list-disc ml-6">
+                                                {item.notes
+                                                  .split(/\r?\n|•|\d+\.|- /)
+                                                  .filter(
+                                                    (point) =>
+                                                      point.trim() !== ""
+                                                  )
+                                                  .map((point, idx) => (
+                                                    <li key={idx}>
+                                                      {point.trim()}
+                                                    </li>
+                                                  ))}
+                                              </ul>
+                                            ) : (
+                                              "No notes available"
+                                            )}
                                           </div>
                                         </div>
-                                      </div>
-                                    </div>
-
-                                    {/* AGM Notes */}
-                                    <div className="p-5 border border-gray-200 rounded-lg shadow-sm bg-gray-50">
-                                      <div className="flex items-start">
-                                        <div className="flex-shrink-0 p-2 bg-blue-100 rounded-md">
-                                          <svg
-                                            className="w-6 h-6 text-blue-600"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                          >
-                                            <path
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              strokeWidth="2"
-                                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                            />
-                                          </svg>
-                                        </div>
-                                        <div className="flex-1 ml-4">
-                                          <h4 className="text-lg font-medium text-gray-900">
-                                            AGM Resolution
-                                          </h4>
-                                          <div className="p-4 mt-2 bg-white border border-gray-300 rounded-md shadow-inner">
-                                            <p className="text-gray-700 whitespace-pre-line">
-                                              {item.notes ||
-                                                "No notes available"}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
+                                        <hr
+                                          style={{
+                                            borderTop: "1px solid #e5e7eb",
+                                            margin: "16px 0",
+                                          }}
+                                        />
+                                      </React.Fragment>
+                                    ))}
                                   </div>
                                 </div>
-                                {/* Footer */}
                                 <div className="px-6 py-3 text-right border-t border-gray-200 bg-gray-50">
                                   <button
                                     onClick={() => setExpandedId(null)}
@@ -614,10 +683,7 @@ const AGMResolutionPage = () => {
         {/* Footer */}
         {!isLoading && (
           <div className="mt-8 text-sm text-center text-gray-500">
-            <p>
-              Annual General Meeting Resolutions System ©{" "}
-              {new Date().getFullYear()}
-            </p>
+            <p>Karnataka Law Society © {new Date().getFullYear()}</p>
             <p className="mt-1">
               Last updated: {new Date().toLocaleDateString()}
             </p>

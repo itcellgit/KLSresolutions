@@ -387,22 +387,22 @@ const BOMResolutionsPage = () => {
                   <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-36">
                     BOM No
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-72">
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-72">
                     Agenda
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-72">
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-52">
                     Resolution
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-36">
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-36">
                     Compliance
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-72">
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-72">
                     GC Resolution
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-36">
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-28">
                     BOM Date
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-36">
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-36">
                     Actions
                   </th>
                 </tr>
@@ -590,7 +590,6 @@ const BOMResolutionsPage = () => {
                           value={formData.gc_resolution_id}
                           onChange={handleInputChange}
                           className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                          required
                         >
                           <option value="">Select a GC Resolution</option>
                           {gcResolutions.length > 0 ? (
@@ -650,7 +649,6 @@ const BOMResolutionsPage = () => {
                         rows={3}
                         className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         placeholder="Enter agenda details"
-                        required
                       />
                     </div>
                     <div className="mb-4">
@@ -668,7 +666,6 @@ const BOMResolutionsPage = () => {
                         rows={4}
                         className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         placeholder="Enter resolution details"
-                        required
                       />
                     </div>
                     <div className="mb-4">

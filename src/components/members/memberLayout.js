@@ -1,8 +1,9 @@
 // src/components/member/MemberLayout.jsx
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
-import MemberHeader from "./MemberHeader";
+//import MemberHeader from "./MemberHeader";
 import MemberSidebar from "./MemberSidebar";
+import Header from "../../components/Header";
 
 const MemberLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -13,9 +14,9 @@ const MemberLayout = () => {
         isOpen={sidebarOpen}
         toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
       />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex flex-col flex-1 overflow-hidden">
         <MemberHeader toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 p-6 overflow-y-auto">
           <Outlet />
         </main>
       </div>

@@ -33,7 +33,7 @@ const Dashboard = () => {
   return (
     <div className="flex flex-col items-center min-h-screen px-4 py-12 bg-gradient-to-br from-gray-100 to-blue-100">
       <h1 className="mb-12 text-5xl font-extrabold tracking-tight text-gray-800 drop-shadow-lg">
-        KLS Resolutions Dashboard
+        Dashboard
       </h1>
       <div className="grid w-full max-w-5xl grid-cols-1 gap-10 mb-16 sm:grid-cols-2 md:grid-cols-3">
         {cardData.map((card) => (

@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_URL = process.env.REACT_APP_API_URL || "http://10.22.0.152:3000";
+const API_URL =
+  process.env.REACT_APP_API_URL || "https://resolutions.klsbelagavi.org";
 
 export const login = async (username, password) => {
   const response = await axios.post(`${API_URL}/user/validateUser`, {

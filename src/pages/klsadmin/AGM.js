@@ -95,7 +95,8 @@ const AGM = () => {
     e.preventDefault();
     try {
       if (isEditing) {
-        await updateAGM(formData.id, formData, token);
+        const { id, ...updateData } = formData;
+        await updateAGM(id, updateData, token);
       } else {
         await createAGM(formData, token);
       }

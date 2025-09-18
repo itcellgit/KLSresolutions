@@ -1,10 +1,10 @@
 // pages/DashboardPage.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { fetchStatistics } from "../api/statistics";
 import Layout from "../components/Layout";
 import { Link } from "react-router-dom";
 
 const DashboardPage = () => {
-  // State for dashboard data (will be populated with API calls in the future)
   const [dashboardData, setDashboardData] = useState({
     totalInstitutes: 0,
     totalMembers: 0,
@@ -12,6 +12,30 @@ const DashboardPage = () => {
     totalBOMResolutions: 0,
     recentResolutions: [],
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(
+    dashboardData.recentResolutions.length / itemsPerPage
+  );
+  const paginatedResolutions = dashboardData.recentResolutions.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    const getStats = async () => {
+      try {
+        const stats = await fetchStatistics();
+        setDashboardData((prev) => ({
+          ...prev,
+          ...stats,
+        }));
+      } catch (err) {
+        // Optionally handle error
+      }
+    };
+    getStats();
+  }, []);
 
   return (
     <div className="min-h-screen px-4 py-12 bg-gradient-to-br from-gray-50 to-gray-100 sm:px-6 lg:px-8">
@@ -19,7 +43,7 @@ const DashboardPage = () => {
         {/* Header Section */}
         <div className="mb-12 text-center">
           <h1 className="mb-4 text-4xl font-extrabold text-gray-900">
-            KLS RESOLUTIONS DASHBOARD
+            DASHBOARD
           </h1>
           <p className="max-w-2xl mx-auto text-lg text-gray-600">
             Overview of KLS RESOLUTIONS system
@@ -259,6 +283,57 @@ const DashboardPage = () => {
                   Manage Board of Management resolutions
                 </p>
               </Link>
+              <Link
+                to="/klsadmin/agm"
+                className="flex flex-col items-center justify-center p-6 text-center transition-all duration-300 rounded-lg bg-blue-50 hover:bg-blue-100 hover:shadow-md"
+              >
+                <div className="p-3 mb-3 bg-blue-100 rounded-full">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-8 h-8 text-blue-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm0 2c-2.67 0-8 1.337-8 4v2a1 1 0 001 1h14a1 1 0 001-1v-2c0-2.663-5.33-4-8-4z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="font-medium text-gray-900">AGM</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Manage Annual General Meetings
+                </p>
+              </Link>
+
+              <Link
+                to="/klsadmin/memberrole"
+                className="flex flex-col items-center justify-center p-6 text-center transition-all duration-300 rounded-lg bg-purple-50 hover:bg-purple-100 hover:shadow-md"
+              >
+                <div className="p-3 mb-3 bg-purple-100 rounded-full">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-8 h-8 text-purple-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zm2 13a6 6 0 00-12 0"
+                    />
+                  </svg>
+                </div>
+                <h3 className="font-medium text-gray-900">Member Role</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Assign or manage member roles
+                </p>
+              </Link>
             </div>
           </div>
 
@@ -266,14 +341,8 @@ const DashboardPage = () => {
           <div className="p-6 bg-white shadow-xl rounded-xl">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-800">
-                Recent Resolutions
+                Recent GC And BOM Resolutions
               </h2>
-              <Link
-                to="/resolutions"
-                className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
-              >
-                View All
-              </Link>
             </div>
             <div className="overflow-hidden border border-gray-200 rounded-lg">
               <table className="min-w-full divide-y divide-gray-200">
@@ -295,18 +364,12 @@ const DashboardPage = () => {
                       scope="col"
                       className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
                     >
-                      Institute
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                    >
                       Date
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {dashboardData.recentResolutions.map((resolution) => (
+                  {paginatedResolutions.map((resolution) => (
                     <tr key={resolution.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
                         {resolution.title}
@@ -323,15 +386,36 @@ const DashboardPage = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">
-                        {resolution.institute}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
                         {resolution.date}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-end gap-2 mt-4">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 text-gray-700 bg-gray-200 rounded disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-gray-700">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 text-gray-700 bg-gray-200 rounded disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

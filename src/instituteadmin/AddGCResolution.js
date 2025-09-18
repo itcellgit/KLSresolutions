@@ -241,9 +241,16 @@ const AddGCResolution = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-blue-100 flex flex-col">
       {/* Header with Logout */}
       <nav className="bg-white shadow-lg py-4 px-8 flex items-center justify-between">
-        <span className="text-2xl font-extrabold text-blue-700 tracking-wide">
-          KLS Resolutions
-        </span>
+        <div className="flex items-center gap-4">
+          <img
+            src={process.env.PUBLIC_URL + "/image.png"}
+            alt="KLS Logo"
+            className="w-16 h-16 rounded-full shadow-lg"
+          />
+          <span className="text-2xl font-extrabold text-blue-700 tracking-wide">
+            Karnataka Law Society
+          </span>
+        </div>
         <button
           onClick={handleLogout}
           className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold px-6 py-2 rounded-full shadow-lg hover:from-indigo-600 hover:to-blue-500 transition-all duration-200 focus:outline-none"
@@ -251,7 +258,7 @@ const AddGCResolution = () => {
           Logout
         </button>
       </nav>
-      <div className="flex justify-end mt-5 mr-3">
+      <div className="flex justify-start mt-5 mr-3">
         <button
           onClick={goToDashboard}
           className="flex items-center text-gray-600 hover:text-blue-700 transition-colors duration-200"
@@ -714,7 +721,6 @@ const AddGCResolution = () => {
                           rows={3}
                           className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                           placeholder="Enter agenda details"
-                          required
                         />
                       </div>
                       <div className="mb-4">
@@ -732,7 +738,6 @@ const AddGCResolution = () => {
                           rows={4}
                           className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                           placeholder="Enter resolution details"
-                          required
                         />
                       </div>
                       <div className="mb-4">
@@ -781,7 +786,6 @@ const AddGCResolution = () => {
                               value={formData.institute_id}
                               onChange={handleInputChange}
                               className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                              required
                             >
                               <option value="">Select an institute</option>
                               {institutes.map((institute) => (

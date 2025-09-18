@@ -14,13 +14,13 @@ const Header = ({ toggleSidebar }) => {
   };
 
   return (
-    <header className="bg-gradient-to-r from-white via-indigo-50 to-indigo-100 border-b border-indigo-200 shadow-lg">
+    <header className="border-b border-indigo-200 shadow-lg bg-gradient-to-r from-white via-indigo-50 to-indigo-100">
       <div className="flex items-center justify-between px-8 py-5">
         {/* Left side - Sidebar toggle + Logo + Title */}
         <div className="flex items-center gap-4">
           <button
             onClick={toggleSidebar}
-            className="text-indigo-500 md:hidden hover:text-indigo-700 focus:outline-none mr-2"
+            className="mr-2 text-indigo-500 md:hidden hover:text-indigo-700 focus:outline-none"
           >
             <svg
               className="w-8 h-8"
@@ -39,13 +39,13 @@ const Header = ({ toggleSidebar }) => {
           <img
             src={process.env.PUBLIC_URL + "/image.png"}
             alt="KLS Logo"
-            className="w-14 h-14 rounded-full shadow-xl border-2 border-indigo-200 mr-4 hidden md:block"
+            className="hidden mr-4 border-2 border-indigo-200 rounded-full shadow-xl w-14 h-14 md:block"
           />
           <div className="flex flex-col justify-center">
-            <h1 className="text-3xl md:text-4xl font-black text-indigo-700 tracking-wide font-serif mb-0 leading-tight drop-shadow-lg">
-              KLS Resolutions
+            <h1 className="mb-0 font-serif text-3xl font-black leading-tight tracking-wide text-indigo-700 md:text-4xl drop-shadow-lg">
+              Karnataka Law Society
             </h1>
-            <span className="text-sm font-semibold text-indigo-500 tracking-wide">
+            <span className="text-sm font-semibold tracking-wide text-indigo-500">
               Management Portal
             </span>
           </div>
@@ -54,9 +54,9 @@ const Header = ({ toggleSidebar }) => {
         <div className="flex items-center gap-4">
           {user && (
             <div className="hidden md:block">
-              <span className="mr-2 text-base text-gray-700 font-semibold">
+              <span className="mr-2 text-base font-semibold text-gray-700">
                 Welcome,{" "}
-                <span className="text-indigo-700 font-bold">
+                <span className="font-bold text-indigo-700">
                   {user.username}
                 </span>
               </span>
@@ -64,7 +64,7 @@ const Header = ({ toggleSidebar }) => {
           )}
           <button
             onClick={handleLogout}
-            className="px-5 py-2 text-base font-bold text-white bg-indigo-600 rounded-xl shadow hover:bg-indigo-700 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="px-5 py-2 text-base font-bold text-white transition bg-indigo-600 shadow rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             Logout
           </button>

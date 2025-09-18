@@ -58,7 +58,7 @@ const Sidebar = () => {
       authRequired: true, // Only show if user is authenticated
     },
     {
-      name: "MemberRole",
+      name: "Member Roles",
       href: "/klsadmin/memberrole",
       icon: (
         <svg
@@ -90,7 +90,7 @@ const Sidebar = () => {
     },
 
     {
-      name: "GCResolutions",
+      name: "GC Resolutions",
       href: "/klsadmin/gcresolution",
       icon: (
         <svg
@@ -106,7 +106,7 @@ const Sidebar = () => {
       authRequired: true, // Only show if user is authenticated
     },
     {
-      name: "BOMResolutions",
+      name: "BOM Resolutions",
       href: "/klsadmin/bomresolutions",
       icon: (
         <svg
@@ -132,11 +132,11 @@ const Sidebar = () => {
             className="w-16 h-16 mb-2 rounded-full shadow-lg"
           />
           <h1 className="text-2xl font-extrabold text-indigo-700 tracking-wide font-serif mb-1 text-center">
-            KLS Resolutions
+            Karnataka Law Society
           </h1>
-          <span className="text-xs font-medium text-gray-500 text-center">
+          {/* <span className="text-xs font-medium text-gray-500 text-center">
             Management Portal
-          </span>
+          </span> */}
         </div>
         <div className="flex flex-col flex-1 pt-6 pb-4 overflow-y-auto">
           <nav className="flex-1 px-4 mt-2 space-y-2">

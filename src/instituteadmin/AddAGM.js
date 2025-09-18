@@ -64,9 +64,14 @@ const AddAGM = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-blue-100 flex flex-col">
       {/* Header with Logout */}
       <nav className="bg-white shadow-lg py-4 px-8 flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-4">
+          <img
+            src={process.env.PUBLIC_URL + "/image.png"}
+            alt="KLS Logo"
+            className="w-16 h-16 rounded-full shadow-lg"
+          />
           <span className="text-2xl font-extrabold text-blue-700 tracking-wide">
-            KLS Resolutions
+            Karnataka Law Society
           </span>
         </div>
         <button
@@ -76,7 +81,7 @@ const AddAGM = () => {
           Logout
         </button>
       </nav>
-      <div className="flex justify-end mt-5 mr-3">
+      <div className="flex justify-start mt-5 mr-3">
         <button
           onClick={goToDashboard}
           className="flex items-center text-gray-600 hover:text-blue-700 transition-colors duration-200"
