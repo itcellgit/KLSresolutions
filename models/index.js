@@ -35,6 +35,25 @@ User.belongsTo(Institute, { foreignKey: "institute_id" });
 Member.belongsToMany(Role, { through: MemberRole, foreignKey: "member_id" });
 Role.belongsToMany(Member, { through: MemberRole, foreignKey: "role_id" });
 Institute.hasMany(MemberRole, { foreignKey: "institute_id" });
+
+// Call associate methods if present (for model-defined associations)
+const models = {
+  UserType,
+  User,
+  Member,
+  Role,
+  MemberRole,
+  Institute,
+  GCResolution,
+  BOMResolution,
+  AGM,
+};
+Object.values(models).forEach((model) => {
+  if (model.associate) {
+    model.associate(models);
+  }
+});
+
 // Sync database
 sequelize
   .sync({ alter: true }) // or { force: true } to drop and recreate tables

@@ -5,6 +5,7 @@ module.exports = (sequelize, DataTypes) => {
       id: {
         type: DataTypes.BIGINT,
         primaryKey: true,
+        autoIncrement: true,
       },
       member_id: {
         type: DataTypes.INTEGER,
@@ -37,9 +38,15 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   // Define association
+
   MemberRole.associate = (models) => {
-    MemberRole.belongsTo(models.roles, {
+    MemberRole.belongsTo(models.Role, {
       foreignKey: "role_id",
+      targetKey: "id",
+    });
+
+    MemberRole.belongsTo(models.Member, {
+      foreignKey: "member_id",
       targetKey: "id",
     });
   };

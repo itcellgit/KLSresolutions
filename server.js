@@ -25,6 +25,8 @@ const gcResolutionRoutes = require("./routes/gc_resolutions");
 const bomResolutionRoutes = require("./routes/bom_resolutions");
 const roleRoutes = require("./routes/roles");
 const agmRoutes = require("./routes/agm");
+const memberRoleRoutes = require("./routes/memberrole");
+const statisticsRoutes = require("./routes/statistics");
 
 app.use("/api/user", userRoutes);
 app.use("/api/institute", instituteRoutes);
@@ -33,6 +35,10 @@ app.use("/api/bom_resolutions", bomResolutionRoutes);
 app.use("/api/members", require("./routes/members"));
 app.use("/api/roles", roleRoutes);
 app.use("/api/agm", agmRoutes); // Add this line
+app.use("/api/memberrole", memberRoleRoutes);
+
+// Statistics API
+app.use("/api/statistics", statisticsRoutes);
 
 // Error logging middleware (should be after all routes)
 app.use((err, req, res, next) => {
@@ -49,3 +55,5 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
+
+module.exports = app;

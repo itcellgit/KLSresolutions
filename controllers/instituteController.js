@@ -56,13 +56,14 @@ exports.createInstitute = async (req, res) => {
 // Update institute
 exports.updateInstitute = async (req, res) => {
   try {
-    const { name, phone } = req.body;
+    const { name, phone, code } = req.body;
     const institute = await Institute.findByPk(req.params.id);
     if (!institute) {
       return res.status(404).json({ error: "Institute not found" });
     }
     institute.name = name || institute.name;
     institute.phone = phone || institute.phone;
+    institute.code = code || institute.code;
     await institute.save();
     res.json(institute);
   } catch (err) {

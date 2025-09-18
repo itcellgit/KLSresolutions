@@ -10,11 +10,7 @@ exports.getAllMembers = async (req, res) => {
       members = await Member.findAll({ include: User });
     } else if (req.user.usertypeid === 2) {
       // institute admin
-      members = await Member.findAll({
-        include: [
-          { model: User, where: { institute_id: req.user.institute_id } },
-        ],
-      });
+      members = await Member.findAll({ include: User }); // TEMP: remove where
     } else {
       return res.status(403).json({ error: "Access denied" });
     }
@@ -27,6 +23,8 @@ exports.getAllMembers = async (req, res) => {
 // Admin can add KLS board members and institute admins
 // Institute admin can add institute members
 exports.createMember = async (req, res) => {
+  //console.log("memberController - createMember called");
+
   try {
     const {
       name: mName,
