@@ -1,13 +1,42 @@
 import axios from "axios";
 
-const API_URL =
-  process.env.REACT_APP_API_URL || "https://resolutions.klsbelagavi.org";
+const API_URL = process.env.REACT_APP_API_URL || "http://10.22.0.152:3000";
 
 export const login = async (username, password) => {
   const response = await axios.post(`${API_URL}/user/validateUser`, {
     username,
     password,
   });
+  return response.data;
+};
+
+export const forgotPassword = async (username) => {
+  const response = await axios.post(`${API_URL}/user/forgotPassword`, {
+    username,
+  });
+  return response.data;
+};
+
+export const resetPassword = async (username, otp, newPassword) => {
+  const response = await axios.post(`${API_URL}/user/resetPassword`, {
+    username,
+    otp,
+    newPassword,
+  });
+  return response.data;
+};
+
+export const changePassword = async (currentPassword, newPassword, token) => {
+  const response = await axios.post(
+    `${API_URL}/user/changePassword`,
+    {
+      currentPassword,
+      newPassword,
+    },
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
   return response.data;
 };
 

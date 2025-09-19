@@ -212,7 +212,8 @@ const Members = () => {
 
   const filteredMembers = members.filter(
     (member) =>
-      member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (member.name &&
+        member.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (member.phone &&
         member.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (member.address &&
