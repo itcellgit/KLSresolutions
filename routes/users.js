@@ -1,4 +1,3 @@
-
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
@@ -23,5 +22,8 @@ router.post("/forgotPassword", userController.forgotPassword);
 
 // Reset password (with OTP)
 router.post("/resetPassword", userController.resetPassword);
+
+// Change password (requires authentication)
+router.post("/changePassword", authMiddleware, userController.changePassword);
 
 module.exports = router;

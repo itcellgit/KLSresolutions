@@ -9,10 +9,7 @@ exports.getAllInstitutes = async (req, res) => {
       include: [{ model: User, attributes: [["username", "email"]] }],
       order: [["id", "ASC"]],
     });
-    console.log(
-      "This is the list of institutes:  ====================>",
-      institutes
-    );
+
     res.json(institutes);
   } catch (err) {
     res.status(500).json({ error: err.message });

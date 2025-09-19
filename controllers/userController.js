@@ -23,8 +23,10 @@ exports.forgotPassword = async (req, res) => {
 // Reset password (with OTP)
 exports.resetPassword = async (req, res) => {
   const { username: rpUsername, otp: rpOtp, newPassword } = req.body;
-  if (!rpUsername || !rpOtp || !newPassword) return res.status(400).json({ error: "All fields required" });
-  if (otpStore[rpUsername] !== rpOtp) return res.status(400).json({ error: "Invalid OTP" });
+  if (!rpUsername || !rpOtp || !newPassword)
+    return res.status(400).json({ error: "All fields required" });
+  if (otpStore[rpUsername] !== rpOtp)
+    return res.status(400).json({ error: "Invalid OTP" });
   const rpUser = await User.findOne({ where: { username: rpUsername } });
   if (!rpUser) return res.status(404).json({ error: "User not found" });
   rpUser.password = await bcrypt.hash(newPassword, 10);
@@ -32,6 +34,56 @@ exports.resetPassword = async (req, res) => {
   delete otpStore[rpUsername];
   res.json({ message: "Password reset successful" });
 };
+
+// Change password (requires authentication)
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate required fields
+    if (!currentPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ error: "Current password and new password are required" });
+    }
+
+    // Validate new password strength (optional)
+    if (newPassword.length < 6) {
+      return res
+        .status(400)
+        .json({ error: "New password must be at least 6 characters long" });
+    }
+
+    // Get user from token (req.user is set by auth middleware)
+    const userId = req.user.id;
+    const user = await User.findByPk(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({ error: "Current password is incorrect" });
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update user password
+    await user.update({ password: hashedNewPassword });
+
+    res.json({ message: "Password changed successfully" });
+  } catch (err) {
+    console.error("Change password error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 const pool = require("../db"); // <-- Corrected import
 require("dotenv").config();
 
@@ -95,7 +147,10 @@ exports.validateUser = async (req, res) => {
     };
 
     // Fetch all member_role associations for this user
-    const memberRows = await pool.query("SELECT * FROM members WHERE userid = $1", [user.id]);
+    const memberRows = await pool.query(
+      "SELECT * FROM members WHERE userid = $1",
+      [user.id]
+    );
     let memberRolesWithInstitute = [];
     if (memberRows.rows.length > 0) {
       const memberId = memberRows.rows[0].id;
@@ -108,24 +163,28 @@ exports.validateUser = async (req, res) => {
          WHERE mr.member_id = $1 AND mr.status = 'active'`,
         [memberId]
       );
-      memberRolesWithInstitute = memberRoles.rows.map(role => ({
+      memberRolesWithInstitute = memberRoles.rows.map((role) => ({
         role_id: role.role_id,
         role_name: role.role_name,
         institute_id: role.institute_id,
         institute_name: role.institute_name,
         level: role.level,
         tenure: role.tenure,
-        status: role.status
+        status: role.status,
       }));
     }
 
     // Generate JWT token
-    const token = jwt.sign({
-      id: user.id,
-      username: user.username,
-      usertypeid: user.usertypeid,
-      institute_id: user.institute_id,
-    }, JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign(
+      {
+        id: user.id,
+        username: user.username,
+        usertypeid: user.usertypeid,
+        institute_id: user.institute_id,
+      },
+      JWT_SECRET,
+      { expiresIn: "1h" }
+    );
 
     res.status(200).json({
       message: "Login successful",
