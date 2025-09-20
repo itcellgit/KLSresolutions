@@ -1,6 +1,6 @@
 import axios from "axios";
 const API_URL =
-  process.env.REACT_APP_API_URL || "https://resolutions.klsbelagavi.org";
+  process.env.REACT_APP_API_URL || "https://resolutions.klsbelagavi.org/api";
 
 export const getInstitutes = async (token) => {
   const response = await axios.get(`${API_URL}/institute`, {

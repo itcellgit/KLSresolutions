@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_URL =
-  process.env.REACT_APP_API_URL || "https://resolutions.klsbelagavi.org";
+  process.env.REACT_APP_API_URL || "https://resolutions.klsbelagavi.org/api";
 
 export const getGCResolutions = async (token) => {
   try {
