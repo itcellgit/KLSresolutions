@@ -3,7 +3,11 @@ import axios from "axios";
 const API_URL =
   process.env.NODE_ENV === "development"
     ? ""
+<<<<<<< HEAD
     : process.env.REACT_APP_API_URL || "http://10.22.0.152:3000";
+=======
+    : process.env.REACT_APP_API_URL || "https://resolutions.klsbelagavi.org/api";
+>>>>>>> d71090d507fe356522a2643601915bd7e89ac037
 
 export const getBOMResolutions = async (token) => {
   try {
