@@ -757,8 +757,8 @@ const AddGCResolution = () => {
                           placeholder="Enter compliance details"
                         />
                       </div>
-                      <div className="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2">
-                        <div>
+                      {/* <div className="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2"> */}
+                      {/* <div>
                           <label
                             htmlFor="institute_id"
                             className="block mb-2 text-sm font-medium text-gray-700"
@@ -795,24 +795,23 @@ const AddGCResolution = () => {
                               ))}
                             </select>
                           )}
-                        </div>
-                        <div>
-                          <label
-                            htmlFor="gc_date"
-                            className="block mb-2 text-sm font-medium text-gray-700"
-                          >
-                            GC Date
-                          </label>
-                          <input
-                            type="date"
-                            id="gc_date"
-                            name="gc_date"
-                            value={formData.gc_date}
-                            onChange={handleInputChange}
-                            className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                            required
-                          />
-                        </div>
+                        </div> */}
+                      <div className="mb-4">
+                        <label
+                          htmlFor="gc_date"
+                          className="block mb-2 text-sm font-medium text-gray-700"
+                        >
+                          GC Date
+                        </label>
+                        <input
+                          type="date"
+                          id="gc_date"
+                          name="gc_date"
+                          value={formData.gc_date}
+                          onChange={handleInputChange}
+                          className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          required
+                        />
                       </div>
                       <div className="flex justify-end space-x-4">
                         <button
