@@ -28,7 +28,7 @@ const Login = () => {
           navigate("/klsadmin/dashboard");
           //navigate("/klsadmin/AGM");
         } else if (data.user.usertypeid === 2) {
-          navigate("/instituteadmin/dashboard");
+	    navigate("/instituteadmin/dashboard");
         } else if (data.user.usertypeid === 3) {
           navigate("/member/dashboard");
         } else {
