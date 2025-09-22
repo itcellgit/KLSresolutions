@@ -7,6 +7,8 @@ import {
 } from "react-router-dom";
 import Login from "./components/auth/Login";
 import Register from "./components/auth/Register";
+import ForgotPassword from "./components/auth/ForgotPassword";
+import ResetPassword from "./components/auth/ResetPassword";
 import DashboardPage from "./pages/DashboardPage";
 import InstitutePage from "./pages/InstitutePage";
 import Members from "./pages/klsadmin/Members";
@@ -46,8 +48,8 @@ function App() {
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        {/* <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} /> */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Member dashboard/cards routes with DashboardLayout */}
         <Route

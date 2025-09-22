@@ -36,11 +36,16 @@ const InstitutePage = () => {
   // Filter institutes based on search term
   const filteredInstitutes = institutes.filter(
     (inst) =>
-      inst.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inst.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inst.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (inst.users && inst.users.length > 0
-        ? inst.users[0].email.toLowerCase().includes(searchTerm.toLowerCase())
+      (inst.name &&
+        inst.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (inst.code &&
+        inst.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (inst.phone &&
+        inst.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (inst.users && inst.users.length > 0 && inst.users[0].username
+        ? inst.users[0].username
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())
         : false)
   );
 
@@ -115,8 +120,10 @@ const InstitutePage = () => {
       code: institute.code || "",
       phone: institute.phone || "",
       email:
-        institute.users && institute.users.length > 0
-          ? institute.users[0].email
+        institute.users &&
+        institute.users.length > 0 &&
+        institute.users[0].username
+          ? institute.users[0].username
           : "",
     });
     setEditingId(institute.id);
@@ -298,16 +305,18 @@ const InstitutePage = () => {
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 break-words w-72">
-                        {inst.name}
+                        {inst.name || "N/A"}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 break-words w-72">
-                        {inst.code}
+                        {inst.code || "N/A"}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">
-                        {inst.phone}
+                        {inst.phone || "N/A"}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 break-words w-72">
-                        {inst.users && inst.users.length > 0
+                        {inst.users &&
+                        inst.users.length > 0 &&
+                        inst.users[0].email
                           ? inst.users[0].email
                           : "N/A"}
                       </td>

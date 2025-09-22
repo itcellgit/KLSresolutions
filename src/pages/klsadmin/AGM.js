@@ -125,6 +125,20 @@ const AGM = () => {
     (agm.agm_date || "").includes(searchTerm)
   );
 
+  // Pagination logic
+  const totalRows = filteredAGMs.length;
+  const totalPages = Math.ceil(totalRows / itemsPerPage);
+  const paginatedAGMs = filteredAGMs.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
   return (
     <div className="min-h-screen px-4 py-12 bg-gradient-to-br from-gray-50 to-gray-100 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
@@ -188,7 +202,7 @@ const AGM = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="w-16 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
-                    ID
+                    S.NO
                   </th>
                   <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-28">
                     Date
@@ -227,7 +241,7 @@ const AGM = () => {
                       </div>
                     </td>
                   </tr>
-                ) : filteredAGMs.length === 0 ? (
+                ) : paginatedAGMs.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center">
@@ -257,7 +271,7 @@ const AGM = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredAGMs.map((agm, idx) => (
+                  paginatedAGMs.map((agm, idx) => (
                     <tr key={agm.id}>
                       <td className="w-16 px-6 py-4 text-sm font-medium text-center text-gray-900">
                         {(currentPage - 1) * itemsPerPage + idx + 1}
@@ -293,7 +307,6 @@ const AGM = () => {
                             />
                           </svg>
                           Edit
-                          {/* Edit Button */}
                         </button>
                         <button
                           onClick={() => handleDelete(agm.id)}
@@ -314,7 +327,6 @@ const AGM = () => {
                             />
                           </svg>
                           Delete
-                          {/* Delete Button */}
                         </button>
                       </td>
                     </tr>
@@ -322,6 +334,38 @@ const AGM = () => {
                 )}
               </tbody>
             </table>
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center py-4">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 mx-1 text-sm bg-gray-200 rounded disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <button
+                    key={i + 1}
+                    onClick={() => handlePageChange(i + 1)}
+                    className={`px-3 py-1 mx-1 text-sm rounded ${
+                      currentPage === i + 1
+                        ? "bg-indigo-500 text-white"
+                        : "bg-gray-200"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 mx-1 text-sm bg-gray-200 rounded disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -450,5 +494,4 @@ const AGM = () => {
     </div>
   );
 };
-
 export default AGM;

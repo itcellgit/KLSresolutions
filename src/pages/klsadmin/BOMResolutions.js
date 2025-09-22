@@ -379,7 +379,7 @@ const BOMResolutionsPage = () => {
         <div className="mb-10 overflow-hidden bg-white shadow-xl rounded-xl">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              {/* <thead className="bg-gray-50">
                 <tr>
                   <th className="w-16 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
                     SL.NO
@@ -387,22 +387,57 @@ const BOMResolutionsPage = () => {
                   <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-36">
                     BOM No
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-72">
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-24">
                     Agenda
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-52">
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-24">
                     Resolution
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-36">
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-24">
                     Compliance
                   </th>
                   <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-72">
                     GC Resolution
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-28">
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-24">
                     BOM Date
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-36">
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-24">
+                    Actions
+                  </th>
+                </tr>
+              </thead> */}
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="w-4 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
+                    SL.NO
+                  </th>
+
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-6">
+                    BOM No
+                  </th>
+
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-120">
+                    Agenda
+                  </th>
+
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-120">
+                    Resolution
+                  </th>
+
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-12">
+                    Compliance
+                  </th>
+
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-24">
+                    GC Resolution
+                  </th>
+
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-6">
+                    Date
+                  </th>
+
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-6">
                     Actions
                   </th>
                 </tr>
@@ -435,28 +470,27 @@ const BOMResolutionsPage = () => {
                 ) : (
                   filteredResolutions.map((resolution, index) => (
                     <tr key={resolution.id}>
-                      <td className="w-16 px-6 py-4 text-sm font-medium text-center text-gray-900 whitespace-nowrap">
+                      <td className="w-4 px-6 py-4 text-sm font-medium text-center text-gray-900">
                         {index + 1}
                       </td>
-                      <td className="px-6 py-4 text-sm text-center text-gray-900 w-36 whitespace-nowrap">
+
+                      <td className="px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap w-6">
                         {resolution.bom_no}
                       </td>
-                      <td className="px-6 py-4 text-sm text-center text-gray-500 break-words w-72">
-                        <div className="truncate" title={resolution.agenda}>
-                          {resolution.agenda}
-                        </div>
+
+                      <td className="px-6 py-4 text-sm text-justify text-gray-500 w-120 break-words">
+                        {resolution.agenda}
                       </td>
-                      <td className="px-6 py-4 text-sm text-center text-gray-500 break-words w-72">
-                        <div className="truncate" title={resolution.resolution}>
-                          {resolution.resolution}
-                        </div>
+
+                      <td className="px-6 py-4 text-sm text-justify text-gray-500 w-120 break-words">
+                        {resolution.resolution}
                       </td>
-                      <td className="px-6 py-4 text-sm text-center text-gray-500 break-words w-72">
-                        <div className="truncate" title={resolution.compliance}>
-                          {resolution.compliance}
-                        </div>
+
+                      <td className="px-6 py-4 text-sm text-justify text-gray-500 w-12 break-words">
+                        {resolution.compliance}
                       </td>
-                      <td className="px-6 py-4 text-sm text-center text-gray-500 break-words w-72">
+
+                      <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-24">
                         {resolution.gc_resolution ? (
                           <button
                             type="button"
@@ -474,10 +508,12 @@ const BOMResolutionsPage = () => {
                           "Unknown"
                         )}
                       </td>
-                      <td className="px-6 py-4 text-sm text-center text-gray-500 w-36 whitespace-nowrap">
+
+                      <td className="px-6 py-4 text-sm text-center text-gray-500 w-6 whitespace-nowrap">
                         {formatDate(resolution.bom_date)}
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-center w-36 whitespace-nowrap">
+
+                      <td className="px-6 py-4 text-sm font-medium text-center whitespace-nowrap w-6">
                         <button
                           onClick={() => handleEdit(resolution)}
                           className="mr-3 text-indigo-600 hover:text-indigo-900"
@@ -498,6 +534,7 @@ const BOMResolutionsPage = () => {
                           </svg>
                           Edit
                         </button>
+
                         <button
                           onClick={() => handleDelete(resolution.id)}
                           className="text-red-600 hover:text-red-900"

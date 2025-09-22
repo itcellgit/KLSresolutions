@@ -1,6 +1,6 @@
 // Login.js
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "../../redux/authSlice";
 
@@ -28,7 +28,7 @@ const Login = () => {
           navigate("/klsadmin/dashboard");
           //navigate("/klsadmin/AGM");
         } else if (data.user.usertypeid === 2) {
-	    navigate("/instituteadmin/dashboard");
+          navigate("/instituteadmin/dashboard");
         } else if (data.user.usertypeid === 3) {
           navigate("/member/dashboard");
         } else {
@@ -45,18 +45,18 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
-      <div className="w-full max-w-lg p-10 md:p-12 sm:p-8 bg-white shadow-2xl rounded-3xl border border-gray-200 flex flex-col justify-center">
+    <div className="flex items-center justify-center min-h-screen bg-white">
+      <div className="flex flex-col justify-center w-full max-w-lg p-10 bg-white border border-gray-200 shadow-2xl md:p-12 sm:p-8 rounded-3xl">
         <div className="flex flex-col items-center mb-8">
           <img
             src={process.env.PUBLIC_URL + "/image.png"}
             alt="KLS Resolutions Logo"
             className="w-20 h-20 mb-4 rounded-full shadow"
           />
-          <h1 className="text-3xl md:text-4xl font-extrabold text-indigo-700 mb-2 text-center">
+          <h1 className="mb-2 text-3xl font-extrabold text-center text-indigo-700 md:text-4xl">
             Karnataka Law Society
           </h1>
-          <p className="text-gray-600 text-center text-base md:text-lg mb-2">
+          <p className="mb-2 text-base text-center text-gray-600 md:text-lg">
             A secure portal for KLS management and institutions to view and
             manage all GC and BOM resolutions, AGMs, and members.
           </p>
@@ -71,7 +71,7 @@ const Login = () => {
         )}
         <form onSubmit={handleSubmit} className="space-y-7">
           <div>
-            <label className="block mb-2 font-medium text-gray-700 text-base">
+            <label className="block mb-2 text-base font-medium text-gray-700">
               Email
             </label>
             <input
@@ -79,12 +79,12 @@ const Login = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-base"
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               placeholder="Enter your email"
             />
           </div>
           <div className="relative">
-            <label className="block mb-2 font-medium text-gray-700 text-base">
+            <label className="block mb-2 text-base font-medium text-gray-700">
               Password
             </label>
             <input
@@ -92,7 +92,7 @@ const Login = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-base"
+              className="w-full px-4 py-3 pr-10 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               placeholder="Enter your password"
             />
             <button
@@ -133,20 +133,20 @@ const Login = () => {
           </div>
           <button
             type="submit"
-            className="w-full py-3 font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition text-lg"
+            className="w-full py-3 text-lg font-semibold text-white transition bg-indigo-600 rounded-lg hover:bg-indigo-700"
             disabled={loading}
           >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
-        <div className="mt-6 flex flex-col items-center">
-          <a
-            href="#"
-            className="text-indigo-600 hover:underline text-sm md:text-base mb-2"
+        <div className="flex flex-col items-center mt-6">
+          <Link
+            to="/forgot-password"
+            className="mb-2 text-sm text-indigo-600 hover:underline md:text-base"
           >
             Forgot Password?
-          </a>
-          <div className="text-xs text-gray-500 text-center">
+          </Link>
+          <div className="text-xs text-center text-gray-500">
             &copy; {new Date().getFullYear()} Karnataka Law Society. All rights
             reserved.
           </div>

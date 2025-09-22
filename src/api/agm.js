@@ -1,11 +1,17 @@
 import axios from "axios";
-const API_URL = process.env.REACT_APP_API_URL || "http://10.22.0.152:3000";
+const API_URL =
+  process.env.REACT_APP_API_URL || "https://resolutions.klsbelagavi.org/api";
 
 export const getAGMs = async (token) => {
   const response = await axios.get(`${API_URL}/agm`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  return response.data;
+  console.log("Raw API response:", response);
+  console.log("Response data:", response.data);
+  // Handle both array and object responses
+  return Array.isArray(response.data)
+    ? response.data
+    : response.data.data || [];
 };
 
 // In getAGMs function

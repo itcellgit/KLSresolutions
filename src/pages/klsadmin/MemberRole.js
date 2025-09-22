@@ -12,6 +12,10 @@ import {
 import { getAllMemberRoles } from "../../api/memberRole";
 
 const MemberRoleManagementPage = () => {
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
+
   // State for modal visibility
   const [isModalOpen, setIsModalOpen] = useState(false);
   // State for form inputs
@@ -313,6 +317,20 @@ const MemberRoleManagementPage = () => {
     );
   });
 
+  // Pagination logic
+  const totalRows = filteredMemberRoles.length;
+  const totalPages = Math.ceil(totalRows / rowsPerPage);
+  const paginatedMemberRoles = filteredMemberRoles.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
   // Helper function to get member name by id
   const getMemberName = (memberId) => {
     const member = members.find((m) => m.id === memberId);
@@ -588,7 +606,7 @@ const MemberRoleManagementPage = () => {
                       </div>
                     </td>
                   </tr>
-                ) : filteredMemberRoles.length === 0 ? (
+                ) : paginatedMemberRoles.length === 0 ? (
                   <tr>
                     <td colSpan="7" className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center">
@@ -613,10 +631,10 @@ const MemberRoleManagementPage = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredMemberRoles.map((memberRole) => (
+                  paginatedMemberRoles.map((memberRole, idx) => (
                     <tr key={memberRole.id}>
                       <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
-                        {memberRole.id}
+                        {(currentPage - 1) * rowsPerPage + idx + 1}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                         {getMemberName(memberRole.member_id)}
@@ -683,7 +701,6 @@ const MemberRoleManagementPage = () => {
                             />
                           </svg>
                           Delete
-                          {/* Delete Button */}
                         </button>
                       </td>
                     </tr>
@@ -691,421 +708,452 @@ const MemberRoleManagementPage = () => {
                 )}
               </tbody>
             </table>
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center py-4">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 mx-1 text-sm bg-gray-200 rounded disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <button
+                    key={i + 1}
+                    onClick={() => handlePageChange(i + 1)}
+                    className={`px-3 py-1 mx-1 text-sm rounded ${
+                      currentPage === i + 1
+                        ? "bg-indigo-500 text-white"
+                        : "bg-gray-200"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 mx-1 text-sm bg-gray-200 rounded disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         </div>
+      </div>
 
-        {/* Add/Edit Member Role Modal */}
-        {isModalOpen && (
-          <div
-            className="fixed inset-0 z-50 overflow-y-auto"
-            aria-labelledby="modal-title"
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-              {/* Background overlay */}
-              <div
-                className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-                aria-hidden="true"
-                onClick={() => setIsModalOpen(false)}
-              ></div>
+      {/* Add/Edit Member Role Modal */}
+      {isModalOpen && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto"
+          aria-labelledby="modal-title"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {/* Background overlay */}
+            <div
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+              aria-hidden="true"
+              onClick={() => setIsModalOpen(false)}
+            ></div>
 
-              {/* Modal container */}
-              <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600">
-                  <div className="flex items-center justify-between">
-                    <h3
-                      className="text-lg font-medium leading-6 text-white"
-                      id="modal-title"
+            {/* Modal container */}
+            <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600">
+                <div className="flex items-center justify-between">
+                  <h3
+                    className="text-lg font-medium leading-6 text-white"
+                    id="modal-title"
+                  >
+                    {editingId ? "Edit Role Assignment" : "Assign New Role"}
+                  </h3>
+                  <button
+                    type="button"
+                    className="text-white hover:text-gray-200 focus:outline-none"
+                    onClick={() => setIsModalOpen(false)}
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
-                      {editingId ? "Edit Role Assignment" : "Assign New Role"}
-                    </h3>
-                    <button
-                      type="button"
-                      className="text-white hover:text-gray-200 focus:outline-none"
-                      onClick={() => setIsModalOpen(false)}
-                    >
-                      <svg
-                        className="w-6 h-6"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="px-6 py-5 bg-white">
-                  {/* Error message */}
-                  {error && (
-                    <div className="p-3 mb-4 text-red-700 bg-red-100 rounded-lg">
-                      <div className="flex items-center">
-                        <svg
-                          className="w-5 h-5 mr-2"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          ></path>
-                        </svg>
-                        <span>{error}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* API-specific errors */}
-                  {(apiErrors.members ||
-                    apiErrors.roles ||
-                    apiErrors.institutes) && (
-                    <div className="p-3 mb-4 text-yellow-700 bg-yellow-100 rounded-lg">
-                      <div className="flex items-start">
-                        <svg
-                          className="w-5 h-5 mr-2 mt-0.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                          ></path>
-                        </svg>
-                        <div>
-                          <p className="font-medium">
-                            Some data couldn't be loaded:
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <form onSubmit={handleSubmit}>
-                    <div className="grid gap-2 space-y-2 lg:grid-cols-2 lg:space-y-0">
-                      <div className="mb-4">
-                        <label
-                          htmlFor="member_id"
-                          className="block mb-2 text-sm font-medium text-gray-700"
-                        >
-                          Member
-                        </label>
-                        {dropdownLoading ? (
-                          <div className="py-2 text-center text-gray-500">
-                            Loading members...
-                          </div>
-                        ) : (
-                          <>
-                            <select
-                              id="member_id"
-                              name="member_id"
-                              value={formData.member_id}
-                              onChange={handleInputChange}
-                              className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                              required
-                            >
-                              <option value="">Select a member</option>
-                              {members.map((member) => (
-                                <option key={member.id} value={member.id}>
-                                  {member.name ||
-                                    member.full_name ||
-                                    member.email ||
-                                    "Unknown"}
-                                </option>
-                              ))}
-                            </select>
-                            {apiErrors.members && (
-                              <p className="mt-1 text-xs text-red-600">
-                                {apiErrors.members}
-                              </p>
-                            )}
-                          </>
-                        )}
-                      </div>
-
-                      <div className="mb-4">
-                        <label
-                          htmlFor="role_id"
-                          className="block mb-2 text-sm font-medium text-gray-700"
-                        >
-                          Role
-                        </label>
-                        {dropdownLoading ? (
-                          <div className="py-2 text-center text-gray-500">
-                            Loading roles...
-                          </div>
-                        ) : (
-                          <>
-                            <select
-                              id="role_id"
-                              name="role_id"
-                              value={formData.role_id}
-                              onChange={handleInputChange}
-                              className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                              required
-                            >
-                              <option value="">Select a role</option>
-                              {roles.map((role) => (
-                                <option key={role.id} value={role.id}>
-                                  {role.role_name ||
-                                    role.name ||
-                                    role.title ||
-                                    "Unknown"}
-                                </option>
-                              ))}
-                            </select>
-                            {apiErrors.roles && (
-                              <p className="mt-1 text-xs text-red-600">
-                                {apiErrors.roles}
-                              </p>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid gap-2 space-y-2 lg:grid-cols-2 lg:space-y-0">
-                      <div className="mb-4">
-                        <label
-                          htmlFor="level"
-                          className="block mb-2 text-sm font-medium text-gray-700"
-                        >
-                          Level
-                        </label>
-                        <select
-                          id="level"
-                          name="level"
-                          value={formData.level}
-                          onChange={handleInputChange}
-                          className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                          required
-                        >
-                          <option value="">Select level</option>
-                          <option value="GC">GC</option>
-                          <option value="BOM">BOM</option>
-                        </select>
-                      </div>
-
-                      <div className="mb-4">
-                        <label
-                          htmlFor="institute_id"
-                          className="block mb-2 text-sm font-medium text-gray-700"
-                        >
-                          Institute
-                        </label>
-                        {dropdownLoading ? (
-                          <div className="py-2 text-center text-gray-500">
-                            Loading institutes...
-                          </div>
-                        ) : (
-                          <>
-                            <select
-                              id="institute_id"
-                              name="institute_id"
-                              value={formData.institute_id}
-                              onChange={handleInputChange}
-                              className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                            >
-                              <option value="">KLS Board (No Institute)</option>
-                              {institutes.map((institute) => (
-                                <option key={institute.id} value={institute.id}>
-                                  {institute.name ||
-                                    institute.institute_name ||
-                                    "Unknown"}
-                                </option>
-                              ))}
-                            </select>
-                            {apiErrors.institutes && (
-                              <p className="mt-1 text-xs text-red-600">
-                                {apiErrors.institutes}
-                              </p>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid gap-2 space-y-2 lg:grid-cols-2 lg:space-y-0">
-                      <div className="mb-6">
-                        <label
-                          htmlFor="tenure"
-                          className="block mb-2 text-sm font-medium text-gray-700"
-                        >
-                          Tenure
-                        </label>
-                        <select
-                          id="tenure"
-                          name="tenure"
-                          value={formData.tenure}
-                          onChange={handleInputChange}
-                          className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                          required
-                        >
-                          <option value="">Select Tenure</option>
-                          {Array.from({ length: 6 }, (_, i) => {
-                            const start = 2021 + i;
-                            const end = start + 2;
-                            return (
-                              <option key={start} value={`${start}-${end}`}>
-                                {start}-{end}
-                              </option>
-                            );
-                          })}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end">
-                      <div className="flex space-x-4">
-                        <button
-                          type="button"
-                          onClick={() => setIsModalOpen(false)}
-                          className="inline-flex justify-center px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={loading || dropdownLoading}
-                          className="inline-flex justify-center px-6 py-3 text-sm font-medium text-white border border-transparent rounded-lg shadow-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                        >
-                          {loading
-                            ? "Processing..."
-                            : editingId
-                            ? "Update Assignment"
-                            : "Assign Role"}
-                        </button>
-                      </div>
-                    </div>
-                  </form>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
 
-        {/* Delete Confirmation Modal */}
-        {deleteConfirmation.isOpen && (
-          <div
-            className="fixed inset-0 z-50 overflow-y-auto"
-            aria-labelledby="modal-title"
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-              {/* Background overlay */}
-              <div
-                className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-                aria-hidden="true"
-                onClick={cancelDelete}
-              ></div>
-
-              {/* Modal container */}
-              <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div className="px-6 py-4 bg-gradient-to-r from-red-600 to-red-700">
-                  <div className="flex items-center justify-between">
-                    <h3
-                      className="text-lg font-medium leading-6 text-white"
-                      id="modal-title"
-                    >
-                      Confirm Deletion
-                    </h3>
-                    <button
-                      type="button"
-                      className="text-white hover:text-gray-200 focus:outline-none"
-                      onClick={cancelDelete}
-                    >
+              <div className="px-6 py-5 bg-white">
+                {/* Error message */}
+                {error && (
+                  <div className="p-3 mb-4 text-red-700 bg-red-100 rounded-lg">
+                    <div className="flex items-center">
                       <svg
-                        className="w-6 h-6"
-                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-5 h-5 mr-2"
                         fill="none"
-                        viewBox="0 0 24 24"
                         stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
                       >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
+                          strokeWidth="2"
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        ></path>
                       </svg>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="px-6 py-5 bg-white">
-                  <div className="flex items-start mb-4">
-                    <div className="flex-shrink-0">
-                      <svg
-                        className="w-12 h-12 text-red-600"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                        />
-                      </svg>
+                      <span>{error}</span>
                     </div>
-                    <div className="ml-4">
-                      <h3 className="text-lg font-medium text-gray-900">
-                        Delete Role Assignment
-                      </h3>
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-500">
-                          Are you sure you want to delete the role assignment
-                          for{" "}
-                          <span className="font-medium text-gray-900">
-                            {deleteConfirmation.name}
-                          </span>
-                          ? This action cannot be undone.
+                  </div>
+                )}
+
+                {/* API-specific errors */}
+                {(apiErrors.members ||
+                  apiErrors.roles ||
+                  apiErrors.institutes) && (
+                  <div className="p-3 mb-4 text-yellow-700 bg-yellow-100 rounded-lg">
+                    <div className="flex items-start">
+                      <svg
+                        className="w-5 h-5 mr-2 mt-0.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                        ></path>
+                      </svg>
+                      <div>
+                        <p className="font-medium">
+                          Some data couldn't be loaded:
                         </p>
                       </div>
                     </div>
                   </div>
+                )}
 
-                  <div className="flex justify-end mt-6 space-x-3">
-                    <button
-                      type="button"
-                      onClick={cancelDelete}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={confirmDelete}
-                      disabled={loading}
-                      className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-                    >
-                      {loading ? "Deleting..." : "Delete"}
-                    </button>
+                <form onSubmit={handleSubmit}>
+                  <div className="grid gap-2 space-y-2 lg:grid-cols-2 lg:space-y-0">
+                    <div className="mb-4">
+                      <label
+                        htmlFor="member_id"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
+                        Member
+                      </label>
+                      {dropdownLoading ? (
+                        <div className="py-2 text-center text-gray-500">
+                          Loading members...
+                        </div>
+                      ) : (
+                        <>
+                          <select
+                            id="member_id"
+                            name="member_id"
+                            value={formData.member_id}
+                            onChange={handleInputChange}
+                            className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            required
+                          >
+                            <option value="">Select a member</option>
+                            {members.map((member) => (
+                              <option key={member.id} value={member.id}>
+                                {member.name ||
+                                  member.full_name ||
+                                  member.email ||
+                                  "Unknown"}
+                              </option>
+                            ))}
+                          </select>
+                          {apiErrors.members && (
+                            <p className="mt-1 text-xs text-red-600">
+                              {apiErrors.members}
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    <div className="mb-4">
+                      <label
+                        htmlFor="role_id"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
+                        Role
+                      </label>
+                      {dropdownLoading ? (
+                        <div className="py-2 text-center text-gray-500">
+                          Loading roles...
+                        </div>
+                      ) : (
+                        <>
+                          <select
+                            id="role_id"
+                            name="role_id"
+                            value={formData.role_id}
+                            onChange={handleInputChange}
+                            className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            required
+                          >
+                            <option value="">Select a role</option>
+                            {roles.map((role) => (
+                              <option key={role.id} value={role.id}>
+                                {role.role_name ||
+                                  role.name ||
+                                  role.title ||
+                                  "Unknown"}
+                              </option>
+                            ))}
+                          </select>
+                          {apiErrors.roles && (
+                            <p className="mt-1 text-xs text-red-600">
+                              {apiErrors.roles}
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
+
+                  <div className="grid gap-2 space-y-2 lg:grid-cols-2 lg:space-y-0">
+                    <div className="mb-4">
+                      <label
+                        htmlFor="level"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
+                        Level
+                      </label>
+                      <select
+                        id="level"
+                        name="level"
+                        value={formData.level}
+                        onChange={handleInputChange}
+                        className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        required
+                      >
+                        <option value="">Select level</option>
+                        <option value="GC">GC</option>
+                        <option value="BOM">BOM</option>
+                      </select>
+                    </div>
+
+                    <div className="mb-4">
+                      <label
+                        htmlFor="institute_id"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
+                        Institute
+                      </label>
+                      {dropdownLoading ? (
+                        <div className="py-2 text-center text-gray-500">
+                          Loading institutes...
+                        </div>
+                      ) : (
+                        <>
+                          <select
+                            id="institute_id"
+                            name="institute_id"
+                            value={formData.institute_id}
+                            onChange={handleInputChange}
+                            className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          >
+                            <option value="">KLS Board (No Institute)</option>
+                            {institutes.map((institute) => (
+                              <option key={institute.id} value={institute.id}>
+                                {institute.name ||
+                                  institute.institute_name ||
+                                  "Unknown"}
+                              </option>
+                            ))}
+                          </select>
+                          {apiErrors.institutes && (
+                            <p className="mt-1 text-xs text-red-600">
+                              {apiErrors.institutes}
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2 space-y-2 lg:grid-cols-2 lg:space-y-0">
+                    <div className="mb-6">
+                      <label
+                        htmlFor="tenure"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
+                        Tenure
+                      </label>
+                      <select
+                        id="tenure"
+                        name="tenure"
+                        value={formData.tenure}
+                        onChange={handleInputChange}
+                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        required
+                      >
+                        <option value="">Select Tenure</option>
+                        {Array.from({ length: 6 }, (_, i) => {
+                          const start = 2021 + i;
+                          const end = start + 2;
+                          return (
+                            <option key={start} value={`${start}-${end}`}>
+                              {start}-{end}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <div className="flex space-x-4">
+                      <button
+                        type="button"
+                        onClick={() => setIsModalOpen(false)}
+                        className="inline-flex justify-center px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={loading || dropdownLoading}
+                        className="inline-flex justify-center px-6 py-3 text-sm font-medium text-white border border-transparent rounded-lg shadow-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                      >
+                        {loading
+                          ? "Processing..."
+                          : editingId
+                          ? "Update Assignment"
+                          : "Assign Role"}
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation.isOpen && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto"
+          aria-labelledby="modal-title"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {/* Background overlay */}
+            <div
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+              aria-hidden="true"
+              onClick={cancelDelete}
+            ></div>
+
+            {/* Modal container */}
+            <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="px-6 py-4 bg-gradient-to-r from-red-600 to-red-700">
+                <div className="flex items-center justify-between">
+                  <h3
+                    className="text-lg font-medium leading-6 text-white"
+                    id="modal-title"
+                  >
+                    Confirm Deletion
+                  </h3>
+                  <button
+                    type="button"
+                    className="text-white hover:text-gray-200 focus:outline-none"
+                    onClick={cancelDelete}
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div className="px-6 py-5 bg-white">
+                <div className="flex items-start mb-4">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="w-12 h-12 text-red-600"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900">
+                      Delete Role Assignment
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        Are you sure you want to delete the role assignment for{" "}
+                        <span className="font-medium text-gray-900">
+                          {deleteConfirmation.name}
+                        </span>
+                        ? This action cannot be undone.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end mt-6 space-x-3">
+                  <button
+                    type="button"
+                    onClick={cancelDelete}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmDelete}
+                    disabled={loading}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                  >
+                    {loading ? "Deleting..." : "Delete"}
+                  </button>
                 </div>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

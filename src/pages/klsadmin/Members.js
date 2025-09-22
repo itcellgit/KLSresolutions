@@ -43,8 +43,10 @@ const Members = () => {
     setError(null);
     try {
       const data = await getMembers(token);
+      console.log("Fetched members data:", data);
       setMembers(data);
     } catch (err) {
+      console.error("Error fetching members:", err);
       setError(err.message || "Failed to fetch members");
     } finally {
       setLoading(false);
@@ -184,7 +186,23 @@ const Members = () => {
         delete createData.showPassword;
         delete createData.showConfirmPassword;
         // alert("Member.js in klsadmin 186");
-        const newMember = await createMember(createData, token);
+        const response = await createMember(createData, token);
+
+        // Backend returns { user, member }, we need to restructure it to match the expected format
+        const newMember = {
+          id: response.member.id,
+          name: response.member.name,
+          phone: response.member.phone,
+          address: response.member.address,
+          userid: response.member.userid,
+          usertypeid: response.user.usertypeid,
+          user: {
+            id: response.user.id,
+            username: response.user.username,
+            usertypeid: response.user.usertypeid,
+          },
+        };
+
         // Add to members list
         setMembers([...members, newMember]);
       }
