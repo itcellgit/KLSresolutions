@@ -92,7 +92,10 @@ const JWT_SECRET = process.env.JWT_SECRET || "klsbelagavibom"; // Use env variab
 // Register a new user
 exports.register = async (req, res) => {
   try {
-    const { username, password, usertypeid } = req.body;
+    const { username, password, usertypeid, institute_id } = req.body;
+    console.log("Register function - req.body:", req.body);
+    console.log("Register function - institute_id:", institute_id);
+
     if (!username || !password || !usertypeid) {
       return res
         .status(400)
@@ -101,16 +104,31 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Do NOT include id, let PostgreSQL auto-generate it
-    const user = await User.create({
+    // Create user data object
+    const userData = {
       username,
       password: hashedPassword,
       usertypeid,
-      // institute_id can be added if needed
-    });
+    };
+
+    // Add institute_id only if it's provided and not empty
+    if (
+      institute_id !== undefined &&
+      institute_id !== null &&
+      institute_id !== ""
+    ) {
+      userData.institute_id = institute_id;
+      console.log("Adding institute_id to user:", institute_id);
+    }
+
+    console.log("Final userData object:", userData);
+
+    // Do NOT include id, let PostgreSQL auto-generate it
+    const user = await User.create(userData);
 
     res.status(201).json({ id: user.id, username: user.username });
   } catch (err) {
+    console.error("Error in register function:", err);
     res.status(400).json({ error: err.message });
   }
 };

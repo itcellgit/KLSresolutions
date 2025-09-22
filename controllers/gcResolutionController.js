@@ -9,6 +9,12 @@ const {
 
 // Dedicated method to generate GC No
 async function generateGCNo(institute_id, gc_date) {
+  console.log(
+    "Generating GC No for institute_id:",
+    institute_id,
+    "on date:",
+    gc_date
+  );
   // Fetch institute short name
   const institute = await Institute.findByPk(institute_id);
   if (!institute || !institute.code) {
@@ -178,6 +184,7 @@ exports.getAllGCResolutions = async (req, res) => {
 // Institute admin can add GC resolution
 exports.createGCResolution = async (req, res) => {
   console.log("Request body:", req.body);
+  console.log("User info:", req.user);
   try {
     if (req.user.usertypeid !== 2) {
       return res
@@ -185,7 +192,7 @@ exports.createGCResolution = async (req, res) => {
         .json({ error: "Only institute admin can add GC resolutions" });
     }
     const { agenda, resolution, compliance, gc_date } = req.body;
-    if (!agenda || !resolution || !gc_date) {
+    if (!agenda || !gc_date) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 

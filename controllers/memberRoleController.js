@@ -10,7 +10,10 @@ exports.getAllMemberRoles = async (req, res) => {
     if (role_id) where.role_id = role_id;
     if (institute_id) where.institute_id = institute_id;
 
-    const memberRoles = await MemberRole.findAll({ where });
+    const memberRoles = await MemberRole.findAll({
+      where,
+      order: [["id", "DESC"]],
+    });
     res.json(memberRoles);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -42,7 +45,34 @@ exports.createMemberRole = async (req, res) => {
         error: "member_id, role_id, tenure, and status are required",
       });
     }
+
     console.log("Creating MemberRole with data:", req.body);
+
+    // Check for previous active member roles for the given member_id
+    const activeMemberRoles = await MemberRole.findAll({
+      where: {
+        member_id: member_id,
+        status: "active",
+      },
+    });
+
+    // Make all previous active roles inactive
+    if (activeMemberRoles.length > 0) {
+      await MemberRole.update(
+        { status: "inactive" },
+        {
+          where: {
+            member_id: member_id,
+            status: "active",
+          },
+        }
+      );
+      console.log(
+        `Made ${activeMemberRoles.length} previous roles inactive for member_id: ${member_id}`
+      );
+    }
+
+    // Create the new member role
     const newMemberRole = await MemberRole.create({
       member_id,
       role_id,
