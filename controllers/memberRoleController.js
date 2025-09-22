@@ -40,37 +40,43 @@ exports.createMemberRole = async (req, res) => {
     const { member_id, role_id, institute_id, level, tenure, status } =
       req.body;
 
-    if (!member_id || !role_id || !tenure || !status) {
+    if (!member_id || !role_id || !level || !tenure || !status) {
       return res.status(400).json({
-        error: "member_id, role_id, tenure, and status are required",
+        error: "member_id, role_id, level, tenure, and status are required",
       });
     }
 
     console.log("Creating MemberRole with data:", req.body);
 
-    // Check for previous active member roles for the given member_id
+    // Check for previous active member roles for the given member_id with different tenure
     const activeMemberRoles = await MemberRole.findAll({
       where: {
         member_id: member_id,
         status: "active",
+        tenure: {
+          [require("sequelize").Op.ne]: tenure, // Only get roles with different tenure
+        },
       },
     });
 
-    // Make all previous active roles inactive
-    // if (activeMemberRoles.length > 0) {
-    //   await MemberRole.update(
-    //     { status: "inactive" },
-    //     {
-    //       where: {
-    //         member_id: member_id,
-    //         status: "active",
-    //       },
-    //     }
-    //   );
-    //   console.log(
-    //     `Made ${activeMemberRoles.length} previous roles inactive for member_id: ${member_id}`
-    //   );
-    // }
+    //Make previous active roles with different tenure inactive
+    if (activeMemberRoles.length > 0) {
+      await MemberRole.update(
+        { status: "inactive" },
+        {
+          where: {
+            member_id: member_id,
+            status: "active",
+            tenure: {
+              [require("sequelize").Op.ne]: tenure, // Only update roles with different tenure
+            },
+          },
+        }
+      );
+      console.log(
+        `Made ${activeMemberRoles.length} previous roles with different tenure inactive for member_id: ${member_id}`
+      );
+    }
 
     // Create the new member role
     const newMemberRole = await MemberRole.create({

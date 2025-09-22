@@ -10,7 +10,7 @@ router.get("/", auth, memberRoleController.getAllMemberRoles);
 router.get("/:id", auth, memberRoleController.getMemberRoleById);
 
 // Create a new member role
-router.post("/", memberRoleController.createMemberRole);
+router.post("/", auth, memberRoleController.createMemberRole);
 
 // Update a member role by id
 router.put("/:id", auth, memberRoleController.updateMemberRole);
