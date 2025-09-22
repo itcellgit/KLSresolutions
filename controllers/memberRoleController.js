@@ -57,20 +57,20 @@ exports.createMemberRole = async (req, res) => {
     });
 
     // Make all previous active roles inactive
-    if (activeMemberRoles.length > 0) {
-      await MemberRole.update(
-        { status: "inactive" },
-        {
-          where: {
-            member_id: member_id,
-            status: "active",
-          },
-        }
-      );
-      console.log(
-        `Made ${activeMemberRoles.length} previous roles inactive for member_id: ${member_id}`
-      );
-    }
+    // if (activeMemberRoles.length > 0) {
+    //   await MemberRole.update(
+    //     { status: "inactive" },
+    //     {
+    //       where: {
+    //         member_id: member_id,
+    //         status: "active",
+    //       },
+    //     }
+    //   );
+    //   console.log(
+    //     `Made ${activeMemberRoles.length} previous roles inactive for member_id: ${member_id}`
+    //   );
+    // }
 
     // Create the new member role
     const newMemberRole = await MemberRole.create({
