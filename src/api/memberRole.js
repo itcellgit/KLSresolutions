@@ -1,7 +1,8 @@
 // ../../api/memberRole.js
 import axios from "axios";
 
-const API_URL = process.env.REACT_APP_API_URL || "http://10.22.0.152:3000"; //"https://resolutions.klsbelagavi.org/api";
+const API_URL =
+  process.env.REACT_APP_API_URL || "https://resolutions.klsbelagavi.org/api";
 
 export const assignRole = async (data, token) => {
   // Convert string values to proper types before sending

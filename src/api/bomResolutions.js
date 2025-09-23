@@ -3,7 +3,8 @@ import axios from "axios";
 const API_URL =
   process.env.NODE_ENV === "development"
     ? ""
-    : process.env.REACT_APP_API_URL || "http://10.22.0.152:3000"; //  "https://resolutions.klsbelagavi.org/api"; // Production fallback
+    : process.env.REACT_APP_API_URL ||
+      "https://resolutions.klsbelagavi.org/api"; // Production fallback
 
 export const getBOMResolutions = async (token) => {
   try {
