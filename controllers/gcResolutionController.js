@@ -62,57 +62,6 @@ async function generateGCNo(institute_id, gc_date) {
 }
 
 // Get all GC resolutions (admin sees all, institute admin sees only their own)
-// exports.getAllGCResolutions = async (req, res) => {
-//   try {
-//     const { usertypeid, id } = req.user;
-//     let resolutions = [];
-
-//     if (usertypeid === 1) {
-//       // Admin: all resolutions, latest first
-//       resolutions = await GCResolution.findAll({
-//         order: [["id", "DESC"]],
-//       });
-//     } else if (usertypeid === 2) {
-//       // Institute admin: only their institute's resolutions, latest first
-//       resolutions = await GCResolution.findAll({
-//         where: { institute_id: req.user.institute_id },
-//         order: [["id", "DESC"]],
-//       });
-//     } else if (usertypeid === 3) {
-//       // Member: fetch only resolutions for institutes from member_role
-//       const member = await Member.findOne({ where: { userid: id } });
-//       if (!member) {
-//         return res.status(404).json({ error: "Member not found" });
-//       }
-//       // Fetch active member roles with institute_id
-//       const memberRoles = await MemberRole.findAll({
-//         where: { member_id: member.id, status: "active" },
-//       });
-//       const instituteIds = [
-//         ...new Set(
-//           memberRoles
-//             .map((mr) => mr.institute_id)
-//             .filter((institute_id) => institute_id != null)
-//         ),
-//       ];
-//       if (instituteIds.length === 0) {
-//         return res
-//           .status(400)
-//           .json({ error: "Member does not belong to any institute" });
-//       }
-//       resolutions = await GCResolution.findAll({
-//         where: { institute_id: instituteIds },
-//         order: [["id", "DESC"]],
-//       });
-//     }
-
-//     return res.json({ resolutions });
-//   } catch (err) {
-//     console.error("Error in getAllGCResolutions:", err);
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
 //condition addeed
 exports.getAllGCResolutions = async (req, res) => {
   try {
@@ -191,7 +140,8 @@ exports.createGCResolution = async (req, res) => {
         .status(403)
         .json({ error: "Only institute admin can add GC resolutions" });
     }
-    const { agenda, resolution, compliance, gc_date } = req.body;
+    const { agenda_section, agenda, resolution, compliance, gc_date } =
+      req.body;
     if (!agenda || !gc_date) {
       return res.status(400).json({ error: "Missing required fields" });
     }
@@ -200,6 +150,7 @@ exports.createGCResolution = async (req, res) => {
     const gc_no = await generateGCNo(req.user.institute_id, gc_date);
 
     const gcResolution = await GCResolution.create({
+      agenda_section,
       agenda,
       resolution,
       compliance,
@@ -218,7 +169,8 @@ exports.createGCResolution = async (req, res) => {
 exports.updateGCResolution = async (req, res) => {
   try {
     const { id } = req.params;
-    const { agenda, resolution, compliance, gc_date } = req.body;
+    const { agenda_section, agenda, resolution, compliance, gc_date } =
+      req.body;
 
     const gcResolution = await GCResolution.findByPk(id);
     if (!gcResolution) {
@@ -236,6 +188,7 @@ exports.updateGCResolution = async (req, res) => {
     }
 
     await gcResolution.update({
+      agenda_section,
       agenda,
       resolution,
       compliance,

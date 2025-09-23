@@ -81,8 +81,14 @@ exports.createBOMResolution = async (req, res) => {
         .status(403)
         .json({ error: "Only admin can create BOM agenda" });
     }
-    const { agenda, resolution, compliance, gc_resolution_id, bom_date } =
-      req.body;
+    const {
+      agenda,
+      resolution,
+      compliance,
+      gc_resolution_id,
+      bom_date,
+      agenda_section,
+    } = req.body;
 
     if (!agenda || !resolution || !gc_resolution_id || !bom_date) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -93,6 +99,7 @@ exports.createBOMResolution = async (req, res) => {
 
     const bomResolution = await BOMResolution.create({
       agenda,
+      agenda_section,
       resolution,
       compliance,
       gc_resolution_id,
@@ -133,8 +140,14 @@ exports.updateBOMResolution = async (req, res) => {
         .json({ error: "Only admin can update BOM resolution" });
     }
     const { id } = req.params;
-    const { agenda, resolution, compliance, gc_resolution_id, bom_date } =
-      req.body;
+    const {
+      agenda,
+      resolution,
+      compliance,
+      gc_resolution_id,
+      bom_date,
+      agenda_section,
+    } = req.body;
 
     const bomResolution = await BOMResolution.findByPk(id);
     if (!bomResolution) {
@@ -147,6 +160,7 @@ exports.updateBOMResolution = async (req, res) => {
     }
     await bomResolution.update({
       agenda: agenda || bomResolution.agenda,
+      agenda: agenda_section || bomResolution.agenda_section,
       resolution: resolution || bomResolution.resolution,
       compliance: compliance || bomResolution.compliance,
       gc_resolution_id: gc_resolution_id || bomResolution.gc_resolution_id,

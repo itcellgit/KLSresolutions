@@ -31,6 +31,10 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         unique: true,
       },
+      agenda_section: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
     },
     {
       tableName: "gc_resolutions",

@@ -10,25 +10,93 @@ module.exports = (sequelize, DataTypes) => {
       member_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        validate: {
+          notNull: {
+            msg: "member_id is required",
+          },
+          notEmpty: {
+            msg: "member_id cannot be empty",
+          },
+          isInt: {
+            msg: "member_id must be an integer",
+          },
+        },
       },
       role_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        validate: {
+          notNull: {
+            msg: "role_id is required",
+          },
+          notEmpty: {
+            msg: "role_id cannot be empty",
+          },
+          isInt: {
+            msg: "role_id must be an integer",
+          },
+        },
       },
       level: {
         type: DataTypes.STRING(5),
         allowNull: false,
+        validate: {
+          notNull: {
+            msg: "level is required",
+          },
+          notEmpty: {
+            msg: "level cannot be empty",
+          },
+          len: {
+            args: [1, 5],
+            msg: "level must be between 1 and 5 characters",
+          },
+        },
       },
       institute_id: {
         type: DataTypes.INTEGER,
+        allowNull: true, // Optional - BOM roles are not related to any institute
+        validate: {
+          isInt: {
+            msg: "institute_id must be an integer when provided",
+          },
+        },
       },
       tenure: {
         type: DataTypes.STRING(128),
         allowNull: false,
+        validate: {
+          notNull: {
+            msg: "tenure is required",
+          },
+          notEmpty: {
+            msg: "tenure cannot be empty",
+          },
+          len: {
+            args: [1, 128],
+            msg: "tenure must be between 1 and 128 characters",
+          },
+        },
       },
       status: {
         type: DataTypes.STRING(20),
         allowNull: false,
+        validate: {
+          notNull: {
+            msg: "status is required",
+          },
+          notEmpty: {
+            msg: "status cannot be empty",
+          },
+          len: {
+            args: [1, 20],
+            msg: "status must be between 1 and 20 characters",
+          },
+          isIn: {
+            args: [["active", "inactive"]],
+            msg: 'status must be either "active" or "inactive"',
+          },
+        },
       },
     },
     {
