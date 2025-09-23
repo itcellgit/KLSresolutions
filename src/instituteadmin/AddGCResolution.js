@@ -1,4 +1,3 @@
-// export default AddGCResolution;
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -198,14 +197,14 @@ const AddGCResolution = () => {
     }
   };
 
-  // Toggle section expansion - only one section can be open at a time
+  // Toggle SECTION accordion - only one can be open at a time
   const toggleSection = (section) => {
     setExpandedSections((prev) => {
-      // If the clicked section is already open, close it
+      // If the clicked SECTION is already expanded, close it
       if (prev[section]) {
         return {};
       }
-      // Otherwise, close all sections and open only the clicked one
+      // Otherwise, close all others and open the clicked one
       return { [section]: true };
     });
   };
@@ -272,15 +271,15 @@ const AddGCResolution = () => {
     <>
       <Header />
       <DashboardLayout>
-        <div className="min-h-screen bg-gradient-to-br from-gray-100 to-blue-100 flex flex-col">
+        <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-100 to-blue-100">
           <div className="flex justify-start mt-5 mr-3">
             <button
               onClick={goToDashboard}
-              className="flex items-center text-gray-600 hover:text-blue-700 transition-colors duration-200"
+              className="flex items-center text-gray-600 transition-colors duration-200 hover:text-blue-700"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 mr-1"
+                className="w-6 h-6 mr-1"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -295,10 +294,10 @@ const AddGCResolution = () => {
               <span className="font-medium text-blue-600">Home</span>
             </button>
           </div>
-          <main className="flex-1 w-full flex flex-col">
-            <div className="w-full px-4 py-8 sm:px-6 lg:px-8">
+          <main className="flex flex-col items-center justify-start flex-1 w-full">
+            <div className="w-full max-w-6xl px-4 py-12 mx-auto sm:px-6 lg:px-8">
               {/* Header Section */}
-              <div className="mb-8 text-center">
+              <div className="mb-12 text-center">
                 <h1 className="mb-4 text-4xl font-extrabold text-gray-900">
                   Governing Council Resolutions
                 </h1>
@@ -307,7 +306,7 @@ const AddGCResolution = () => {
                 </p>
               </div>
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-6 mb-10 md:grid-cols-2">
                 <div className="p-6 bg-white border-l-4 border-indigo-500 shadow-md rounded-xl">
                   <div className="flex items-center">
                     <div className="p-3 mr-4 bg-indigo-100 rounded-full">
@@ -490,7 +489,7 @@ const AddGCResolution = () => {
                               <span className="text-lg font-medium text-gray-900">
                                 {section}
                               </span>
-                              <span className="ml-3 px-2 py-1 text-xs font-medium text-indigo-800 bg-indigo-100 rounded-full">
+                              <span className="px-2 py-1 ml-3 text-xs font-medium text-indigo-800 bg-indigo-100 rounded-full">
                                 {sectionResolutions.length}{" "}
                                 {sectionResolutions.length === 1
                                   ? "Resolution"
@@ -785,7 +784,7 @@ const AddGCResolution = () => {
                       </div>
                       <div className="px-6 py-5 bg-white">
                         {formError && (
-                          <div className="mb-4 p-3 text-red-700 bg-red-100 rounded-lg">
+                          <div className="p-3 mb-4 text-red-700 bg-red-100 rounded-lg">
                             {formError}
                           </div>
                         )}
