@@ -1,22 +1,46 @@
 // ../../api/memberRole.js
 import axios from "axios";
 
-const API_URL =
-  process.env.REACT_APP_API_URL || "https://resolutions.klsbelagavi.org/api";
+const API_URL = process.env.REACT_APP_API_URL || "http://10.22.0.152:3000"; //"https://resolutions.klsbelagavi.org/api";
 
 export const assignRole = async (data, token) => {
+  // Convert string values to proper types before sending
+  const processedData = {
+    ...data,
+    member_id: parseInt(data.member_id),
+    role_id: parseInt(data.role_id),
+    institute_id: data.institute_id ? parseInt(data.institute_id) : null,
+  };
+
+  //alert(JSON.stringify(processedData));
   try {
-    const response = await axios.post(`${API_URL}/memberrole`, data, {
+    const response = await axios.post(`${API_URL}/memberrole`, processedData, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     });
+
     return response.data;
   } catch (error) {
     // axios error response data is in error.response.data
+    //console.error("API Error:", error.response?.data);
+
+    // Show detailed validation errors if available
+    const errorData = error.response?.data;
+    if (errorData?.details) {
+      alert(
+        "Validation errors:\n" + JSON.stringify(errorData.details, null, 2)
+      );
+    } else {
+      alert("Full error response: " + JSON.stringify(errorData, null, 2));
+    }
+
     const message =
-      error.response?.data?.message || error.message || "Failed to assign role";
+      errorData?.error ||
+      errorData?.message ||
+      error.message ||
+      "Failed to assign role";
     throw new Error(message);
   }
 };
@@ -42,13 +66,25 @@ export const getAllMemberRoles = async (token) => {
 
 // Function to update a member role
 export const updateMemberRole = async (id, data, token) => {
+  // Convert string values to proper types before sending
+  const processedData = {
+    ...data,
+    member_id: data.member_id ? parseInt(data.member_id) : undefined,
+    role_id: data.role_id ? parseInt(data.role_id) : undefined,
+    institute_id: data.institute_id ? parseInt(data.institute_id) : null,
+  };
+
   try {
-    const response = await axios.put(`${API_URL}/memberrole/${id}`, data, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await axios.put(
+      `${API_URL}/memberrole/${id}`,
+      processedData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
     return response.data;
   } catch (error) {
     const message =

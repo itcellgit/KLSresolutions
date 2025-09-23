@@ -8,7 +8,7 @@ import {
   assignRole,
   updateMemberRole,
   deleteMemberRole,
-} from "../../api/memberRole"; // Added deleteMemberRole
+} from "../../api/memberRole";
 import { getAllMemberRoles } from "../../api/memberRole";
 
 const MemberRoleManagementPage = () => {
@@ -52,6 +52,8 @@ const MemberRoleManagementPage = () => {
     id: null,
     name: "",
   });
+  // State for expanded tenures
+  const [expandedTenures, setExpandedTenures] = useState({});
 
   const token =
     useSelector((state) => state.auth.token) || localStorage.getItem("token");
@@ -302,6 +304,18 @@ const MemberRoleManagementPage = () => {
     }
   }, [isModalOpen]);
 
+  // Toggle tenure accordion - only one can be open at a time
+  const toggleTenure = (tenure) => {
+    setExpandedTenures((prev) => {
+      // If the clicked tenure is already expanded, close it
+      if (prev[tenure]) {
+        return {};
+      }
+      // Otherwise, close all others and open the clicked one
+      return { [tenure]: true };
+    });
+  };
+
   // Filter member roles based on search term
   const filteredMemberRoles = memberRoles.filter((memberRole) => {
     const member = members.find((m) => m.id === memberRole.member_id);
@@ -317,18 +331,50 @@ const MemberRoleManagementPage = () => {
     );
   });
 
-  // Pagination logic
-  const totalRows = filteredMemberRoles.length;
-  const totalPages = Math.ceil(totalRows / rowsPerPage);
-  const paginatedMemberRoles = filteredMemberRoles.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
-
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
+  // Group member roles by tenure
+  const groupedByTenure = filteredMemberRoles.reduce((acc, memberRole) => {
+    if (!acc[memberRole.tenure]) {
+      acc[memberRole.tenure] = [];
     }
+    acc[memberRole.tenure].push(memberRole);
+    return acc;
+  }, {});
+
+  // Process rows for each tenure to merge member names
+  const processRowsForTenure = (rows) => {
+    // Sort rows by member name to ensure same members are consecutive
+    const sortedRows = [...rows].sort((a, b) => {
+      const nameA = getMemberName(a.member_id);
+      const nameB = getMemberName(b.member_id);
+      return nameA.localeCompare(nameB);
+    });
+
+    const processedRows = [];
+    let i = 0;
+
+    while (i < sortedRows.length) {
+      let count = 1;
+      // Check consecutive rows with same member
+      while (
+        i + count < sortedRows.length &&
+        getMemberName(sortedRows[i].member_id) ===
+          getMemberName(sortedRows[i + count].member_id)
+      ) {
+        count++;
+      }
+
+      // For the first row of this member, set rowSpan = count
+      processedRows.push({ ...sortedRows[i], rowSpan: count });
+
+      // For the next count-1 rows, mark as no rowSpan (so we skip rendering the member cell)
+      for (let j = 1; j < count; j++) {
+        processedRows.push({ ...sortedRows[i + j], rowSpan: 0 });
+      }
+
+      i += count;
+    }
+
+    return processedRows;
   };
 
   // Helper function to get member name by id
@@ -525,94 +571,97 @@ const MemberRoleManagementPage = () => {
           </button>
         </div>
 
-        {/* Member Roles Table */}
+        {/* Tenure Accordion */}
         <div className="mb-10 overflow-hidden bg-white shadow-xl rounded-xl">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
-                    S.NO
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
-                    Member
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
-                    Role
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
-                    Level
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
-                    Institute
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
-                    Tenure
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-right text-gray-500 uppercase"
-                  >
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {tableLoading ? (
-                  <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <svg
-                          className="animate-spin h-10 w-10 text-indigo-600 mb-4"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
+          {tableLoading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <svg
+                className="animate-spin h-10 w-10 text-indigo-600 mb-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <h3 className="mb-1 text-lg font-medium text-gray-900">
+                Loading role assignments...
+              </h3>
+            </div>
+          ) : Object.keys(groupedByTenure).length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-16 h-16 mb-4 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                />
+              </svg>
+              <h3 className="mb-1 text-lg font-medium text-gray-900">
+                No role assignments found
+              </h3>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-200">
+              {Object.entries(groupedByTenure)
+                .sort(([a], [b]) => b.localeCompare(a)) // Sort tenures in descending order
+                .map(([tenure, roles]) => {
+                  const processedRows = processRowsForTenure(roles);
+                  return (
+                    <div
+                      key={tenure}
+                      className="transition-all duration-200 ease-in-out"
+                    >
+                      <button
+                        className="flex items-center justify-between w-full p-4 text-left bg-gray-50 hover:bg-gray-100 focus:outline-none focus:bg-gray-100"
+                        onClick={() => toggleTenure(tenure)}
+                      >
+                        <div className="flex items-center">
+                          <svg
+                            className={`w-5 h-5 mr-3 text-indigo-600 transform transition-transform duration-200 ${
+                              expandedTenures[tenure] ? "rotate-90" : ""
+                            }`}
+                            fill="none"
+                            viewBox="0 0 24 24"
                             stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        <h3 className="mb-1 text-lg font-medium text-gray-900">
-                          Loading role assignments...
-                        </h3>
-                      </div>
-                    </td>
-                  </tr>
-                ) : paginatedMemberRoles.length === 0 ? (
-                  <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center">
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
+                          </svg>
+                          <span className="text-lg font-medium text-gray-900">
+                            {tenure}
+                          </span>
+                          <span className="ml-3 px-2 py-1 text-xs font-medium text-indigo-800 bg-indigo-100 rounded-full">
+                            {roles.length}{" "}
+                            {roles.length === 1 ? "Assignment" : "Assignments"}
+                          </span>
+                        </div>
                         <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="w-16 h-16 mb-4 text-gray-400"
+                          className={`w-5 h-5 text-gray-500 transform transition-transform duration-200 ${
+                            expandedTenures[tenure] ? "rotate-180" : ""
+                          }`}
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -621,126 +670,131 @@ const MemberRoleManagementPage = () => {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                            d="M19 9l-7 7-7-7"
                           />
                         </svg>
-                        <h3 className="mb-1 text-lg font-medium text-gray-900">
-                          No role assignments found
-                        </h3>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedMemberRoles.map((memberRole, idx) => (
-                    <tr key={memberRole.id}>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
-                        {(currentPage - 1) * rowsPerPage + idx + 1}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {getMemberName(memberRole.member_id)}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap break-words w-72">
-                        {getRoleName(memberRole.role_id)}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap break-words w-72">
-                        <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            memberRole.level === "GC"
-                              ? "bg-red-100 text-red-800"
-                              : memberRole.level === "BOM"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          {memberRole.level}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap break-words w-72">
-                        {getInstituteName(memberRole.institute_id)}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {memberRole.tenure}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
-                        <button
-                          onClick={() => handleEdit(memberRole)}
-                          className="mr-3 text-indigo-600 hover:text-indigo-900"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="w-4 h-4 mr-1"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                            />
-                          </svg>
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(memberRole.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="w-4 h-4 mr-1"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center py-4">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 mx-1 text-sm bg-gray-200 rounded disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => (
-                  <button
-                    key={i + 1}
-                    onClick={() => handlePageChange(i + 1)}
-                    className={`px-3 py-1 mx-1 text-sm rounded ${
-                      currentPage === i + 1
-                        ? "bg-indigo-500 text-white"
-                        : "bg-gray-200"
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 mx-1 text-sm bg-gray-200 rounded disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </div>
-            )}
-          </div>
+                      </button>
+
+                      {expandedTenures[tenure] && (
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th
+                                  scope="col"
+                                  className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                >
+                                  Member
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                >
+                                  Role
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                >
+                                  Level
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                >
+                                  Institute
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase"
+                                >
+                                  Actions
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {processedRows.map((row, index) => (
+                                <tr key={row.id}>
+                                  {row.rowSpan > 0 ? (
+                                    <td
+                                      rowSpan={row.rowSpan}
+                                      className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap"
+                                    >
+                                      {getMemberName(row.member_id)}
+                                    </td>
+                                  ) : null}
+                                  <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                    {getRoleName(row.role_id)}
+                                  </td>
+                                  <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                    <span
+                                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                        row.level === "GC"
+                                          ? "bg-red-100 text-red-800"
+                                          : row.level === "BOM"
+                                          ? "bg-yellow-100 text-yellow-800"
+                                          : "bg-green-100 text-green-800"
+                                      }`}
+                                    >
+                                      {row.level}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                    {getInstituteName(row.institute_id)}
+                                  </td>
+                                  <td className="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
+                                    <button
+                                      onClick={() => handleEdit(row)}
+                                      className="mr-3 text-indigo-600 hover:text-indigo-900"
+                                    >
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="w-4 h-4 mr-1"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                        />
+                                      </svg>
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteClick(row.id)}
+                                      className="text-red-600 hover:text-red-900"
+                                    >
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="w-4 h-4 mr-1"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                        />
+                                      </svg>
+                                      Delete
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          )}
         </div>
       </div>
 

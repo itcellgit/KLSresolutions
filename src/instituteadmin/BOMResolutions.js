@@ -273,6 +273,9 @@ const BOMResolution = () => {
                           BOM No
                         </th>
                         <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-72">
+                          Agenda Section
+                        </th>
+                        <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-72">
                           Agenda
                         </th>
                         <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-72">
@@ -284,6 +287,7 @@ const BOMResolution = () => {
                         <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-72">
                           GC Resolution
                         </th>
+
                         <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-36">
                           BOM Date
                         </th>
@@ -292,7 +296,7 @@ const BOMResolution = () => {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredResolutions.length === 0 ? (
                         <tr>
-                          <td colSpan="7" className="px-6 py-12 text-center">
+                          <td colSpan="8" className="px-6 py-12 text-center">
                             <div className="flex flex-col items-center justify-center">
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -323,6 +327,9 @@ const BOMResolution = () => {
                             <td className="px-6 py-4 text-sm text-center text-gray-900 w-36 whitespace-nowrap">
                               {resolution.bom_no}
                             </td>
+                            <td className="px-6 py-4 text-sm text-center text-gray-500 break-words w-72">
+                              {resolution.agenda_section}
+                            </td>
                             <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
                               {resolution.agenda}
                             </td>
@@ -351,6 +358,7 @@ const BOMResolution = () => {
                                 "Unknown"
                               )}
                             </td>
+
                             <td className="px-6 py-4 text-sm text-center text-gray-500 w-36 whitespace-nowrap">
                               {formatDate(resolution.bom_date)}
                             </td>

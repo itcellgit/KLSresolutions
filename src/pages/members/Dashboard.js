@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Header from "../../components/Header";
 
 const cardData = [
@@ -32,6 +32,15 @@ const cardData = [
 ];
 
 const Dashboard = () => {
+  // Set up auto-refresh every 5 minutes
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      window.location.reload();
+    }, 5 * 60 * 1000); // 5 minutes in milliseconds
+
+    // Clean up the interval when the component unmounts
+    return () => clearInterval(intervalId);
+  }, []);
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-indigo-50 via-white to-indigo-100">
       <Header />

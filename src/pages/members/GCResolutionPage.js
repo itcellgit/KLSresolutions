@@ -208,6 +208,9 @@ const GCResolutionPage = () => {
       String(item.agenda || "")
         .toLowerCase()
         .includes(searchLower) ||
+      String(item.agenda_section || "")
+        .toLowerCase()
+        .includes(searchLower) ||
       String(item.resolution || "")
         .toLowerCase()
         .includes(searchLower) ||
@@ -273,6 +276,16 @@ const GCResolutionPage = () => {
       day: "numeric",
     });
   };
+
+  // Set up auto-refresh every 5 minutes
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      window.location.reload();
+    }, 5 * 60 * 1000); // 5 minutes in milliseconds
+
+    // Clean up the interval when the component unmounts
+    return () => clearInterval(intervalId);
+  }, []);
 
   return (
     <div className="w-full">
@@ -400,7 +413,7 @@ const GCResolutionPage = () => {
                   </div>
                   <input
                     type="text"
-                    placeholder="Search resolutions by agenda, resolution, compliance, institute name..."
+                    placeholder="Search resolutions by agenda, agenda section, resolution, compliance, institute name..."
                     className="block w-full py-3 pl-10 pr-4 transition border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -621,6 +634,12 @@ const GCResolutionPage = () => {
                                                 Agenda:
                                               </span>{" "}
                                               {item.agenda || "N/A"}
+                                            </div>
+                                            <div className="mb-2">
+                                              <span className="font-medium">
+                                                Agenda Section:
+                                              </span>{" "}
+                                              {item.agenda_section || "N/A"}
                                             </div>
                                             <div className="mb-2">
                                               <span className="font-medium">

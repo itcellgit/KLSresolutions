@@ -19,6 +19,7 @@ const BOMResolutionsPage = () => {
     compliance: "",
     bom_date: "",
     gc_resolution_id: "",
+    agenda_section: "",
   });
   // State for editing
   const [editingId, setEditingId] = useState(null);
@@ -60,6 +61,7 @@ const BOMResolutionsPage = () => {
         compliance: "",
         bom_date: "",
         gc_resolution_id: "",
+        agenda_section: "",
       });
       setEditingId(null);
 
@@ -84,6 +86,7 @@ const BOMResolutionsPage = () => {
       compliance: resolution.compliance || "",
       bom_date: resolution.bom_date || "",
       gc_resolution_id: resolution.gc_resolution_id || "",
+      agenda_section: resolution.agenda_section || "",
     });
   };
 
@@ -127,6 +130,7 @@ const BOMResolutionsPage = () => {
         compliance: "",
         bom_date: "",
         gc_resolution_id: "",
+        agenda_section: "",
       });
       setEditingId(null);
     }
@@ -197,6 +201,10 @@ const BOMResolutionsPage = () => {
           .includes(searchTerm.toLowerCase())) ||
       resolution.bom_date.includes(searchTerm) ||
       resolution.gc_resolution_id.toString().includes(searchTerm) ||
+      (resolution.agenda_section &&
+        resolution.agenda_section
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())) ||
       (gcResolution &&
         gcResolution.agenda.toLowerCase().includes(searchTerm.toLowerCase()))
     );
@@ -417,6 +425,10 @@ const BOMResolutionsPage = () => {
                     BOM No
                   </th>
 
+                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-24">
+                    Agenda Section
+                  </th>
+
                   <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-120">
                     Agenda
                   </th>
@@ -445,7 +457,7 @@ const BOMResolutionsPage = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredResolutions.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center">
+                    <td colSpan="9" className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -476,6 +488,10 @@ const BOMResolutionsPage = () => {
 
                       <td className="px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap w-6">
                         {resolution.bom_no}
+                      </td>
+
+                      <td className="px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap w-24">
+                        {resolution.agenda_section || "N/A"}
                       </td>
 
                       <td className="px-6 py-4 text-sm text-justify text-gray-500 w-120 break-words">
@@ -614,6 +630,30 @@ const BOMResolutionsPage = () => {
                 <div className="px-6 py-5 bg-white">
                   <form onSubmit={handleSubmit}>
                     <div className="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2">
+                      <div>
+                        <label
+                          htmlFor="agenda_section"
+                          className="block mb-2 text-sm font-medium text-gray-700"
+                        >
+                          Agenda Section
+                        </label>
+                        <select
+                          id="agenda_section"
+                          name="agenda_section"
+                          value={formData.agenda_section}
+                          onChange={handleInputChange}
+                          className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          required
+                        >
+                          <option value="">Select Agenda Section</option>
+                          <option value="MAIN AGENDA">MAIN AGENDA</option>
+                          <option value="PURCHASE EXPENSES">
+                            PURCHASE EXPENSES
+                          </option>
+                          <option value="STAFF MATTERS">STAFF MATTERS</option>
+                          <option value="OTHER MATTERS">OTHER MATTERS</option>
+                        </select>
+                      </div>
                       <div>
                         <label
                           htmlFor="gc_resolution_id"

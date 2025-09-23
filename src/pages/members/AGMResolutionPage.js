@@ -253,6 +253,16 @@ const AGMResolutionPage = () => {
     (a, b) => new Date(b) - new Date(a)
   );
 
+  // Set up auto-refresh every 5 minutes
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      window.location.reload();
+    }, 5 * 60 * 1000); // 5 minutes in milliseconds
+
+    // Clean up the interval when the component unmounts
+    return () => clearInterval(intervalId);
+  }, []);
+
   return (
     <div className="w-full">
       <Header />

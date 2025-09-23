@@ -280,6 +280,12 @@ const GCResolutionPage = () => {
                     scope="col"
                     className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
                   >
+                    Agenda Section
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                  >
                     Agenda
                   </th>
                   <th
@@ -376,6 +382,9 @@ const GCResolutionPage = () => {
                       </td>
                       <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
                         {resolution.gc_no}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
+                        {resolution.agenda_section}
                       </td>
                       <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
                         {resolution.agenda}
