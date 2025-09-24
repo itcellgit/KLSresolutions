@@ -1,5 +1,5 @@
 // pages/MemberRoleManagementPage.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { getMembers } from "../../api/members";
 import { getRoles } from "../../api/roles";
@@ -55,6 +55,12 @@ const MemberRoleManagementPage = () => {
   // State for expanded tenures
   const [expandedTenures, setExpandedTenures] = useState({});
 
+  // State for searchable member dropdown
+  const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
+  const [memberSearchTerm, setMemberSearchTerm] = useState("");
+  const [selectedMember, setSelectedMember] = useState(null);
+  const memberDropdownRef = useRef(null);
+
   const token =
     useSelector((state) => state.auth.token) || localStorage.getItem("token");
 
@@ -79,6 +85,23 @@ const MemberRoleManagementPage = () => {
       fetchDropdownData();
     }
   }, [isModalOpen, token]);
+
+  // Close member dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        memberDropdownRef.current &&
+        !memberDropdownRef.current.contains(event.target)
+      ) {
+        setMemberDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Add function to fetch member roles
   const fetchMemberRoles = async () => {
@@ -175,6 +198,24 @@ const MemberRoleManagementPage = () => {
     }));
   };
 
+  // Handle member selection from dropdown
+  const handleMemberSelect = (member) => {
+    setSelectedMember(member);
+    setFormData((prev) => ({
+      ...prev,
+      member_id: member.id.toString(),
+    }));
+    setMemberDropdownOpen(false);
+    setMemberSearchTerm("");
+  };
+
+  // Filter members based on search term
+  const filteredMembers = members.filter((member) => {
+    const memberName =
+      member.name || member.full_name || member.email || "Unknown";
+    return memberName.toLowerCase().includes(memberSearchTerm.toLowerCase());
+  });
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -219,6 +260,8 @@ const MemberRoleManagementPage = () => {
       });
       setEditingId(null);
       setIsModalOpen(false);
+      setSelectedMember(null);
+      setMemberSearchTerm("");
 
       // Refresh the member roles list
       fetchMemberRoles();
@@ -232,6 +275,10 @@ const MemberRoleManagementPage = () => {
 
   // Handle edit button click
   const handleEdit = (memberRole) => {
+    // Find the selected member for editing
+    const member = members.find((m) => m.id === memberRole.member_id);
+    setSelectedMember(member);
+
     // Set form data with current member role values
     setFormData({
       member_id: memberRole.member_id?.toString() || "",
@@ -301,6 +348,9 @@ const MemberRoleManagementPage = () => {
         tenure: "",
       });
       setEditingId(null);
+      setSelectedMember(null);
+      setMemberSearchTerm("");
+      setMemberDropdownOpen(false);
     }
   }, [isModalOpen]);
 
@@ -915,24 +965,109 @@ const MemberRoleManagementPage = () => {
                         </div>
                       ) : (
                         <>
-                          <select
-                            id="member_id"
-                            name="member_id"
-                            value={formData.member_id}
-                            onChange={handleInputChange}
-                            className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                            required
-                          >
-                            <option value="">Select a member</option>
-                            {members.map((member) => (
-                              <option key={member.id} value={member.id}>
-                                {member.name ||
-                                  member.full_name ||
-                                  member.email ||
-                                  "Unknown"}
-                              </option>
-                            ))}
-                          </select>
+                          {/* Searchable Member Dropdown */}
+                          <div className="relative" ref={memberDropdownRef}>
+                            <div
+                              className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg cursor-pointer focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white"
+                              onClick={() =>
+                                setMemberDropdownOpen(!memberDropdownOpen)
+                              }
+                            >
+                              <div className="flex items-center justify-between">
+                                <span
+                                  className={
+                                    selectedMember
+                                      ? "text-gray-900"
+                                      : "text-gray-500"
+                                  }
+                                >
+                                  {selectedMember
+                                    ? selectedMember.name ||
+                                      selectedMember.full_name ||
+                                      selectedMember.email ||
+                                      "Unknown"
+                                    : "Select a member"}
+                                </span>
+                                <svg
+                                  className={`w-5 h-5 text-gray-400 transform transition-transform duration-200 ${
+                                    memberDropdownOpen ? "rotate-180" : ""
+                                  }`}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 9l-7 7-7-7"
+                                  />
+                                </svg>
+                              </div>
+                            </div>
+
+                            {memberDropdownOpen && (
+                              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60">
+                                <div className="p-2 border-b border-gray-200">
+                                  <div className="relative">
+                                    <input
+                                      type="text"
+                                      placeholder="Search members..."
+                                      value={memberSearchTerm}
+                                      onChange={(e) =>
+                                        setMemberSearchTerm(e.target.value)
+                                      }
+                                      className="w-full py-2 pl-8 pr-4 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                      autoFocus
+                                    />
+                                    <svg
+                                      className="absolute left-2 top-2.5 h-4 w-4 text-gray-400"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                      />
+                                    </svg>
+                                  </div>
+                                </div>
+                                <div className="max-h-48 overflow-y-auto">
+                                  {filteredMembers.length > 0 ? (
+                                    filteredMembers.map((member) => (
+                                      <div
+                                        key={member.id}
+                                        className="px-4 py-2 cursor-pointer hover:bg-gray-100 text-sm"
+                                        onClick={() =>
+                                          handleMemberSelect(member)
+                                        }
+                                      >
+                                        <div className="font-medium text-gray-900">
+                                          {member.name ||
+                                            member.full_name ||
+                                            member.email ||
+                                            "Unknown"}
+                                        </div>
+                                        {member.email &&
+                                          (member.name || member.full_name) && (
+                                            <div className="text-gray-500 text-xs">
+                                              {member.email}
+                                            </div>
+                                          )}
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="px-4 py-2 text-sm text-gray-500">
+                                      No members found
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                           {apiErrors.members && (
                             <p className="mt-1 text-xs text-red-600">
                               {apiErrors.members}
@@ -1085,7 +1220,7 @@ const MemberRoleManagementPage = () => {
                       </button>
                       <button
                         type="submit"
-                        disabled={loading || dropdownLoading}
+                        disabled={loading || dropdownLoading || !selectedMember}
                         className="inline-flex justify-center px-6 py-3 text-sm font-medium text-white border border-transparent rounded-lg shadow-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                       >
                         {loading
