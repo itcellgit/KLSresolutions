@@ -18,8 +18,6 @@ const AddGCResolution = () => {
   const navigate = useNavigate();
   // State for search
   const [searchTerm, setSearchTerm] = useState("");
-  // State for grouping option
-  const [groupBy, setGroupBy] = useState("section"); // "section" or "date"
   // State for dropdown data (will be populated from backend)
   const [institutes, setInstitutes] = useState([]);
   // State for loading
@@ -50,8 +48,15 @@ const AddGCResolution = () => {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  // State for expanded sections
-  const [expandedSections, setExpandedSections] = useState({});
+  // State for date filter
+  const [selectedDate, setSelectedDate] = useState("");
+  // State for accordion sections - only one section can be open at a time
+  const [openSections, setOpenSections] = useState({
+    "MAIN AGENDA": false,
+    "PURCHASE EXPENSES": false,
+    "STAFF MATTERS": false,
+    "OTHER MATTERS": false,
+  });
   // Get token from Redux store
   const token = useSelector((state) => state.auth.token);
 
@@ -199,20 +204,72 @@ const AddGCResolution = () => {
     }
   };
 
-  // Toggle SECTION accordion - only one can be open at a time
+  // Handle date filter change
+  const handleDateFilterChange = (e) => {
+    setSelectedDate(e.target.value);
+  };
+
+  // Clear date filter
+  const clearDateFilter = () => {
+    setSelectedDate("");
+  };
+
+  // Toggle accordion section - only one section can be open at a time
   const toggleSection = (section) => {
-    setExpandedSections((prev) => {
-      // If the clicked SECTION is already expanded, close it
-      if (prev[section]) {
-        return {};
-      }
-      // Otherwise, close all others and open the clicked one
-      return { [section]: true };
+    setOpenSections((prev) => {
+      const newSections = {};
+      // Close all sections first
+      Object.keys(prev).forEach((key) => {
+        newSections[key] = false;
+      });
+      // Open the clicked section only if it was previously closed
+      newSections[section] = !prev[section];
+      return newSections;
     });
   };
 
-  // Filter resolutions based on search term
+  // Get latest date from resolutions
+  const getLatestDate = () => {
+    if (resolutions.length === 0) return "";
+    const dates = resolutions.map((r) => r.gc_date).sort();
+    return dates[dates.length - 1];
+  };
+
+  // Set latest date as default when resolutions are loaded
+  useEffect(() => {
+    if (resolutions.length > 0 && !selectedDate) {
+      const latestDate = getLatestDate();
+      setSelectedDate(latestDate);
+
+      // Open first section with data by default
+      const sectionsWithData = sectionOrder.filter((section) =>
+        resolutions.some(
+          (r) => r.agenda_section === section && r.gc_date === latestDate
+        )
+      );
+
+      if (sectionsWithData.length > 0) {
+        setOpenSections((prev) => {
+          const newSections = {};
+          // Close all sections first
+          Object.keys(prev).forEach((key) => {
+            newSections[key] = false;
+          });
+          // Open only the first section with data
+          newSections[sectionsWithData[0]] = true;
+          return newSections;
+        });
+      }
+    }
+  }, [resolutions]);
+
+  // Filter resolutions based on search term and selected date
   const filteredResolutions = resolutions.filter((resolution) => {
+    // Apply date filter if a date is selected
+    if (selectedDate && resolution.gc_date !== selectedDate) {
+      return false;
+    }
+
     const institute = institutes.find((i) => i.id === resolution.institute_id);
     return (
       resolution.agenda.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -226,92 +283,54 @@ const AddGCResolution = () => {
     );
   });
 
-  // Group resolutions by selected criteria
-  const groupedResolutions = filteredResolutions.reduce((acc, resolution) => {
-    let groupKey;
+  // Define section order
+  const sectionOrder = [
+    "MAIN AGENDA",
+    "PURCHASE EXPENSES",
+    "STAFF MATTERS",
+    "OTHER MATTERS",
+  ];
 
-    if (groupBy === "date") {
-      // Group by exact GC Date
-      groupKey = resolution.gc_date
-        ? formatDate(resolution.gc_date)
-        : "No Date";
-    } else if (groupBy === "month") {
-      // Group by Month & Year
-      if (resolution.gc_date) {
-        const date = new Date(resolution.gc_date);
-        const monthYear = date.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-        });
-        groupKey = monthYear;
-      } else {
-        groupKey = "No Date";
-      }
-    } else if (groupBy === "year") {
-      // Group by Year only
-      if (resolution.gc_date) {
-        const date = new Date(resolution.gc_date);
-        groupKey = date.getFullYear().toString();
-      } else {
-        groupKey = "No Date";
-      }
-    } else {
-      // Group by agenda section (default)
-      groupKey = resolution.agenda_section || "Uncategorized";
+  // Group resolutions by agenda section in the defined order
+  const groupedResolutions = sectionOrder.reduce((acc, section) => {
+    const sectionResolutions = filteredResolutions.filter(
+      (resolution) => resolution.agenda_section === section
+    );
+    if (sectionResolutions.length > 0) {
+      acc[section] = sectionResolutions;
     }
-
-    if (!acc[groupKey]) {
-      acc[groupKey] = [];
-    }
-    acc[groupKey].push(resolution);
     return acc;
   }, {});
 
-  // Sort groups based on grouping type
-  const sortedGroupEntries = Object.entries(groupedResolutions).sort(
-    ([keyA], [keyB]) => {
-      if (groupBy === "date" || groupBy === "month" || groupBy === "year") {
-        if (keyA === "No Date") return 1;
-        if (keyB === "No Date") return -1;
-
-        if (groupBy === "date") {
-          // Parse dates and sort most recent first
-          const dateA = new Date(keyA);
-          const dateB = new Date(keyB);
-          return dateB - dateA;
-        } else if (groupBy === "month") {
-          // Parse month/year and sort most recent first
-          const dateA = new Date(keyA + " 1");
-          const dateB = new Date(keyB + " 1");
-          return dateB - dateA;
-        } else if (groupBy === "year") {
-          // Sort years in descending order (most recent first)
-          return parseInt(keyB) - parseInt(keyA);
-        }
-      }
-      return keyA.localeCompare(keyB); // Alphabetical for sections
-    }
+  // Add uncategorized resolutions if any
+  const uncategorizedResolutions = filteredResolutions.filter(
+    (resolution) =>
+      !resolution.agenda_section ||
+      !sectionOrder.includes(resolution.agenda_section)
   );
+  if (uncategorizedResolutions.length > 0) {
+    groupedResolutions["Uncategorized"] = uncategorizedResolutions;
+  }
 
-  // Pagination logic
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredResolutions.slice(
-    indexOfFirstItem,
-    indexOfLastItem
-  );
-  const totalPages = Math.ceil(filteredResolutions.length / itemsPerPage);
+  // Pagination logic (removed for accordion view)
+  // const indexOfLastItem = currentPage * itemsPerPage;
+  // const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  // const currentItems = filteredResolutions.slice(
+  //   indexOfFirstItem,
+  //   indexOfLastItem
+  // );
+  // const totalPages = Math.ceil(filteredResolutions.length / itemsPerPage);
 
   // Handle page change
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
-  const nextPage = () =>
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-  const prevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  // const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  // const nextPage = () =>
+  //   setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  // const prevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
 
-  // Reset to first page when search term or grouping changes
+  // Reset to first page when search term or date filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, groupBy]);
+  }, [searchTerm, selectedDate]);
 
   // Helper function to get institute name by id
   const getInstituteName = (instituteId) => {
@@ -330,48 +349,61 @@ const AddGCResolution = () => {
     <>
       <Header />
       <DashboardLayout>
-        <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-100 to-blue-100">
-          <div className="flex justify-start mt-5 mr-3">
-            <button
-              onClick={goToDashboard}
-              className="flex items-center text-gray-600 transition-colors duration-200 hover:text-blue-700"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-6 h-6 mr-1"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                />
-              </svg>
-              <span className="font-medium text-blue-600">Home</span>
-            </button>
+        <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
+          {/* Enhanced Breadcrumb Navigation */}
+          <div className="w-full px-4 py-4 bg-white border-b border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between mx-auto max-w-7xl">
+              <nav className="flex items-center space-x-2 text-sm">
+                <button
+                  onClick={goToDashboard}
+                  className="flex items-center px-3 py-2 text-gray-600 transition-all duration-200 rounded-lg hover:text-indigo-700 hover:bg-indigo-50"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                    />
+                  </svg>
+                  Dashboard
+                </button>
+                <svg
+                  className="w-4 h-4 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+                <span className="font-medium text-indigo-600">
+                  GC Resolutions
+                </span>
+              </nav>
+            </div>
           </div>
-          <main className="flex flex-col items-center justify-start flex-1 w-full">
-            <div className="w-full max-w-6xl px-4 py-12 mx-auto sm:px-6 lg:px-8">
-              {/* Header Section */}
-              <div className="mb-12 text-center">
-                <h1 className="mb-4 text-4xl font-extrabold text-gray-900">
-                  Governing Council Resolutions
-                </h1>
-                <p className="max-w-2xl mx-auto text-lg text-gray-600">
-                  Manage and track all Governing Council resolutions
-                </p>
-              </div>
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 gap-6 mb-10 md:grid-cols-2">
-                <div className="p-6 bg-white border-l-4 border-indigo-500 shadow-md rounded-xl">
-                  <div className="flex items-center">
-                    <div className="p-3 mr-4 bg-indigo-100 rounded-full">
+
+          {/* Main Content */}
+          <main className="flex-1 w-full bg-gray-50">
+            <div className="w-full px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
+              {/* Enhanced Header Section */}
+              <div className="mb-10">
+                <div className="p-8 bg-white border border-gray-100 shadow-xl rounded-2xl">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600">
                       <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-6 h-6 text-indigo-600"
+                        className="w-8 h-8 text-white"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -384,22 +416,54 @@ const AddGCResolution = () => {
                         />
                       </svg>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">
+                    <h1 className="mb-4 text-4xl font-bold text-transparent bg-gradient-to-r from-gray-900 to-indigo-900 bg-clip-text">
+                      Governing Council Resolutions
+                    </h1>
+                    <p className="max-w-3xl mx-auto text-lg leading-relaxed text-gray-600">
+                      Comprehensive management system for tracking, organizing,
+                      and maintaining all Governing Council resolutions with
+                      detailed compliance monitoring
+                    </p>
+                  </div>
+                </div>
+              </div>
+              {/* Enhanced Stats Cards */}
+              <div className="grid grid-cols-1 gap-6 mb-10 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="p-6 transition-all duration-300 transform bg-white border border-gray-200 shadow-lg rounded-2xl hover:shadow-xl hover:-translate-y-1">
+                  <div className="flex items-center">
+                    <div className="p-4 shadow-lg bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="text-white w-7 h-7"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-semibold tracking-wide text-gray-600 uppercase">
                         Total Resolutions
                       </p>
-                      <p className="text-2xl font-bold text-gray-900">
+                      <p className="mt-1 text-3xl font-bold text-gray-900">
                         {resolutions.length}
                       </p>
                     </div>
                   </div>
                 </div>
-                <div className="p-6 bg-white border-l-4 border-green-500 shadow-md rounded-xl">
+
+                <div className="p-6 transition-all duration-300 transform bg-white border border-gray-200 shadow-lg rounded-2xl hover:shadow-xl hover:-translate-y-1">
                   <div className="flex items-center">
-                    <div className="p-3 mr-4 bg-green-100 rounded-full">
+                    <div className="p-4 shadow-lg bg-gradient-to-r from-green-500 to-green-600 rounded-xl">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="w-6 h-6 text-green-600"
+                        className="text-white w-7 h-7"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -412,117 +476,174 @@ const AddGCResolution = () => {
                         />
                       </svg>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">
+                    <div className="ml-4">
+                      <p className="text-sm font-semibold tracking-wide text-gray-600 uppercase">
                         With Compliance
                       </p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {resolutions.filter((r) => r.compliance).length}
+                      <p className="mt-1 text-3xl font-bold text-gray-900">
+                        {
+                          resolutions.filter(
+                            (r) => r.compliance && r.compliance.trim() !== ""
+                          ).length
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 transition-all duration-300 transform bg-white border border-gray-200 shadow-lg rounded-2xl hover:shadow-xl hover:-translate-y-1">
+                  <div className="flex items-center">
+                    <div className="p-4 shadow-lg bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="text-white w-7 h-7"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                        />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-semibold tracking-wide text-gray-600 uppercase">
+                        Total Sections
+                      </p>
+                      <p className="mt-1 text-3xl font-bold text-gray-900">
+                        {Object.keys(groupedResolutions).length}
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
-              {/* Action Bar */}
-              <div className="flex flex-col items-start justify-between gap-4 mb-6 sm:flex-row sm:items-end">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                  <div className="relative w-full sm:w-64">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Search:
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Search resolutions..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full py-2 pl-10 pr-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                    />
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 text-gray-400 absolute left-3 bottom-2.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              {/* Enhanced Action Bar */}
+              <div className="p-6 mb-8 bg-white border border-gray-200 shadow-lg rounded-2xl">
+                <div className="flex flex-col items-start justify-between gap-6 lg:flex-row">
+                  {/* Search and Filter Section */}
+                  <div className="flex flex-col items-start w-full gap-4 sm:flex-row lg:w-auto">
+                    <div className="relative w-full sm:w-80">
+                      <input
+                        type="text"
+                        placeholder="Search by agenda, resolution, compliance..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full py-3 pl-12 pr-4 transition-all duration-200 border border-gray-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       />
-                    </svg>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="absolute w-5 h-5 text-gray-400 left-4 top-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                    </div>
+
+                    {/* Date Filter */}
+                    <div className="flex items-center w-full gap-2 sm:w-auto">
+                      <div className="relative w-full sm:w-48">
+                        <input
+                          type="date"
+                          value={selectedDate}
+                          onChange={handleDateFilterChange}
+                          className="w-full py-3 pl-10 pr-4 transition-all duration-200 border border-gray-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="absolute w-5 h-5 text-gray-400 left-3 top-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
+                      </div>
+                      {selectedDate && (
+                        <button
+                          onClick={clearDateFilter}
+                          className="p-3 text-gray-500 transition-colors duration-200 bg-gray-100 rounded-lg hover:text-gray-700 hover:bg-gray-200"
+                          title="Clear date filter"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-5 h-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Latest Date Info */}
+                    {selectedDate === getLatestDate() &&
+                      resolutions.length > 0 && (
+                        <div className="flex items-center px-3 py-2 text-sm text-green-700 border border-green-200 rounded-lg bg-green-50">
+                          <svg
+                            className="w-4 h-4 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          Latest GC as on ({formatDate(selectedDate)})
+                        </div>
+                      )}
                   </div>
 
-                  <div className="w-full sm:w-52">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Group By:
-                    </label>
-                    <select
-                      value={groupBy}
-                      onChange={(e) => setGroupBy(e.target.value)}
-                      className="w-full py-2 px-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm"
+                  {/* Action Buttons */}
+                  <div className="flex flex-col w-full gap-3 sm:flex-row lg:w-auto">
+                    <button
+                      onClick={openAddModal}
+                      className="flex items-center justify-center px-8 py-3 font-semibold text-white transition-all duration-300 transform shadow-lg rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     >
-                      <option value="section">📋 Agenda Section</option>
-                      <option value="date">📅 GC Date</option>
-                      <option value="month">📆 Month & Year</option>
-                      <option value="year">🗓️ Year Only</option>
-                    </select>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-5 h-5 mr-3"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Add New Resolution
+                    </button>
                   </div>
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={openAddModal}
-                    className="flex items-center justify-center px-6 py-3 font-medium text-white transition-all duration-300 transform rounded-lg shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:-translate-y-1 hover:scale-105"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-5 h-5 mr-2"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    Add New Resolution
-                  </button>
                 </div>
               </div>
-
-              {/* Results Summary */}
-              {!resolutionsLoading &&
-                !resolutionsError &&
-                filteredResolutions.length > 0 && (
-                  <div className="mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
-                    <div className="flex items-center justify-between text-sm text-indigo-800">
-                      <span>
-                        Showing {filteredResolutions.length} resolution
-                        {filteredResolutions.length !== 1 ? "s" : ""}
-                        {searchTerm && ` matching "${searchTerm}"`}
-                      </span>
-                      <span className="font-medium">
-                        Grouped by:{" "}
-                        {groupBy === "section"
-                          ? "Agenda Section"
-                          : groupBy === "date"
-                          ? "GC Date"
-                          : groupBy === "month"
-                          ? "Month & Year"
-                          : "Year"}{" "}
-                        ({Object.keys(groupedResolutions).length} group
-                        {Object.keys(groupedResolutions).length !== 1
-                          ? "s"
-                          : ""}
-                        )
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-              {/* Resolutions Accordion */}
-              <div className="mb-10 overflow-hidden bg-white shadow-xl rounded-xl">
+              {/* Enhanced Resolutions Table */}
+              <div className="mb-10 overflow-hidden bg-white border border-gray-100 shadow-2xl rounded-2xl">
                 {resolutionsLoading ? (
                   <div className="flex flex-col items-center justify-center py-12">
                     <div className="w-16 h-16 border-t-4 border-indigo-600 border-solid rounded-full animate-spin"></div>
@@ -565,25 +686,63 @@ const AddGCResolution = () => {
                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                       />
                     </svg>
-                    <h3 className="mb-1 text-lg font-medium text-gray-900">
+                    <h3 className="mb-2 text-xl font-semibold text-gray-900">
                       No resolutions found
                     </h3>
+                    <p className="max-w-md mb-6 text-center text-gray-600">
+                      {searchTerm || selectedDate
+                        ? `No resolutions match your search criteria. Try adjusting your search terms or date filter.`
+                        : "Start by adding your first GC resolution to begin tracking and managing council decisions."}
+                    </p>
+                    {!searchTerm && !selectedDate && (
+                      <button
+                        onClick={openAddModal}
+                        className="flex items-center px-6 py-3 text-white transition-colors duration-200 bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                      >
+                        <svg
+                          className="w-5 h-5 mr-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                          />
+                        </svg>
+                        Add First Resolution
+                      </button>
+                    )}
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-200">
-                    {sortedGroupEntries.map(([section, sectionResolutions]) => (
-                      <div
-                        key={section}
-                        className="transition-all duration-200 ease-in-out"
-                      >
-                        <button
-                          className="flex items-center justify-between w-full p-4 text-left bg-gray-50 hover:bg-gray-100 focus:outline-none focus:bg-gray-100"
-                          onClick={() => toggleSection(section)}
+                  <div className="space-y-4">
+                    {Object.entries(groupedResolutions).map(
+                      ([section, sectionResolutions]) => (
+                        <div
+                          key={section}
+                          className="border border-gray-200 rounded-lg bg-white shadow-sm"
                         >
-                          <div className="flex items-center">
+                          {/* Accordion Header */}
+                          <button
+                            onClick={() => toggleSection(section)}
+                            className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors duration-200"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <h2 className="text-xl font-bold text-gray-900">
+                                {section}
+                              </h2>
+                              <span className="px-3 py-1 text-sm font-medium text-indigo-800 bg-indigo-100 rounded-full">
+                                {sectionResolutions.length}{" "}
+                                {sectionResolutions.length === 1
+                                  ? "Resolution"
+                                  : "Resolutions"}
+                              </span>
+                            </div>
                             <svg
-                              className={`w-5 h-5 mr-3 text-indigo-600 transform transition-transform duration-200 ${
-                                expandedSections[section] ? "rotate-90" : ""
+                              className={`w-5 h-5 text-gray-500 transform transition-transform duration-200 ${
+                                openSections[section] ? "rotate-180" : ""
                               }`}
                               fill="none"
                               viewBox="0 0 24 24"
@@ -593,254 +752,180 @@ const AddGCResolution = () => {
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M9 5l7 7-7 7"
+                                d="M19 9l-7 7-7-7"
                               />
                             </svg>
-                            <span className="text-lg font-medium text-gray-900">
-                              {section}
-                            </span>
-                            <span className="px-2 py-1 ml-3 text-xs font-medium text-indigo-800 bg-indigo-100 rounded-full">
-                              {sectionResolutions.length}{" "}
-                              {sectionResolutions.length === 1
-                                ? "Resolution"
-                                : "Resolutions"}
-                            </span>
-                          </div>
-                          <svg
-                            className={`w-5 h-5 text-gray-500 transform transition-transform duration-200 ${
-                              expandedSections[section] ? "rotate-180" : ""
-                            }`}
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 9l-7 7-7-7"
-                            />
-                          </svg>
-                        </button>
+                          </button>
 
-                        {expandedSections[section] && (
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th
-                                    scope="col"
-                                    className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                  >
-                                    S.NO
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                  >
-                                    GC-NO
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                  >
-                                    Agenda
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                  >
-                                    Resolution
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                  >
-                                    Compliance
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                  >
-                                    Details
-                                  </th>
-                                  <th
-                                    scope="col"
-                                    className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                  >
-                                    Actions
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-200">
-                                {sectionResolutions.map((resolution, index) => (
-                                  <tr key={resolution.id}>
-                                    <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
-                                      {filteredResolutions.indexOf(resolution) +
-                                        1}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
-                                      {resolution.gc_no}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
-                                      {resolution.agenda}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
-                                      {resolution.resolution}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-500 break-words w-72">
-                                      {resolution.compliance}
-                                    </td>
-                                    <td className="w-16 px-6 py-4 text-sm text-gray-500 break-words">
-                                      <div className="flex flex-col">
-                                        <span>
-                                          {getInstituteName(
-                                            resolution.institute_id
-                                          )}
-                                        </span>
-                                        <span className="text-xs text-gray-400">
-                                          Dated -{" "}
-                                          {formatDate(resolution.gc_date)}
-                                        </span>
-                                      </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-500 break-words">
-                                      <div className="flex space-x-2">
-                                        <button
-                                          onClick={() =>
-                                            openEditModal(resolution)
-                                          }
-                                          className="mr-3 text-indigo-600 hover:text-indigo-900"
-                                        >
-                                          <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            className="w-4 h-4 mr-1"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                          >
-                                            <path
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              strokeWidth={2}
-                                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                            />
-                                          </svg>
-                                          Edit
-                                        </button>
-                                        <button
-                                          onClick={() =>
-                                            handleDelete(resolution.id)
-                                          }
-                                          className="text-red-600 hover:text-red-900"
-                                        >
-                                          <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            className="w-4 h-4 mr-1"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                          >
-                                            <path
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              strokeWidth={2}
-                                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                            />
-                                          </svg>
-                                          Delete
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {/* Pagination Controls */}
-                {filteredResolutions.length > itemsPerPage && (
-                  <div className="flex items-center justify-between px-6 py-4 bg-white border-t border-gray-200">
-                    <div className="flex items-center text-sm text-gray-700">
-                      <span>
-                        Showing{" "}
-                        <span className="font-medium">
-                          {indexOfFirstItem + 1}
-                        </span>{" "}
-                        to{" "}
-                        <span className="font-medium">
-                          {Math.min(
-                            indexOfLastItem,
-                            filteredResolutions.length
+                          {/* Accordion Content */}
+                          {openSections[section] && (
+                            <div className="border-t border-gray-200">
+                              <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                  <thead className="bg-gray-50">
+                                    <tr>
+                                      <th
+                                        scope="col"
+                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                      >
+                                        S.NO
+                                      </th>
+                                      <th
+                                        scope="col"
+                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                      >
+                                        GC-NO
+                                      </th>
+                                      <th
+                                        scope="col"
+                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                      >
+                                        Agenda
+                                      </th>
+                                      <th
+                                        scope="col"
+                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                      >
+                                        Resolution
+                                      </th>
+                                      <th
+                                        scope="col"
+                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                      >
+                                        Compliance
+                                      </th>
+                                      <th
+                                        scope="col"
+                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                      >
+                                        Details
+                                      </th>
+                                      <th
+                                        scope="col"
+                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                      >
+                                        Actions
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="bg-white divide-y divide-gray-200">
+                                    {sectionResolutions.map(
+                                      (resolution, index) => (
+                                        <tr key={resolution.id}>
+                                          <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
+                                            {index + 1}
+                                          </td>
+                                          <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
+                                            {resolution.gc_no}
+                                          </td>
+                                          <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
+                                            {resolution.agenda}
+                                          </td>
+                                          <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
+                                            {resolution.resolution}
+                                          </td>
+                                          <td className="px-6 py-4 text-sm text-gray-500 break-words w-72">
+                                            {resolution.compliance}
+                                          </td>
+                                          <td className="w-16 px-6 py-4 text-sm text-gray-500 break-words">
+                                            <div className="flex flex-col">
+                                              <span>
+                                                {getInstituteName(
+                                                  resolution.institute_id
+                                                )}
+                                              </span>
+                                              <span className="text-xs text-gray-400">
+                                                Dated -{" "}
+                                                {formatDate(resolution.gc_date)}
+                                              </span>
+                                            </div>
+                                          </td>
+                                          <td className="px-6 py-4 text-sm text-gray-500 break-words">
+                                            <div className="flex space-x-2">
+                                              <button
+                                                onClick={() =>
+                                                  openEditModal(resolution)
+                                                }
+                                                className="mr-3 text-indigo-600 hover:text-indigo-900"
+                                              >
+                                                <svg
+                                                  xmlns="http://www.w3.org/2000/svg"
+                                                  className="w-4 h-4 mr-1"
+                                                  fill="none"
+                                                  viewBox="0 0 24 24"
+                                                  stroke="currentColor"
+                                                >
+                                                  <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                                  />
+                                                </svg>
+                                                Edit
+                                              </button>
+                                              <button
+                                                onClick={() =>
+                                                  handleDelete(resolution.id)
+                                                }
+                                                className="text-red-600 hover:text-red-900"
+                                              >
+                                                <svg
+                                                  xmlns="http://www.w3.org/2000/svg"
+                                                  className="w-4 h-4 mr-1"
+                                                  fill="none"
+                                                  viewBox="0 0 24 24"
+                                                  stroke="currentColor"
+                                                >
+                                                  <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                  />
+                                                </svg>
+                                                Delete
+                                              </button>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      )
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
                           )}
-                        </span>{" "}
-                        of{" "}
-                        <span className="font-medium">
-                          {filteredResolutions.length}
-                        </span>{" "}
-                        results
-                      </span>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={prevPage}
-                        disabled={currentPage === 1}
-                        className={`px-3 py-1 rounded-md ${
-                          currentPage === 1
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                        }`}
-                      >
-                        Previous
-                      </button>
-                      <div className="flex space-x-1">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1)
-                          .filter(
-                            (page) =>
-                              page === 1 ||
-                              page === totalPages ||
-                              (page >= currentPage - 1 &&
-                                page <= currentPage + 1)
-                          )
-                          .map((page, index, array) => (
-                            <React.Fragment key={page}>
-                              {index > 0 && page - array[index - 1] > 1 && (
-                                <span className="px-2 py-1 text-gray-500">
-                                  ...
-                                </span>
-                              )}
-                              <button
-                                onClick={() => paginate(page)}
-                                className={`px-3 py-1 rounded-md ${
-                                  currentPage === page
-                                    ? "bg-indigo-600 text-white"
-                                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                }`}
-                              >
-                                {page}
-                              </button>
-                            </React.Fragment>
-                          ))}
-                      </div>
-                      <button
-                        onClick={nextPage}
-                        disabled={currentPage === totalPages}
-                        className={`px-3 py-1 rounded-md ${
-                          currentPage === totalPages
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                        }`}
-                      >
-                        Next
-                      </button>
-                    </div>
+                        </div>
+                      )
+                    )}
                   </div>
                 )}
               </div>
+
+              {/* Results Summary */}
+              {Object.keys(groupedResolutions).length > 0 && (
+                <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <span>
+                      Total:{" "}
+                      <span className="font-medium text-gray-900">
+                        {filteredResolutions.length}
+                      </span>{" "}
+                      resolutions
+                      {selectedDate && (
+                        <span> for {formatDate(selectedDate)}</span>
+                      )}
+                    </span>
+                    <span>
+                      Sections:{" "}
+                      <span className="font-medium text-gray-900">
+                        {Object.keys(groupedResolutions).length}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              )}
               {/* Add/Edit Resolution Modal */}
               {isModalOpen && (
                 <div
@@ -855,20 +940,44 @@ const AddGCResolution = () => {
                       aria-hidden="true"
                       onClick={() => setIsModalOpen(false)}
                     ></div>
-                    <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-                      <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600">
+                    <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-2xl shadow-2xl sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh] overflow-y-auto">
+                      <div className="px-8 py-6 bg-gradient-to-r from-indigo-600 to-purple-600">
                         <div className="flex items-center justify-between">
-                          <h3
-                            className="text-lg font-medium leading-6 text-white"
-                            id="modal-title"
-                          >
-                            {editingId
-                              ? "Edit Resolution"
-                              : "Add New Resolution"}
-                          </h3>
+                          <div className="flex items-center">
+                            <div className="p-3 mr-4 bg-white rounded-full bg-opacity-20">
+                              <svg
+                                className="w-6 h-6 text-white"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                />
+                              </svg>
+                            </div>
+                            <div>
+                              <h3
+                                className="text-xl font-bold leading-6 text-white"
+                                id="modal-title"
+                              >
+                                {editingId
+                                  ? "Edit Resolution"
+                                  : "Add New Resolution"}
+                              </h3>
+                              <p className="mt-1 text-sm text-indigo-100">
+                                {editingId
+                                  ? "Update the resolution details below"
+                                  : "Fill in the details to create a new GC resolution"}
+                              </p>
+                            </div>
+                          </div>
                           <button
                             type="button"
-                            className="text-white hover:text-gray-200 focus:outline-none"
+                            className="p-2 text-white transition-all duration-200 rounded-full hover:text-gray-200 focus:outline-none hover:bg-white hover:bg-opacity-20"
                             onClick={() => setIsModalOpen(false)}
                           >
                             <svg
@@ -888,126 +997,160 @@ const AddGCResolution = () => {
                           </button>
                         </div>
                       </div>
-                      <div className="px-6 py-5 bg-white">
+                      <div className="px-8 py-6 bg-white">
                         {formError && (
-                          <div className="p-3 mb-4 text-red-700 bg-red-100 rounded-lg">
-                            {formError}
+                          <div className="flex items-start p-4 mb-6 text-red-800 border border-red-200 bg-red-50 rounded-xl">
+                            <svg
+                              className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                              />
+                            </svg>
+                            <div>
+                              <h4 className="font-medium">Error occurred</h4>
+                              <p className="mt-1 text-sm">{formError}</p>
+                            </div>
                           </div>
                         )}
-                        <form onSubmit={handleSubmit}>
-                          <div className="mb-4">
-                            <label
-                              htmlFor="agenda_section"
-                              className="block mb-2 text-sm font-medium text-gray-700"
-                            >
-                              Agenda Section
-                            </label>
-                            <select
-                              id="agenda_section"
-                              name="agenda_section"
-                              value={formData.agenda_section}
-                              onChange={handleInputChange}
-                              className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                              required
-                            >
-                              <option value="">Select agenda section</option>
-                              <option value="MAIN AGENDA">MAIN AGENDA</option>
-                              <option value="PURCHASE EXPENSES">
-                                PURCHASE EXPENSES
-                              </option>
-                              <option value="STAFF MATTERS">
-                                STAFF MATTERS
-                              </option>
-                              <option value="OTHER MATTERS">
-                                OTHER MATTERS
-                              </option>
-                            </select>
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <div>
+                              <label
+                                htmlFor="agenda_section"
+                                className="block mb-3 text-sm font-semibold text-gray-700"
+                              >
+                                Agenda Section *
+                              </label>
+                              <select
+                                id="agenda_section"
+                                name="agenda_section"
+                                value={formData.agenda_section}
+                                onChange={handleInputChange}
+                                className="block w-full py-3 pl-4 pr-10 transition-all duration-200 border border-gray-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              >
+                                <option value="">Select agenda section</option>
+                                <option value="MAIN AGENDA">MAIN AGENDA</option>
+                                <option value="PURCHASE EXPENSES">
+                                  PURCHASE EXPENSES
+                                </option>
+                                <option value="STAFF MATTERS">
+                                  STAFF MATTERS
+                                </option>
+                                <option value="OTHER MATTERS">
+                                  OTHER MATTERS
+                                </option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label
+                                htmlFor="gc_date"
+                                className="block mb-3 text-sm font-semibold text-gray-700"
+                              >
+                                GC Date *
+                              </label>
+                              <input
+                                type="date"
+                                id="gc_date"
+                                name="gc_date"
+                                value={formData.gc_date}
+                                onChange={handleInputChange}
+                                className="block w-full py-3 pl-4 pr-4 transition-all duration-200 border border-gray-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                required
+                              />
+                            </div>
                           </div>
-                          <div className="mb-4">
+                          <div>
                             <label
                               htmlFor="agenda"
-                              className="block mb-2 text-sm font-medium text-gray-700"
+                              className="block mb-3 text-sm font-semibold text-gray-700"
                             >
-                              Agenda
+                              Agenda *
                             </label>
                             <textarea
                               id="agenda"
                               name="agenda"
                               value={formData.agenda}
                               onChange={handleInputChange}
-                              rows={3}
-                              className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                              placeholder="Enter agenda details"
+                              rows={4}
+                              className="block w-full py-3 pl-4 pr-4 transition-all duration-200 border border-gray-300 shadow-sm resize-none rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              placeholder="Enter detailed agenda information..."
                             />
+                            <p className="mt-2 text-xs text-gray-500">
+                              Provide comprehensive agenda details for the
+                              resolution
+                            </p>
                           </div>
-                          <div className="mb-4">
+                          <div>
                             <label
                               htmlFor="resolution"
-                              className="block mb-2 text-sm font-medium text-gray-700"
+                              className="block mb-3 text-sm font-semibold text-gray-700"
                             >
-                              Resolution
+                              Resolution *
                             </label>
                             <textarea
                               id="resolution"
                               name="resolution"
                               value={formData.resolution}
                               onChange={handleInputChange}
-                              rows={4}
-                              className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                              placeholder="Enter resolution details"
+                              rows={5}
+                              className="block w-full py-3 pl-4 pr-4 transition-all duration-200 border border-gray-300 shadow-sm resize-none rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              placeholder="Enter the complete resolution text and decisions made..."
                             />
+                            <p className="mt-2 text-xs text-gray-500">
+                              Document the complete resolution with all
+                              decisions and actions
+                            </p>
                           </div>
-                          <div className="mb-4">
+                          <div>
                             <label
                               htmlFor="compliance"
-                              className="block mb-2 text-sm font-medium text-gray-700"
+                              className="block mb-3 text-sm font-semibold text-gray-700"
                             >
-                              Compliance (Optional)
+                              Compliance Status
+                              <span className="ml-1 font-normal text-gray-400">
+                                (Optional)
+                              </span>
                             </label>
                             <textarea
                               id="compliance"
                               name="compliance"
                               value={formData.compliance}
                               onChange={handleInputChange}
-                              rows={3}
-                              className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                              placeholder="Enter compliance details"
+                              rows={4}
+                              className="block w-full py-3 pl-4 pr-4 transition-all duration-200 border border-gray-300 shadow-sm resize-none rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              placeholder="Enter compliance status, implementation details, or follow-up actions taken..."
                             />
+                            <p className="mt-2 text-xs text-gray-500">
+                              Document any compliance actions taken or
+                              implementation status
+                            </p>
                           </div>
-                          <div className="mb-4">
-                            <label
-                              htmlFor="gc_date"
-                              className="block mb-2 text-sm font-medium text-gray-700"
-                            >
-                              GC Date
-                            </label>
-                            <input
-                              type="date"
-                              id="gc_date"
-                              name="gc_date"
-                              value={formData.gc_date}
-                              onChange={handleInputChange}
-                              className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                              required
-                            />
-                          </div>
-                          <div className="flex justify-end space-x-4">
+
+                          <div className="flex flex-col justify-end pt-6 space-y-3 border-t border-gray-200 sm:flex-row sm:space-y-0 sm:space-x-4">
                             <button
                               type="button"
                               onClick={() => setIsModalOpen(false)}
-                              className="inline-flex justify-center px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                              className="inline-flex justify-center px-8 py-3 text-sm font-semibold text-gray-700 transition-all duration-200 bg-white border border-gray-300 shadow-sm rounded-xl hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                             >
                               Cancel
                             </button>
                             <button
                               type="submit"
                               disabled={isSubmitting}
-                              className="inline-flex justify-center px-6 py-3 text-sm font-medium text-white border border-transparent rounded-lg shadow-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                              className="inline-flex justify-center px-8 py-3 text-sm font-semibold text-white transition-all duration-200 border border-transparent shadow-lg rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {isSubmitting ? (
                                 <span className="flex items-center">
                                   <svg
-                                    className="w-4 h-4 mr-2 animate-spin"
+                                    className="w-4 h-4 mr-3 animate-spin"
                                     xmlns="http://www.w3.org/2000/svg"
                                     fill="none"
                                     viewBox="0 0 24 24"
@@ -1026,12 +1169,27 @@ const AddGCResolution = () => {
                                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                     ></path>
                                   </svg>
-                                  Saving...
+                                  {editingId ? "Updating..." : "Saving..."}
                                 </span>
-                              ) : editingId ? (
-                                "Update Resolution"
                               ) : (
-                                "Add Resolution"
+                                <span className="flex items-center">
+                                  <svg
+                                    className="w-4 h-4 mr-3"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M5 13l4 4L19 7"
+                                    />
+                                  </svg>
+                                  {editingId
+                                    ? "Update Resolution"
+                                    : "Create Resolution"}
+                                </span>
                               )}
                             </button>
                           </div>
