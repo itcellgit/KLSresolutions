@@ -271,48 +271,61 @@ const AddGCResolution = () => {
     <>
       <Header />
       <DashboardLayout>
-        <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-100 to-blue-100">
-          <div className="flex justify-start mt-5 mr-3">
-            <button
-              onClick={goToDashboard}
-              className="flex items-center text-gray-600 transition-colors duration-200 hover:text-blue-700"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-6 h-6 mr-1"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                />
-              </svg>
-              <span className="font-medium text-blue-600">Home</span>
-            </button>
+        <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
+          {/* Enhanced Breadcrumb Navigation */}
+          <div className="w-full px-4 py-4 bg-white border-b border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between mx-auto max-w-7xl">
+              <nav className="flex items-center space-x-2 text-sm">
+                <button
+                  onClick={goToDashboard}
+                  className="flex items-center px-3 py-2 text-gray-600 transition-all duration-200 rounded-lg hover:text-indigo-700 hover:bg-indigo-50"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                    />
+                  </svg>
+                  Dashboard
+                </button>
+                <svg
+                  className="w-4 h-4 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+                <span className="font-medium text-indigo-600">
+                  GC Resolutions
+                </span>
+              </nav>
+            </div>
           </div>
-          <main className="flex flex-col items-center justify-start flex-1 w-full">
-            <div className="w-full max-w-6xl px-4 py-12 mx-auto sm:px-6 lg:px-8">
-              {/* Header Section */}
-              <div className="mb-12 text-center">
-                <h1 className="mb-4 text-4xl font-extrabold text-gray-900">
-                  Governing Council Resolutions
-                </h1>
-                <p className="max-w-2xl mx-auto text-lg text-gray-600">
-                  Manage and track all Governing Council resolutions
-                </p>
-              </div>
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 gap-6 mb-10 md:grid-cols-2">
-                <div className="p-6 bg-white border-l-4 border-indigo-500 shadow-md rounded-xl">
-                  <div className="flex items-center">
-                    <div className="p-3 mr-4 bg-indigo-100 rounded-full">
+
+          {/* Main Content */}
+          <main className="flex-1 w-full bg-gray-50">
+            <div className="w-full px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
+              {/* Enhanced Header Section */}
+              <div className="mb-10">
+                <div className="p-8 bg-white border border-gray-100 shadow-xl rounded-2xl">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600">
                       <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-6 h-6 text-indigo-600"
+                        className="w-8 h-8 text-white"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -325,22 +338,54 @@ const AddGCResolution = () => {
                         />
                       </svg>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">
+                    <h1 className="mb-4 text-4xl font-bold text-transparent bg-gradient-to-r from-gray-900 to-indigo-900 bg-clip-text">
+                      Governing Council Resolutions
+                    </h1>
+                    <p className="max-w-3xl mx-auto text-lg leading-relaxed text-gray-600">
+                      Comprehensive management system for tracking, organizing,
+                      and maintaining all Governing Council resolutions with
+                      detailed compliance monitoring
+                    </p>
+                  </div>
+                </div>
+              </div>
+              {/* Enhanced Stats Cards */}
+              <div className="grid grid-cols-1 gap-6 mb-10 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="p-6 transition-all duration-300 transform bg-white border border-gray-200 shadow-lg rounded-2xl hover:shadow-xl hover:-translate-y-1">
+                  <div className="flex items-center">
+                    <div className="p-4 shadow-lg bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="text-white w-7 h-7"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-semibold tracking-wide text-gray-600 uppercase">
                         Total Resolutions
                       </p>
-                      <p className="text-2xl font-bold text-gray-900">
+                      <p className="mt-1 text-3xl font-bold text-gray-900">
                         {resolutions.length}
                       </p>
                     </div>
                   </div>
                 </div>
-                <div className="p-6 bg-white border-l-4 border-green-500 shadow-md rounded-xl">
+
+                <div className="p-6 transition-all duration-300 transform bg-white border border-gray-200 shadow-lg rounded-2xl hover:shadow-xl hover:-translate-y-1">
                   <div className="flex items-center">
-                    <div className="p-3 mr-4 bg-green-100 rounded-full">
+                    <div className="p-4 shadow-lg bg-gradient-to-r from-green-500 to-green-600 rounded-xl">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="w-6 h-6 text-green-600"
+                        className="text-white w-7 h-7"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -353,65 +398,144 @@ const AddGCResolution = () => {
                         />
                       </svg>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">
+                    <div className="ml-4">
+                      <p className="text-sm font-semibold tracking-wide text-gray-600 uppercase">
                         With Compliance
                       </p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {resolutions.filter((r) => r.compliance).length}
+                      <p className="mt-1 text-3xl font-bold text-gray-900">
+                        {
+                          resolutions.filter(
+                            (r) => r.compliance && r.compliance.trim() !== ""
+                          ).length
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 transition-all duration-300 transform bg-white border border-gray-200 shadow-lg rounded-2xl hover:shadow-xl hover:-translate-y-1">
+                  <div className="flex items-center">
+                    <div className="p-4 shadow-lg bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="text-white w-7 h-7"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                        />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-semibold tracking-wide text-gray-600 uppercase">
+                        Total Sections
+                      </p>
+                      <p className="mt-1 text-3xl font-bold text-gray-900">
+                        {Object.keys(groupedResolutions).length}
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
-              {/* Action Bar */}
-              <div className="flex flex-col items-start justify-between gap-4 mb-6 sm:flex-row sm:items-center">
-                <div className="relative w-full sm:w-64">
-                  <input
-                    type="text"
-                    placeholder="Search resolutions..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 text-gray-400 absolute left-3 top-2.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={openAddModal}
-                    className="flex items-center justify-center px-6 py-3 font-medium text-white transition-all duration-300 transform rounded-lg shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:-translate-y-1 hover:scale-105"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-5 h-5 mr-2"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                        clipRule="evenodd"
+              {/* Enhanced Action Bar */}
+              <div className="p-6 mb-8 bg-white border border-gray-200 shadow-lg rounded-2xl">
+                <div className="flex flex-col items-start justify-between gap-6 lg:flex-row">
+                  {/* Search and Filter Section */}
+                  <div className="flex flex-col items-start w-full gap-4 sm:flex-row lg:w-auto">
+                    <div className="relative w-full sm:w-80">
+                      <input
+                        type="text"
+                        placeholder="Search by agenda, resolution, compliance..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full py-3 pl-12 pr-4 transition-all duration-200 border border-gray-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       />
-                    </svg>
-                    Add New Resolution
-                  </button>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="absolute w-5 h-5 text-gray-400 left-4 top-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                    </div>
+
+                    {/* Filter Results Info */}
+                    {searchTerm && (
+                      <div className="flex items-center px-4 py-2 text-sm text-indigo-700 border border-indigo-200 rounded-lg bg-indigo-50">
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"
+                          />
+                        </svg>
+                        {filteredResolutions.length} result
+                        {filteredResolutions.length !== 1 ? "s" : ""} found
+                        <button
+                          onClick={() => setSearchTerm("")}
+                          className="ml-2 text-indigo-500 hover:text-indigo-700"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col w-full gap-3 sm:flex-row lg:w-auto">
+                    <button
+                      onClick={openAddModal}
+                      className="flex items-center justify-center px-8 py-3 font-semibold text-white transition-all duration-300 transform shadow-lg rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-5 h-5 mr-3"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Add New Resolution
+                    </button>
+                  </div>
                 </div>
               </div>
-              {/* Resolutions Accordion */}
-              <div className="mb-10 overflow-hidden bg-white shadow-xl rounded-xl">
+              {/* Enhanced Resolutions Accordion */}
+              <div className="mb-10 overflow-hidden bg-white border border-gray-100 shadow-2xl rounded-2xl">
                 {resolutionsLoading ? (
                   <div className="flex flex-col items-center justify-center py-12">
                     <div className="w-16 h-16 border-t-4 border-indigo-600 border-solid rounded-full animate-spin"></div>
@@ -454,9 +578,35 @@ const AddGCResolution = () => {
                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                       />
                     </svg>
-                    <h3 className="mb-1 text-lg font-medium text-gray-900">
+                    <h3 className="mb-2 text-xl font-semibold text-gray-900">
                       No resolutions found
                     </h3>
+                    <p className="max-w-md mb-6 text-center text-gray-600">
+                      {searchTerm
+                        ? `No resolutions match your search "${searchTerm}". Try adjusting your search terms.`
+                        : "Start by adding your first GC resolution to begin tracking and managing council decisions."}
+                    </p>
+                    {!searchTerm && (
+                      <button
+                        onClick={openAddModal}
+                        className="flex items-center px-6 py-3 text-white transition-colors duration-200 bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                      >
+                        <svg
+                          className="w-5 h-5 mr-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                          />
+                        </svg>
+                        Add First Resolution
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-200">
@@ -749,20 +899,44 @@ const AddGCResolution = () => {
                       aria-hidden="true"
                       onClick={() => setIsModalOpen(false)}
                     ></div>
-                    <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-                      <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600">
+                    <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-2xl shadow-2xl sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh] overflow-y-auto">
+                      <div className="px-8 py-6 bg-gradient-to-r from-indigo-600 to-purple-600">
                         <div className="flex items-center justify-between">
-                          <h3
-                            className="text-lg font-medium leading-6 text-white"
-                            id="modal-title"
-                          >
-                            {editingId
-                              ? "Edit Resolution"
-                              : "Add New Resolution"}
-                          </h3>
+                          <div className="flex items-center">
+                            <div className="p-3 mr-4 bg-white rounded-full bg-opacity-20">
+                              <svg
+                                className="w-6 h-6 text-white"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                />
+                              </svg>
+                            </div>
+                            <div>
+                              <h3
+                                className="text-xl font-bold leading-6 text-white"
+                                id="modal-title"
+                              >
+                                {editingId
+                                  ? "Edit Resolution"
+                                  : "Add New Resolution"}
+                              </h3>
+                              <p className="mt-1 text-sm text-indigo-100">
+                                {editingId
+                                  ? "Update the resolution details below"
+                                  : "Fill in the details to create a new GC resolution"}
+                              </p>
+                            </div>
+                          </div>
                           <button
                             type="button"
-                            className="text-white hover:text-gray-200 focus:outline-none"
+                            className="p-2 text-white transition-all duration-200 rounded-full hover:text-gray-200 focus:outline-none hover:bg-white hover:bg-opacity-20"
                             onClick={() => setIsModalOpen(false)}
                           >
                             <svg
@@ -782,126 +956,163 @@ const AddGCResolution = () => {
                           </button>
                         </div>
                       </div>
-                      <div className="px-6 py-5 bg-white">
+                      <div className="px-8 py-6 bg-white">
                         {formError && (
-                          <div className="p-3 mb-4 text-red-700 bg-red-100 rounded-lg">
-                            {formError}
+                          <div className="flex items-start p-4 mb-6 text-red-800 border border-red-200 bg-red-50 rounded-xl">
+                            <svg
+                              className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                              />
+                            </svg>
+                            <div>
+                              <h4 className="font-medium">Error occurred</h4>
+                              <p className="mt-1 text-sm">{formError}</p>
+                            </div>
                           </div>
                         )}
-                        <form onSubmit={handleSubmit}>
-                          <div className="mb-4">
-                            <label
-                              htmlFor="agenda_section"
-                              className="block mb-2 text-sm font-medium text-gray-700"
-                            >
-                              Agenda Section
-                            </label>
-                            <select
-                              id="agenda_section"
-                              name="agenda_section"
-                              value={formData.agenda_section}
-                              onChange={handleInputChange}
-                              className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                              required
-                            >
-                              <option value="">Select agenda section</option>
-                              <option value="MAIN AGENDA">MAIN AGENDA</option>
-                              <option value="PURCHASE EXPENSES">
-                                PURCHASE EXPENSES
-                              </option>
-                              <option value="STAFF MATTERS">
-                                STAFF MATTERS
-                              </option>
-                              <option value="OTHER MATTERS">
-                                OTHER MATTERS
-                              </option>
-                            </select>
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <div>
+                              <label
+                                htmlFor="agenda_section"
+                                className="block mb-3 text-sm font-semibold text-gray-700"
+                              >
+                                Agenda Section *
+                              </label>
+                              <select
+                                id="agenda_section"
+                                name="agenda_section"
+                                value={formData.agenda_section}
+                                onChange={handleInputChange}
+                                className="block w-full py-3 pl-4 pr-10 transition-all duration-200 border border-gray-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                required
+                              >
+                                <option value="">Select agenda section</option>
+                                <option value="MAIN AGENDA">MAIN AGENDA</option>
+                                <option value="PURCHASE EXPENSES">
+                                  PURCHASE EXPENSES
+                                </option>
+                                <option value="STAFF MATTERS">
+                                  STAFF MATTERS
+                                </option>
+                                <option value="OTHER MATTERS">
+                                  OTHER MATTERS
+                                </option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label
+                                htmlFor="gc_date"
+                                className="block mb-3 text-sm font-semibold text-gray-700"
+                              >
+                                GC Date *
+                              </label>
+                              <input
+                                type="date"
+                                id="gc_date"
+                                name="gc_date"
+                                value={formData.gc_date}
+                                onChange={handleInputChange}
+                                className="block w-full py-3 pl-4 pr-4 transition-all duration-200 border border-gray-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                required
+                              />
+                            </div>
                           </div>
-                          <div className="mb-4">
+                          <div>
                             <label
                               htmlFor="agenda"
-                              className="block mb-2 text-sm font-medium text-gray-700"
+                              className="block mb-3 text-sm font-semibold text-gray-700"
                             >
-                              Agenda
+                              Agenda *
                             </label>
                             <textarea
                               id="agenda"
                               name="agenda"
                               value={formData.agenda}
                               onChange={handleInputChange}
-                              rows={3}
-                              className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                              placeholder="Enter agenda details"
+                              rows={4}
+                              className="block w-full py-3 pl-4 pr-4 transition-all duration-200 border border-gray-300 shadow-sm resize-none rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              placeholder="Enter detailed agenda information..."
+                              required
                             />
+                            <p className="mt-2 text-xs text-gray-500">
+                              Provide comprehensive agenda details for the
+                              resolution
+                            </p>
                           </div>
-                          <div className="mb-4">
+                          <div>
                             <label
                               htmlFor="resolution"
-                              className="block mb-2 text-sm font-medium text-gray-700"
+                              className="block mb-3 text-sm font-semibold text-gray-700"
                             >
-                              Resolution
+                              Resolution *
                             </label>
                             <textarea
                               id="resolution"
                               name="resolution"
                               value={formData.resolution}
                               onChange={handleInputChange}
-                              rows={4}
-                              className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                              placeholder="Enter resolution details"
+                              rows={5}
+                              className="block w-full py-3 pl-4 pr-4 transition-all duration-200 border border-gray-300 shadow-sm resize-none rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              placeholder="Enter the complete resolution text and decisions made..."
+                              required
                             />
+                            <p className="mt-2 text-xs text-gray-500">
+                              Document the complete resolution with all
+                              decisions and actions
+                            </p>
                           </div>
-                          <div className="mb-4">
+                          <div>
                             <label
                               htmlFor="compliance"
-                              className="block mb-2 text-sm font-medium text-gray-700"
+                              className="block mb-3 text-sm font-semibold text-gray-700"
                             >
-                              Compliance (Optional)
+                              Compliance Status
+                              <span className="ml-1 font-normal text-gray-400">
+                                (Optional)
+                              </span>
                             </label>
                             <textarea
                               id="compliance"
                               name="compliance"
                               value={formData.compliance}
                               onChange={handleInputChange}
-                              rows={3}
-                              className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                              placeholder="Enter compliance details"
+                              rows={4}
+                              className="block w-full py-3 pl-4 pr-4 transition-all duration-200 border border-gray-300 shadow-sm resize-none rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              placeholder="Enter compliance status, implementation details, or follow-up actions taken..."
                             />
+                            <p className="mt-2 text-xs text-gray-500">
+                              Document any compliance actions taken or
+                              implementation status
+                            </p>
                           </div>
-                          <div className="mb-4">
-                            <label
-                              htmlFor="gc_date"
-                              className="block mb-2 text-sm font-medium text-gray-700"
-                            >
-                              GC Date
-                            </label>
-                            <input
-                              type="date"
-                              id="gc_date"
-                              name="gc_date"
-                              value={formData.gc_date}
-                              onChange={handleInputChange}
-                              className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                              required
-                            />
-                          </div>
-                          <div className="flex justify-end space-x-4">
+
+                          <div className="flex flex-col justify-end pt-6 space-y-3 border-t border-gray-200 sm:flex-row sm:space-y-0 sm:space-x-4">
                             <button
                               type="button"
                               onClick={() => setIsModalOpen(false)}
-                              className="inline-flex justify-center px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                              className="inline-flex justify-center px-8 py-3 text-sm font-semibold text-gray-700 transition-all duration-200 bg-white border border-gray-300 shadow-sm rounded-xl hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                             >
                               Cancel
                             </button>
                             <button
                               type="submit"
                               disabled={isSubmitting}
-                              className="inline-flex justify-center px-6 py-3 text-sm font-medium text-white border border-transparent rounded-lg shadow-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                              className="inline-flex justify-center px-8 py-3 text-sm font-semibold text-white transition-all duration-200 border border-transparent shadow-lg rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {isSubmitting ? (
                                 <span className="flex items-center">
                                   <svg
-                                    className="w-4 h-4 mr-2 animate-spin"
+                                    className="w-4 h-4 mr-3 animate-spin"
                                     xmlns="http://www.w3.org/2000/svg"
                                     fill="none"
                                     viewBox="0 0 24 24"
@@ -920,12 +1131,27 @@ const AddGCResolution = () => {
                                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                     ></path>
                                   </svg>
-                                  Saving...
+                                  {editingId ? "Updating..." : "Saving..."}
                                 </span>
-                              ) : editingId ? (
-                                "Update Resolution"
                               ) : (
-                                "Add Resolution"
+                                <span className="flex items-center">
+                                  <svg
+                                    className="w-4 h-4 mr-3"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M5 13l4 4L19 7"
+                                    />
+                                  </svg>
+                                  {editingId
+                                    ? "Update Resolution"
+                                    : "Create Resolution"}
+                                </span>
                               )}
                             </button>
                           </div>
