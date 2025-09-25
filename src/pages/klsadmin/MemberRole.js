@@ -1,5 +1,5 @@
 // pages/MemberRoleManagementPage.js
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { getMembers } from "../../api/members";
 import { getRoles } from "../../api/roles";
@@ -450,180 +450,241 @@ const MemberRoleManagementPage = () => {
     }
   };
 
-  // Filter member roles based on search term
-  const filteredMemberRoles = memberRoles.filter((memberRole) => {
-    const member = members.find((m) => m.id === memberRole.member_id);
-    const role = roles.find((r) => r.id === memberRole.role_id);
-    const institute = institutes.find((i) => i.id === memberRole.institute_id);
-
-    const tenureName = getTenureName(memberRole.tenure_id, memberRole);
-    return (
-      member?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      role?.role_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      institute?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      memberRole.level.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tenureName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
-
-  // Group member roles by tenure
-  const groupedByTenure = filteredMemberRoles.reduce((acc, memberRole) => {
-    const tenureKey = getTenureName(memberRole.tenure_id, memberRole);
-    if (!acc[tenureKey]) {
-      acc[tenureKey] = [];
-    }
-    acc[tenureKey].push(memberRole);
-    return acc;
-  }, {});
-
-  // Process rows for each tenure to merge member names
-  const processRowsForTenure = (rows) => {
-    // Sort rows by member name to ensure same members are consecutive
-    const sortedRows = [...rows].sort((a, b) => {
-      const nameA = getMemberName(a.member_id);
-      const nameB = getMemberName(b.member_id);
-      return nameA.localeCompare(nameB);
-    });
-    const processedRows = [];
-    let i = 0;
-
-    while (i < sortedRows.length) {
-      let count = 1;
-      // Check consecutive rows with same member
-      while (
-        i + count < sortedRows.length &&
-        getMemberName(sortedRows[i].member_id) ===
-          getMemberName(sortedRows[i + count].member_id)
-      ) {
-        count++;
-      }
-
-      // For the first row of this member, set rowSpan = count
-      processedRows.push({ ...sortedRows[i], rowSpan: count });
-
-      // For the next count-1 rows, mark as no rowSpan (so we skip rendering the member cell)
-      for (let j = 1; j < count; j++) {
-        processedRows.push({ ...sortedRows[i + j], rowSpan: 0 });
-      }
-
-      i += count;
-    }
-
-    return processedRows;
-  };
-
-  // Process rows for institute view - group by institutes
-  const processRowsForInstituteView = (rows) => {
-    // Group rows by institute
-    const groupedByInstitute = rows.reduce((acc, row) => {
-      const instituteKey = getInstituteName(row.institute_id);
-      if (!acc[instituteKey]) {
-        acc[instituteKey] = [];
-      }
-      acc[instituteKey].push(row);
-      return acc;
-    }, {});
-
-    // Sort institutes and process each group
-    const processedGroups = [];
-    Object.entries(groupedByInstitute)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .forEach(([instituteName, instituteRows]) => {
-        // Sort rows within institute by role priority first, then by member name
-        const sortedRows = [...instituteRows].sort((a, b) => {
-          let priorityA, priorityB;
-
-          // Use different role priorities based on institute
-          if (instituteName === "Karnataka Law Society") {
-            // For Karnataka Law Society (Not Assigned): President, Vice President, Chairman, Secretary, Member
-            priorityA = getRolePriorityForKLS(a.role_id);
-            priorityB = getRolePriorityForKLS(b.role_id);
-          } else {
-            // For other institutes: Chairman, Member
-            priorityA = getRolePriorityForOtherInstitutes(a.role_id);
-            priorityB = getRolePriorityForOtherInstitutes(b.role_id);
-          }
-
-          // First sort by role priority
-          if (priorityA !== priorityB) {
-            return priorityA - priorityB;
-          }
-
-          // If same role priority, sort by member name
-          const nameA = getMemberName(a.member_id);
-          const nameB = getMemberName(b.member_id);
-          return nameA.localeCompare(nameB);
-        }); // Add institute header
-        processedGroups.push({
-          isInstituteHeader: true,
-          instituteName: instituteName,
-          memberCount: new Set(sortedRows.map((row) => row.member_id)).size,
-          roleCount: sortedRows.length,
-        });
-
-        // Process member rows similar to tenure view
-        let i = 0;
-        while (i < sortedRows.length) {
-          let count = 1;
-          // Check consecutive rows with same member
-          while (
-            i + count < sortedRows.length &&
-            getMemberName(sortedRows[i].member_id) ===
-              getMemberName(sortedRows[i + count].member_id)
-          ) {
-            count++;
-          }
-
-          // For the first row of this member, set rowSpan = count
-          processedGroups.push({ ...sortedRows[i], rowSpan: count });
-
-          // For the next count-1 rows, mark as no rowSpan
-          for (let j = 1; j < count; j++) {
-            processedGroups.push({ ...sortedRows[i + j], rowSpan: 0 });
-          }
-
-          i += count;
-        }
-      });
-
-    return processedGroups;
-  };
-
-  // Helper function to get member name by id
+  // Helper function to get member name by ID
   const getMemberName = (memberId) => {
     const member = members.find((m) => m.id === memberId);
     return member
       ? member.name || member.full_name || member.email || "Unknown"
-      : "Unknown";
+      : "Unknown Member";
   };
 
-  // Helper function to get role name by id
+  // Helper function to get role name by ID
   const getRoleName = (roleId) => {
     const role = roles.find((r) => r.id === roleId);
     return role
       ? role.role_name || role.name || role.title || "Unknown"
-      : "Unknown";
+      : "Unknown Role";
   };
 
-  // Helper function to get institute name by id
+  // Helper function to get institute name by ID
   const getInstituteName = (instituteId) => {
+    if (!instituteId) return "KLS Board";
     const institute = institutes.find((i) => i.id === instituteId);
     return institute
       ? institute.name || institute.institute_name || "Unknown"
-      : "Karnataka Law Society";
+      : "Unknown Institute";
   };
 
-  // Helper function to get tenure name by id
-  const getTenureName = (tenureId, memberRole) => {
-    if (!tenureId) return "No Tenure";
-    // First try from included managementTenure
-    if (memberRole?.managementTenure?.tenure) {
-      return memberRole.managementTenure.tenure;
-    }
-    // Fallback to fetched managementTenures
-    const tenure = managementTenures.find((t) => t.id === tenureId);
-    return tenure ? tenure.tenure : "Unknown Tenure";
+  // Process rows for tenure view (grouped by member)
+  const processRowsForTenure = (roles) => {
+    // Group by member first
+    const memberGroups = {};
+    roles.forEach((role) => {
+      const memberId = role.member_id;
+      if (!memberGroups[memberId]) {
+        memberGroups[memberId] = [];
+      }
+      memberGroups[memberId].push(role);
+    });
+
+    // Sort members by role priority
+    const sortedMembers = Object.keys(memberGroups).sort((a, b) => {
+      const memberARoles = memberGroups[a];
+      const memberBRoles = memberGroups[b];
+
+      // Get highest priority role for each member
+      const memberAPriority = Math.min(
+        ...memberARoles.map((role) => {
+          return !role.institute_id
+            ? getRolePriorityForKLS(role.role_id)
+            : getRolePriorityForOtherInstitutes(role.role_id);
+        })
+      );
+
+      const memberBPriority = Math.min(
+        ...memberBRoles.map((role) => {
+          return !role.institute_id
+            ? getRolePriorityForKLS(role.role_id)
+            : getRolePriorityForOtherInstitutes(role.role_id);
+        })
+      );
+
+      return memberAPriority - memberBPriority;
+    });
+
+    // Create rows with proper rowspan
+    const processedRows = [];
+    sortedMembers.forEach((memberId) => {
+      const memberRoles = memberGroups[memberId];
+
+      // Sort roles within member group
+      memberRoles.sort((a, b) => {
+        const priorityA = !a.institute_id
+          ? getRolePriorityForKLS(a.role_id)
+          : getRolePriorityForOtherInstitutes(a.role_id);
+        const priorityB = !b.institute_id
+          ? getRolePriorityForKLS(b.role_id)
+          : getRolePriorityForOtherInstitutes(b.role_id);
+        return priorityA - priorityB;
+      });
+
+      memberRoles.forEach((role, index) => {
+        processedRows.push({
+          ...role,
+          rowSpan: index === 0 ? memberRoles.length : 0, // First row gets rowspan, others get 0
+        });
+      });
+    });
+
+    return processedRows;
   };
+
+  // Process rows for institute view (grouped by institute)
+  const processRowsForInstituteView = (roles) => {
+    // Group by institute first
+    const instituteGroups = {};
+    roles.forEach((role) => {
+      const instituteKey = role.institute_id || "kls_board";
+      const instituteName = getInstituteName(role.institute_id);
+
+      if (!instituteGroups[instituteKey]) {
+        instituteGroups[instituteKey] = {
+          instituteName,
+          roles: [],
+        };
+      }
+      instituteGroups[instituteKey].roles.push(role);
+    });
+
+    // Sort institutes (KLS Board first, then alphabetically)
+    const sortedInstitutes = Object.entries(instituteGroups).sort(
+      ([keyA, groupA], [keyB, groupB]) => {
+        if (keyA === "kls_board") return -1;
+        if (keyB === "kls_board") return 1;
+        return groupA.instituteName.localeCompare(groupB.instituteName);
+      }
+    );
+
+    const processedRows = [];
+
+    sortedInstitutes.forEach(([instituteKey, group]) => {
+      // Add institute header row
+      const uniqueMembers = new Set(group.roles.map((role) => role.member_id));
+      const uniqueRoles = new Set(group.roles.map((role) => role.role_id));
+
+      processedRows.push({
+        isInstituteHeader: true,
+        instituteName: group.instituteName,
+        memberCount: uniqueMembers.size,
+        roleCount: uniqueRoles.size,
+      });
+
+      // Sort roles within institute
+      const sortedRoles = group.roles.sort((a, b) => {
+        // Sort by member name first, then by role priority
+        const memberAName = getMemberName(a.member_id);
+        const memberBName = getMemberName(b.member_id);
+
+        if (memberAName !== memberBName) {
+          return memberAName.localeCompare(memberBName);
+        }
+
+        // Same member, sort by role priority
+        const priorityA = !a.institute_id
+          ? getRolePriorityForKLS(a.role_id)
+          : getRolePriorityForOtherInstitutes(a.role_id);
+        const priorityB = !b.institute_id
+          ? getRolePriorityForKLS(b.role_id)
+          : getRolePriorityForOtherInstitutes(b.role_id);
+
+        return priorityA - priorityB;
+      });
+
+      // Add role rows
+      sortedRoles.forEach((role) => {
+        processedRows.push({
+          ...role,
+          rowSpan: 1, // In institute view, each row is separate
+        });
+      });
+    });
+
+    return processedRows;
+  };
+
+  // Filter member roles based on search term
+  const filteredAndSearched = useMemo(() => {
+    if (!memberRoles || memberRoles.length === 0) {
+      return [];
+    }
+
+    const searchTermLower = searchTerm.toLowerCase().trim();
+
+    if (!searchTermLower) {
+      return memberRoles;
+    }
+
+    return memberRoles.filter((memberRole) => {
+      try {
+        // Safely extract member information
+        const member = memberRole.Member || {};
+        const role = memberRole.Role || {};
+        const institute = memberRole.Institute || {};
+        const managementTenure = memberRole.managementTenure || {};
+
+        // Build searchable strings safely
+        const memberName =
+          member.name || member.full_name || member.email || "Unknown";
+        const roleName = role.role_name || role.name || role.title || "Unknown";
+        const instituteName =
+          institute.name || institute.institute_name || "KLS Board";
+        const tenureName = managementTenure.tenure || "No Tenure";
+        const level = memberRole.level || "";
+
+        // Create searchable text
+        const searchableText = [
+          memberName,
+          roleName,
+          instituteName,
+          tenureName,
+          level,
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(searchTermLower);
+      } catch (error) {
+        console.error("Error filtering member role:", error, memberRole);
+        return false;
+      }
+    });
+  }, [memberRoles, searchTerm, members, roles, institutes]); // Added dependencies
+
+  // Fix the grouping logic
+  const groupedByTenure = useMemo(() => {
+    if (!filteredAndSearched || filteredAndSearched.length === 0) {
+      return {};
+    }
+
+    const grouped = {};
+
+    filteredAndSearched.forEach((memberRole) => {
+      try {
+        // Safely get tenure information
+        const managementTenure = memberRole.managementTenure || {};
+        const tenureKey = managementTenure.tenure || "No Tenure";
+
+        if (!grouped[tenureKey]) {
+          grouped[tenureKey] = [];
+        }
+        grouped[tenureKey].push(memberRole);
+      } catch (error) {
+        console.error("Error grouping member role:", error, memberRole);
+      }
+    });
+
+    return grouped;
+  }, [filteredAndSearched]);
 
   return (
     <div className="min-h-screen px-4 py-12 bg-gradient-to-br from-gray-50 to-gray-100 sm:px-6 lg:px-8">
