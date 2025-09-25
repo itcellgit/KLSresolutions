@@ -2,12 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { getInstitutes } from "../../api/institutes";
 import { getGCResolutions } from "../../api/gcResolutions";
+import { getAllManagementTenures } from "../../api/managementTenures";
 
 const GCResolutionPage = () => {
   // State for search
   const [searchTerm, setSearchTerm] = useState("");
   // State for dropdown data (will be populated from backend)
   const [institutes, setInstitutes] = useState([]);
+  const [tenures, setTenures] = useState([]);
   // State for loading
   const [loading, setLoading] = useState(true);
   // State for errors
@@ -17,8 +19,18 @@ const GCResolutionPage = () => {
   // State for loading resolutions
   const [resolutionsLoading, setResolutionsLoading] = useState(true);
   const [resolutionsError, setResolutionsError] = useState(null);
-  // State for selected institute filter
+  // State for selected filters
   const [selectedInstitute, setSelectedInstitute] = useState("");
+  const [selectedTenure, setSelectedTenure] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+
+  // State for accordion sections - only one section can be open at a time
+  const [openSections, setOpenSections] = useState({
+    "MAIN AGENDA": false,
+    "PURCHASE EXPENSES": false,
+    "STAFF MATTERS": false,
+    "OTHER MATTERS": false,
+  });
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -27,7 +39,7 @@ const GCResolutionPage = () => {
   // Get token from Redux store
   const token = useSelector((state) => state.auth.token);
 
-  // Fetch institutes and resolutions when component mounts
+  // Fetch institutes, tenures and resolutions when component mounts
   useEffect(() => {
     const fetchInstitutes = async () => {
       try {
@@ -40,6 +52,25 @@ const GCResolutionPage = () => {
         setError("Failed to load institutes. Please try again later.");
       } finally {
         setLoading(false);
+      }
+    };
+
+    const fetchTenures = async () => {
+      try {
+        const data = await getAllManagementTenures(token);
+        setTenures(data);
+
+        // Set the latest tenure as default
+        if (data && data.length > 0) {
+          const latestTenure = data.reduce((latest, current) => {
+            return new Date(current.start_date) > new Date(latest.start_date)
+              ? current
+              : latest;
+          });
+          setSelectedTenure(String(latestTenure.id));
+        }
+      } catch (err) {
+        console.error("Error fetching tenures:", err);
       }
     };
 
@@ -66,11 +97,12 @@ const GCResolutionPage = () => {
 
     if (token) {
       fetchInstitutes();
+      fetchTenures();
       fetchResolutions();
     }
   }, [token]);
 
-  // Filter resolutions based on search term and selected institute
+  // Filter resolutions based on search term, selected institute, selected tenure, and selected date
   const filteredResolutions = resolutions.filter((resolution) => {
     const institute = institutes.find((i) => i.id === resolution.institute_id);
 
@@ -83,35 +115,54 @@ const GCResolutionPage = () => {
           .toLowerCase()
           .includes(searchTerm.toLowerCase())) ||
       institute?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      resolution.gc_date.includes(searchTerm);
+      resolution.gc_date.includes(searchTerm) ||
+      (resolution.agenda_section &&
+        resolution.agenda_section
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()));
 
-    // Apply institute filter - ensure type consistency by converting both to strings
+    // Apply institute filter
     const matchesInstitute = selectedInstitute
       ? String(resolution.institute_id) === String(selectedInstitute)
       : true;
 
-    return matchesSearch && matchesInstitute;
+    // Apply tenure filter
+    const matchesTenure = selectedTenure
+      ? String(resolution.tenure_id) === String(selectedTenure)
+      : true;
+
+    // Apply date filter
+    const matchesDate = selectedDate
+      ? resolution.gc_date &&
+        new Date(resolution.gc_date).toISOString().split("T")[0] ===
+          selectedDate
+      : true;
+
+    return matchesSearch && matchesInstitute && matchesTenure && matchesDate;
   });
 
-  // Pagination logic
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredResolutions.slice(
-    indexOfFirstItem,
-    indexOfLastItem
-  );
-  const totalPages = Math.ceil(filteredResolutions.length / itemsPerPage);
+  // Group resolutions by agenda section
+  const groupedResolutions = filteredResolutions.reduce((acc, resolution) => {
+    const section = resolution.agenda_section || "OTHER MATTERS";
+    if (!acc[section]) {
+      acc[section] = [];
+    }
+    acc[section].push(resolution);
+    return acc;
+  }, {});
 
-  // Handle page change
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
-  const nextPage = () =>
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-  const prevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  // Handle accordion toggle
+  const toggleSection = (section) => {
+    setOpenSections((prev) => ({
+      ...Object.keys(prev).reduce((acc, key) => ({ ...acc, [key]: false }), {}),
+      [section]: !prev[section],
+    }));
+  };
 
-  // Reset to first page when search term or institute filter changes
+  // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedInstitute]);
+  }, [searchTerm, selectedInstitute, selectedTenure, selectedDate]);
 
   // Helper function to get institute name by id
   const getInstituteName = (instituteId) => {
@@ -119,6 +170,12 @@ const GCResolutionPage = () => {
       (i) => String(i.id) === String(instituteId)
     );
     return institute ? institute.name : "Unknown";
+  };
+
+  // Helper function to get tenure name by id
+  const getTenureName = (tenureId) => {
+    const tenure = tenures.find((t) => String(t.id) === String(tenureId));
+    return tenure ? `${tenure.start_date} - ${tenure.end_date}` : "Unknown";
   };
 
   // Helper function to format date
@@ -166,7 +223,7 @@ const GCResolutionPage = () => {
                   Total Resolutions
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {resolutions.length}
+                  {filteredResolutions.length}
                 </p>
               </div>
             </div>
@@ -194,15 +251,16 @@ const GCResolutionPage = () => {
                   With Compliance
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {resolutions.filter((r) => r.compliance).length}
+                  {filteredResolutions.filter((r) => r.compliance).length}
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Action Bar with Search and Institute Filter */}
+        {/* Filter Section */}
         <div className="flex flex-col items-start justify-between gap-4 mb-6 sm:flex-row sm:items-center">
+          {/* Search Input */}
           <div className="relative w-full sm:w-64">
             <input
               type="text"
@@ -227,258 +285,282 @@ const GCResolutionPage = () => {
             </svg>
           </div>
 
-          {/* Institute Filter Dropdown */}
-          <div className="relative w-full sm:w-64">
-            <select
-              value={selectedInstitute}
-              onChange={(e) => setSelectedInstitute(e.target.value)}
-              className="w-full py-2 pl-3 pr-10 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="">All Institutes</option>
-              {institutes.map((institute) => (
-                <option key={institute.id} value={String(institute.id)}>
-                  {institute.name}
-                </option>
-              ))}
-            </select>
-            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+          {/* Filters Row */}
+          <div className="flex flex-wrap gap-4 w-full sm:w-auto">
+            {/* Date Filter */}
+            <div className="relative w-full sm:w-48">
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full py-3 pl-10 pr-4 transition-all duration-200 border border-gray-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Select date"
+              />
               <svg
-                className="w-5 h-5 text-gray-400"
                 xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
+                className="absolute w-5 h-5 text-gray-400 left-3 top-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
                 <path
-                  fillRule="evenodd"
-                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                  clipRule="evenodd"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                 />
               </svg>
             </div>
+
+            {/* Tenure Filter Dropdown */}
+            <div className="relative w-full sm:w-64">
+              {/* <select
+                value={selectedTenure}
+                onChange={(e) => setSelectedTenure(e.target.value)}
+                className="w-full py-2 pl-3 pr-10 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">All Tenures</option>
+                {tenures.map((tenure) => (
+                  <option key={tenure.id} value={String(tenure.id)}>
+                    {tenure.start_date} - {tenure.end_date}
+                  </option>
+                ))}
+              </select> */}
+              <select
+                value={selectedTenure}
+                onChange={(e) => setSelectedTenure(e.target.value)}
+                className="w-full py-2 pl-3 pr-10 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">All Tenures</option>
+                {tenures.map((tenure) => (
+                  <option key={tenure.id} value={String(tenure.id)}>
+                    {tenure.tenure}
+                  </option>
+                ))}
+              </select>
+
+              <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                <svg
+                  className="w-5 h-5 text-gray-400"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            </div>
+
+            {/* Institute Filter Dropdown */}
+            <div className="relative w-full sm:w-64">
+              <select
+                value={selectedInstitute}
+                onChange={(e) => setSelectedInstitute(e.target.value)}
+                className="w-full py-2 pl-3 pr-10 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">All Institutes</option>
+                {institutes.map((institute) => (
+                  <option key={institute.id} value={String(institute.id)}>
+                    {institute.name}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                <svg
+                  className="w-5 h-5 text-gray-400"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            </div>
+
+            {/* Clear Filters Button */}
+            {(selectedDate || selectedInstitute || selectedTenure) && (
+              <button
+                onClick={() => {
+                  setSelectedDate("");
+                  setSelectedInstitute("");
+                  setSelectedTenure("");
+                  setSearchTerm("");
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Resolutions Table */}
-        <div className="mb-10 overflow-hidden bg-white shadow-xl rounded-xl">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+        {/* Accordion Sections */}
+        <div className="mb-10 space-y-4">
+          {Object.entries(groupedResolutions).map(
+            ([section, sectionResolutions]) => (
+              <div
+                key={section}
+                className="bg-white shadow-lg rounded-xl overflow-hidden"
+              >
+                {/* Accordion Header */}
+                <button
+                  onClick={() => toggleSection(section)}
+                  className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <div className="flex items-center">
+                    <h3 className="text-xl font-bold text-gray-900">
+                      {section}
+                    </h3>
+                    <span className="ml-3 px-3 py-1 bg-indigo-100 text-indigo-800 text-sm rounded-full">
+                      {sectionResolutions.length}
+                    </span>
+                  </div>
+                  <svg
+                    className={`w-5 h-5 text-gray-500 transform transition-transform ${
+                      openSections[section] ? "rotate-180" : ""
+                    }`}
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
                   >
-                    S.NO
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
-                    GC-NO
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
-                    Agenda Section
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
-                    Agenda
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
-                    Resolution
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
-                    Compliance
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                  >
-                    Details
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {resolutionsLoading ? (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <div className="w-16 h-16 border-t-4 border-indigo-600 border-solid rounded-full animate-spin"></div>
-                        <p className="mt-4 text-gray-600">
-                          Loading resolutions...
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : resolutionsError ? (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="w-16 h-16 mb-4 text-red-500"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                          />
-                        </svg>
-                        <h3 className="mb-1 text-lg font-medium text-gray-900">
-                          Error loading resolutions
-                        </h3>
-                        <p className="text-gray-600">{resolutionsError}</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : currentItems.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="w-16 h-16 mb-4 text-gray-400"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                        <h3 className="mb-1 text-lg font-medium text-gray-900">
-                          No resolutions found
-                        </h3>
-                        <p className="mt-2 text-sm text-gray-500">
-                          {selectedInstitute
-                            ? "Try selecting a different institute or clearing the filter."
-                            : "Try adjusting your search criteria."}
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  currentItems.map((resolution, index) => (
-                    <tr key={resolution.id}>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
-                        {indexOfFirstItem + index + 1}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
-                        {resolution.gc_no}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
-                        {resolution.agenda_section}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
-                        {resolution.agenda}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
-                        {resolution.resolution}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 break-words w-72">
-                        {resolution.compliance}
-                      </td>
-                      <td className="w-16 px-6 py-4 text-sm text-gray-500 break-words">
-                        <div className="flex flex-col">
-                          <span>
-                            {getInstituteName(resolution.institute_id)}
-                          </span>
-                          <span className="text-xs text-gray-400">
-                            Dated - {formatDate(resolution.gc_date)}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
 
-          {/* Pagination Controls */}
-          {filteredResolutions.length > itemsPerPage && (
-            <div className="flex items-center justify-between px-6 py-4 bg-white border-t border-gray-200">
-              <div className="flex items-center text-sm text-gray-700">
-                <span>
-                  Showing{" "}
-                  <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
-                  <span className="font-medium">
-                    {Math.min(indexOfLastItem, filteredResolutions.length)}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-medium">
-                    {filteredResolutions.length}
-                  </span>{" "}
-                  results
-                </span>
+                {/* Accordion Content */}
+                {openSections[section] && (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                            S.NO
+                          </th>
+                          <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                            GC-NO
+                          </th>
+                          <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                            Agenda
+                          </th>
+                          <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                            Resolution
+                          </th>
+                          <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                            Compliance
+                          </th>
+                          <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                            Details
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {sectionResolutions.map((resolution, index) => (
+                          <tr key={resolution.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
+                              {index + 1}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500 break-words w-32">
+                              {resolution.gc_no}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500 break-words max-w-md">
+                              {resolution.agenda}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500 break-words max-w-md">
+                              {resolution.resolution}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500 break-words max-w-xs">
+                              {resolution.compliance || "N/A"}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500">
+                              <div className="flex flex-col space-y-1">
+                                <span className="font-medium">
+                                  {getInstituteName(resolution.institute_id)}
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                  Date: {formatDate(resolution.gc_date)}
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                  Tenure: {getTenureName(resolution.tenure_id)}
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={prevPage}
-                  disabled={currentPage === 1}
-                  className={`px-3 py-1 rounded-md ${
-                    currentPage === 1
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}
-                >
-                  Previous
-                </button>
-                <div className="flex space-x-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(
-                      (page) =>
-                        page === 1 ||
-                        page === totalPages ||
-                        (page >= currentPage - 1 && page <= currentPage + 1)
-                    )
-                    .map((page, index, array) => (
-                      <React.Fragment key={page}>
-                        {index > 0 && page - array[index - 1] > 1 && (
-                          <span className="px-2 py-1 text-gray-500">...</span>
-                        )}
-                        <button
-                          onClick={() => paginate(page)}
-                          className={`px-3 py-1 rounded-md ${
-                            currentPage === page
-                              ? "bg-indigo-600 text-white"
-                              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      </React.Fragment>
-                    ))}
+            )
+          )}
+
+          {/* No Data State */}
+          {Object.keys(groupedResolutions).length === 0 && (
+            <div className="bg-white shadow-lg rounded-xl p-12 text-center">
+              {resolutionsLoading ? (
+                <div className="flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 border-t-4 border-indigo-600 border-solid rounded-full animate-spin"></div>
+                  <p className="mt-4 text-gray-600">Loading resolutions...</p>
                 </div>
-                <button
-                  onClick={nextPage}
-                  disabled={currentPage === totalPages}
-                  className={`px-3 py-1 rounded-md ${
-                    currentPage === totalPages
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}
-                >
-                  Next
-                </button>
-              </div>
+              ) : resolutionsError ? (
+                <div className="flex flex-col items-center justify-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-16 h-16 mb-4 text-red-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                  <h3 className="mb-1 text-lg font-medium text-gray-900">
+                    Error loading resolutions
+                  </h3>
+                  <p className="text-gray-600">{resolutionsError}</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-16 h-16 mb-4 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <h3 className="mb-1 text-lg font-medium text-gray-900">
+                    No resolutions found
+                  </h3>
+                  <p className="mt-2 text-sm text-gray-500">
+                    {selectedInstitute || selectedTenure || selectedDate
+                      ? "Try adjusting your filter criteria."
+                      : "Try adjusting your search criteria."}
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

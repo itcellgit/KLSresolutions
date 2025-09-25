@@ -14,6 +14,7 @@ import InstitutePage from "./pages/InstitutePage";
 import Members from "./pages/klsadmin/Members";
 import AssignRole from "./pages/klsadmin/AssignRole";
 import MemberRole from "./pages/klsadmin/MemberRole";
+import TenuresManagement from "./pages/klsadmin/TenuresManagement";
 import GCResolution from "./pages/klsadmin/GCResolution";
 import BOMResolutions from "./pages/klsadmin/BOMResolutions";
 import AGM from "./pages/klsadmin/AGM";
@@ -194,6 +195,16 @@ function App() {
             <PrivateRoute>
               <Layout>
                 <MemberRole />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/klsadmin/tenures"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <TenuresManagement />
               </Layout>
             </PrivateRoute>
           }

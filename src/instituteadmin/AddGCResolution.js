@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Header from "../components/Header";
 import DashboardLayout from "../components/DashboardLayout";
+import RichTextEditor from "../components/RichTextEditor";
+import HtmlContent from "../components/HtmlContent";
 import {
   getGCResolutions,
   createGCResolution,
@@ -10,6 +12,8 @@ import {
   deleteGCResolution,
 } from "../api/gcResolutions";
 import { getInstitutes } from "../api/institutes";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const AddGCResolution = () => {
   const goToDashboard = () => {
@@ -57,8 +61,12 @@ const AddGCResolution = () => {
     "STAFF MATTERS": false,
     "OTHER MATTERS": false,
   });
-  // Get token from Redux store
+  // Get token and user from Redux store
   const token = useSelector((state) => state.auth.token);
+  const user = useSelector((state) => state.auth.user);
+
+  // Add missing state for PDF generation
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -110,6 +118,11 @@ const AddGCResolution = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handle rich text editor changes
+  const handleRichTextChange = (field) => (value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   // Handle form submission
@@ -312,21 +325,6 @@ const AddGCResolution = () => {
     groupedResolutions["Uncategorized"] = uncategorizedResolutions;
   }
 
-  // Pagination logic (removed for accordion view)
-  // const indexOfLastItem = currentPage * itemsPerPage;
-  // const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  // const currentItems = filteredResolutions.slice(
-  //   indexOfFirstItem,
-  //   indexOfLastItem
-  // );
-  // const totalPages = Math.ceil(filteredResolutions.length / itemsPerPage);
-
-  // Handle page change
-  // const paginate = (pageNumber) => setCurrentPage(pageNumber);
-  // const nextPage = () =>
-  //   setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-  // const prevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
-
   // Reset to first page when search term or date filter changes
   useEffect(() => {
     setCurrentPage(1);
@@ -343,6 +341,256 @@ const AddGCResolution = () => {
     if (!dateString) return "";
     const options = { year: "numeric", month: "short", day: "numeric" };
     return new Date(dateString).toLocaleDateString(undefined, options);
+  };
+
+  // Helper function to extract text from HTML
+  const extractTextFromHTML = (html) => {
+    if (typeof window === "undefined") return html;
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = html;
+    return tempDiv.textContent || tempDiv.innerText || "";
+  };
+
+  // Function to download PDF
+  const downloadPDF = async () => {
+    if (Object.keys(groupedResolutions).length === 0) {
+      alert("No resolutions available to download");
+      return;
+    }
+
+    setIsGeneratingPDF(true);
+
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      // Get first resolution to extract some basic info
+      const firstSection = sectionOrder.find(
+        (s) => groupedResolutions[s]?.length
+      );
+      const firstItem = firstSection
+        ? groupedResolutions[firstSection][0]
+        : null;
+
+      // ✅ Get institute info from logged-in institute admin's user data
+      const userInstituteId = user?.institute_id;
+      const currentInstitute = institutes.find(
+        (inst) => inst.id === parseInt(userInstituteId)
+      );
+
+      const instituteCode = currentInstitute?.code || "N/A";
+      const instituteName = currentInstitute?.name || "N/A";
+      const gcNo = firstItem?.gc_no || "N/A";
+      const gcDate = firstItem?.gc_date ? formatDate(firstItem.gc_date) : "N/A";
+
+      // ✅ Tenure calculation
+      const currentYear = firstItem?.gc_date
+        ? new Date(firstItem.gc_date).getFullYear()
+        : new Date().getFullYear();
+      let tenure = "";
+      for (let start = 2021; start <= currentYear; start++) {
+        const end = start + 2;
+        if (currentYear >= start && currentYear <= end) {
+          tenure = `${start}-${end}`;
+          break;
+        }
+      }
+
+      // ==== HEADING ====
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      let y = 15;
+
+      // Logo
+      try {
+        const logoImg = new Image();
+        logoImg.src = "/image.png";
+
+        await new Promise((resolve) => {
+          logoImg.onload = () => {
+            try {
+              const logoWidth = 30;
+              const logoHeight = 30;
+              const logoX = (pageWidth - logoWidth) / 2;
+              pdf.addImage(logoImg, "PNG", logoX, y, logoWidth, logoHeight);
+            } catch (err) {
+              console.warn("Could not add logo:", err);
+            }
+            resolve();
+          };
+          logoImg.onerror = () => resolve();
+        });
+      } catch (err) {
+        console.warn("Error loading logo:", err);
+      }
+
+      y += 35;
+
+      // Main Title
+      pdf.setFontSize(16);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("KARNATAK LAW SOCIETY'S", pageWidth / 2, y, { align: "center" });
+      y += 6;
+
+      // Institute Name - ✅ Now uses the logged-in institute admin's institute
+      pdf.setFontSize(14);
+      pdf.text(instituteName, pageWidth / 2, y, { align: "center" });
+      y += 8;
+
+      // Subtitle
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(
+        "(Permanently affiliated and Autonomous Institution under",
+        pageWidth / 2,
+        y,
+        { align: "center" }
+      );
+      y += 5;
+      pdf.text(
+        "Visvesvaraya Technological University, Belagavi)",
+        pageWidth / 2,
+        y,
+        { align: "center" }
+      );
+      y += 8;
+
+      // Line
+      pdf.line(15, y, pageWidth - 15, y);
+      y += 8;
+
+      // Ref & Date
+      pdf.setFontSize(10);
+      pdf.text(`Ref. No KLS/Resolution/${gcNo}`, 15, y);
+      pdf.text(`Date: ${gcDate}`, pageWidth - 15, y, { align: "right" });
+      y += 8;
+
+      // Meeting Notice
+      pdf.setFontSize(14);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("MEETING NOTICE", pageWidth / 2, y, { align: "center" });
+      y += 7;
+
+      // Meeting details
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(
+        `The 01st meeting of the Governing Council (${tenure}), will be held on ${gcDate} at 4:00pm`,
+        15,
+        y
+      );
+      y += 4;
+      pdf.text(`Council Room of KLS-${instituteCode}.`, 15, y);
+      y += 6;
+
+      // Request
+      pdf.text(
+        "All members of the Governing Council are requested to make it convenient to attend the meeting.",
+        15,
+        y
+      );
+      y += 10;
+
+      // Agenda header
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(`AGENDA of GC-${instituteCode} MEETING`, pageWidth / 2, y, {
+        align: "center",
+      });
+      y += 10;
+
+      // ==== RESOLUTIONS ====
+      for (const section of sectionOrder) {
+        if (groupedResolutions[section]) {
+          // Section heading - keep bold
+          pdf.setFontSize(14);
+          pdf.setFont("helvetica", "bold");
+          pdf.text(section, 14, y);
+          y += 8;
+
+          // Table headers - make normal weight
+          pdf.setFontSize(10);
+          pdf.setFont("helvetica", "normal");
+          pdf.text("S.No", 14, y);
+          pdf.text("Agenda", 30, y);
+          y += 5;
+          pdf.line(14, y, pageWidth - 14, y);
+          y += 5;
+
+          // Resolution content - set to normal font
+          pdf.setFont("helvetica", "normal");
+          groupedResolutions[section].forEach((resolution, index) => {
+            if (y > pageHeight - 20) {
+              pdf.addPage();
+              y = 20;
+            }
+
+            // S.No - normal weight
+            pdf.text(`${index + 1}`, 14, y);
+
+            // Agenda content - normal weight
+            const agendaText = extractTextFromHTML(resolution.agenda);
+            const splitText = pdf.splitTextToSize(agendaText, pageWidth - 44);
+            pdf.text(splitText, 30, y);
+
+            y += splitText.length * 5;
+          });
+
+          y += 8;
+        }
+      }
+
+      if (groupedResolutions["Uncategorized"]) {
+        // Section heading - keep bold
+        pdf.setFontSize(14);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Uncategorized", 14, y);
+        y += 8;
+
+        // Table headers - make normal weight
+        pdf.setFontSize(10);
+        pdf.setFont("helvetica", "normal");
+        pdf.text("S.No", 14, y);
+        pdf.text("Agenda", 30, y);
+        y += 5;
+        pdf.line(14, y, pageWidth - 14, y);
+        y += 5;
+
+        // Resolution content - set to normal font
+        pdf.setFont("helvetica", "normal");
+        groupedResolutions["Uncategorized"].forEach((resolution, index) => {
+          if (y > pageHeight - 20) {
+            pdf.addPage();
+            y = 20;
+          }
+
+          // S.No - normal weight
+          pdf.text(`${index + 1}`, 14, y);
+
+          // Agenda content - normal weight
+          const agendaText = extractTextFromHTML(resolution.agenda);
+          const splitText = pdf.splitTextToSize(agendaText, pageWidth - 44);
+          pdf.text(splitText, 30, y);
+
+          y += splitText.length * 5;
+        });
+      }
+
+      // Save PDF
+      const filename = firstItem
+        ? `GC_Resolution_${
+            firstItem.gc_date
+              ? formatDate(firstItem.gc_date).replace(/\s/g, "_")
+              : "Unknown_Date"
+          }.pdf`
+        : "GC_Resolutions.pdf";
+
+      pdf.save(filename);
+    } catch (err) {
+      console.error("Error generating PDF:", err);
+      alert("Failed to generate PDF. Please try again.");
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   return (
@@ -391,6 +639,28 @@ const AddGCResolution = () => {
                   GC Resolutions
                 </span>
               </nav>
+
+              {/* Download PDF Button */}
+              <button
+                onClick={downloadPDF}
+                className="flex items-center px-4 py-2 text-sm font-medium text-white transition-colors duration-200 bg-indigo-600 rounded-lg hover:bg-indigo-700"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+                Download PDF
+              </button>
             </div>
           </div>
 
@@ -722,12 +992,12 @@ const AddGCResolution = () => {
                       ([section, sectionResolutions]) => (
                         <div
                           key={section}
-                          className="border border-gray-200 rounded-lg bg-white shadow-sm"
+                          className="bg-white border border-gray-200 rounded-lg shadow-sm"
                         >
                           {/* Accordion Header */}
                           <button
                             onClick={() => toggleSection(section)}
-                            className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors duration-200"
+                            className="flex items-center justify-between w-full px-6 py-4 text-left transition-colors duration-200 hover:bg-gray-50"
                           >
                             <div className="flex items-center space-x-3">
                               <h2 className="text-xl font-bold text-gray-900">
@@ -819,13 +1089,22 @@ const AddGCResolution = () => {
                                             {resolution.gc_no}
                                           </td>
                                           <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
-                                            {resolution.agenda}
+                                            <HtmlContent
+                                              content={resolution.agenda}
+                                              maxLength={200}
+                                            />
                                           </td>
                                           <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
-                                            {resolution.resolution}
+                                            <HtmlContent
+                                              content={resolution.resolution}
+                                              maxLength={250}
+                                            />
                                           </td>
                                           <td className="px-6 py-4 text-sm text-gray-500 break-words w-72">
-                                            {resolution.compliance}
+                                            <HtmlContent
+                                              content={resolution.compliance}
+                                              maxLength={200}
+                                            />
                                           </td>
                                           <td className="w-16 px-6 py-4 text-sm text-gray-500 break-words">
                                             <div className="flex flex-col">
@@ -905,7 +1184,7 @@ const AddGCResolution = () => {
 
               {/* Results Summary */}
               {Object.keys(groupedResolutions).length > 0 && (
-                <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <div className="p-4 mt-4 border border-gray-200 rounded-lg bg-gray-50">
                   <div className="flex items-center justify-between text-sm text-gray-600">
                     <span>
                       Total:{" "}
@@ -1074,14 +1353,11 @@ const AddGCResolution = () => {
                             >
                               Agenda *
                             </label>
-                            <textarea
-                              id="agenda"
-                              name="agenda"
+                            <RichTextEditor
                               value={formData.agenda}
-                              onChange={handleInputChange}
-                              rows={4}
-                              className="block w-full py-3 pl-4 pr-4 transition-all duration-200 border border-gray-300 shadow-sm resize-none rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              onChange={handleRichTextChange("agenda")}
                               placeholder="Enter detailed agenda information..."
+                              style={{ height: "200px" }}
                             />
                             <p className="mt-2 text-xs text-gray-500">
                               Provide comprehensive agenda details for the
@@ -1095,14 +1371,11 @@ const AddGCResolution = () => {
                             >
                               Resolution *
                             </label>
-                            <textarea
-                              id="resolution"
-                              name="resolution"
+                            <RichTextEditor
                               value={formData.resolution}
-                              onChange={handleInputChange}
-                              rows={5}
-                              className="block w-full py-3 pl-4 pr-4 transition-all duration-200 border border-gray-300 shadow-sm resize-none rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              onChange={handleRichTextChange("resolution")}
                               placeholder="Enter the complete resolution text and decisions made..."
+                              style={{ height: "250px" }}
                             />
                             <p className="mt-2 text-xs text-gray-500">
                               Document the complete resolution with all
@@ -1119,14 +1392,11 @@ const AddGCResolution = () => {
                                 (Optional)
                               </span>
                             </label>
-                            <textarea
-                              id="compliance"
-                              name="compliance"
+                            <RichTextEditor
                               value={formData.compliance}
-                              onChange={handleInputChange}
-                              rows={4}
-                              className="block w-full py-3 pl-4 pr-4 transition-all duration-200 border border-gray-300 shadow-sm resize-none rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              onChange={handleRichTextChange("compliance")}
                               placeholder="Enter compliance status, implementation details, or follow-up actions taken..."
+                              style={{ height: "200px" }}
                             />
                             <p className="mt-2 text-xs text-gray-500">
                               Document any compliance actions taken or

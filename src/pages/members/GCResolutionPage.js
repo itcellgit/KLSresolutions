@@ -19,6 +19,19 @@ const getCurrentTenure = () => {
   return "";
 };
 
+// Helper function to map agenda sections to predefined categories
+const mapToSectionCategory = (agendaSection) => {
+  if (!agendaSection) return "OTHER MATTERS";
+
+  const sectionLower = agendaSection.toLowerCase();
+
+  if (sectionLower.includes("main")) return "MAIN AGENDA";
+  if (sectionLower.includes("purchase")) return "PURCHASE EXPENSE";
+  if (sectionLower.includes("staff")) return "STAFF MATTERS";
+
+  return "OTHER MATTERS";
+};
+
 const GCResolutionPage = () => {
   const [gcResolutions, setGCResolutions] = useState([]);
   const [formData, setFormData] = useState({ tenure: getCurrentTenure() });
@@ -31,7 +44,7 @@ const GCResolutionPage = () => {
   const [institutes, setInstitutes] = useState([]);
   const [filteredInstitutes, setFilteredInstitutes] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedInstitute, setSelectedInstitute] = useState(""); // Changed from "all" to empty string
+  const [selectedInstitute, setSelectedInstitute] = useState("");
   const [apiError, setApiError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
@@ -62,7 +75,6 @@ const GCResolutionPage = () => {
         );
         setFilteredInstitutes(filtered);
 
-        // Set first institute as selected by default
         if (filtered.length > 0) {
           setSelectedInstitute(String(filtered[0].id));
         }
@@ -110,28 +122,137 @@ const GCResolutionPage = () => {
       const items = groupedByDate[expandedId] || [];
       const firstItem = items[0];
 
+      // Get dynamic values
+      const currentInstitute = institutes.find(
+        (inst) => inst.id === parseInt(selectedInstitute)
+      );
+      const instituteCode = currentInstitute?.code || "N/A";
+      const gcNo = firstItem?.gc_no || "N/A";
+      const gcDate = firstItem?.gc_date ? formatDate(firstItem.gc_date) : "N/A";
+
+      // Get tenure from current year or first item's date
+      const currentYear = firstItem?.gc_date
+        ? new Date(firstItem.gc_date).getFullYear()
+        : new Date().getFullYear();
+      let tenure = "";
+      for (let start = 2021; start <= currentYear; start++) {
+        const end = start + 2;
+        if (currentYear >= start && currentYear <= end) {
+          tenure = `${start}-${end}`;
+          break;
+        }
+      }
+
       // Custom Heading for PDF
       const pageWidth = pdf.internal.pageSize.getWidth();
-      let y = 18;
-      pdf.setFontSize(15);
+      let y = 15;
+
+      // Add logo at the center top
+      try {
+        // Create a new image element to load the logo
+        const logoImg = new Image();
+        logoImg.src = "/image.png"; // Reference to the logo in public folder
+
+        // Wait for image to load and add to PDF
+        await new Promise((resolve, reject) => {
+          logoImg.onload = () => {
+            try {
+              // Add logo at the center top
+              const logoWidth = 30;
+              const logoHeight = 30;
+              const logoX = (pageWidth - logoWidth) / 2; // Center horizontally
+              const logoY = y; // At the top
+
+              pdf.addImage(logoImg, "PNG", logoX, logoY, logoWidth, logoHeight);
+              resolve();
+            } catch (err) {
+              console.warn("Could not add logo to PDF:", err);
+              resolve(); // Continue without logo
+            }
+          };
+          logoImg.onerror = () => {
+            console.warn("Could not load logo image");
+            resolve(); // Continue without logo
+          };
+        });
+      } catch (err) {
+        console.warn("Error loading logo:", err);
+      }
+
+      // Add space for logo
+      y += 35;
+
+      // Main title
+      pdf.setFontSize(16);
       pdf.setFont("helvetica", "bold");
-      const title1 =
-        "Karnatak Law Society's Gogte Institute of Technology, Belagavi";
-      const title2 =
-        "Minutes of Meeting of the Governing Council of KLS GIT (Eng Section)";
-      const title3 = `Held on ${
-        firstItem && firstItem.gc_date ? formatDate(firstItem.gc_date) : "N/A"
-      } in Board Rooms of KLS, Tilakwadi, Belagavi`;
-      pdf.text(title1, pageWidth / 2, y, { align: "center" });
+      pdf.text("KARNATAK LAW SOCIETY'S", pageWidth / 2, y, { align: "center" });
+      y += 6;
+
+      // Institute name (dynamic)
+      const instituteName = currentInstitute?.name || "N/A";
+      pdf.setFontSize(14);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(instituteName, pageWidth / 2, y, { align: "center" });
       y += 8;
-      pdf.setFontSize(13);
-      pdf.text(title2, pageWidth / 2, y, { align: "center" });
-      y += 8;
-      pdf.setFontSize(12);
-      pdf.text(title3, pageWidth / 2, y, { align: "center" });
-      y += 8;
-      pdf.line(15, y, pageWidth - 15, y);
+
+      // Subtitle
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(
+        "(Permanently affiliated and Autonomous Institution under",
+        pageWidth / 2,
+        y,
+        { align: "center" }
+      );
       y += 5;
+      pdf.text(
+        "Visvesvaraya Technological University, Belagavi)",
+        pageWidth / 2,
+        y,
+        { align: "center" }
+      );
+      y += 8;
+
+      // Line
+      pdf.line(15, y, pageWidth - 15, y);
+      y += 8;
+
+      // Reference and Date
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Ref. No KLS/Resolution/${gcNo}`, 15, y);
+      pdf.text(`Date: ${gcDate}`, pageWidth - 15, y, { align: "right" });
+      y += 8;
+
+      // Meeting Notice
+      pdf.setFontSize(14);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("MEETING NOTICE", pageWidth / 2, y, { align: "center" });
+      y += 7;
+
+      // Meeting details
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      const meetingText1 = `The 01st meeting of the Governing Council (${tenure}), will be held on ${gcDate} at 4:00pm`;
+      const meetingText2 = `Council Room of KLS-${instituteCode}.`;
+      pdf.text(meetingText1, 15, y);
+      y += 4;
+      pdf.text(meetingText2, 15, y);
+      y += 6;
+
+      // Request text
+      const requestText =
+        "All members of the Governing Council are requested to make it convenient to attend the meeting.";
+      pdf.text(requestText, 15, y);
+      y += 8;
+
+      // Agenda header
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(`AGENDA of GC-${instituteCode} MEETING`, pageWidth / 2, y, {
+        align: "center",
+      });
+      y += 8;
 
       const imgWidth = 210;
       const pageHeight = 295;
@@ -172,23 +293,51 @@ const GCResolutionPage = () => {
     const items = groupedByDate[currentDateKey] || [];
     const printContents = expandedContentRef.current.innerHTML;
     const firstItem = items[0];
-    const title1 =
-      "Karnatak Law Society's Gogte Institute of Technology, Belagavi";
-    const title2 =
-      "Minutes of Meeting of the Governing Council of KLS GIT (Eng Section)";
-    const title3 = `Held on ${
-      firstItem && firstItem.gc_date ? formatDate(firstItem.gc_date) : "N/A"
-    } in Board Rooms of KLS, Tilakwadi, Belagavi`;
+
+    // Get dynamic values
+    const currentInstitute = institutes.find(
+      (inst) => inst.id === parseInt(selectedInstitute)
+    );
+    const instituteCode = currentInstitute?.code || "N/A";
+    const gcNo = firstItem?.gc_no || "N/A";
+    const gcDate = firstItem?.gc_date ? formatDate(firstItem.gc_date) : "N/A";
+
+    // Get tenure from current year or first item's date
+    const currentYear = firstItem?.gc_date
+      ? new Date(firstItem.gc_date).getFullYear()
+      : new Date().getFullYear();
+    let tenure = "";
+    for (let start = 2021; start <= currentYear; start++) {
+      const end = start + 2;
+      if (currentYear >= start && currentYear <= end) {
+        tenure = `${start}-${end}`;
+        break;
+      }
+    }
+
     const printWindow = window.open("", "", "height=800,width=900");
     printWindow.document.write(
       `<html><head><title>Print GC Resolution</title>` +
         '<link rel="stylesheet" href="/index.css" />' +
-        `</head><body style='font-family: Arial, sans-serif;'>` +
-        `<div style='text-align:center;margin-bottom:10px;'>` +
-        `<h2 style='margin:0;'>${title1}</h2>` +
-        `<div style='font-size:18px;font-weight:bold;margin-bottom:2px;'>${title2}</div>` +
-        `<div style='font-size:15px;margin-bottom:10px;'>${title3}</div>` +
-        `<hr style='margin-bottom:20px;'/>` +
+        `</head><body style='font-family: Arial, sans-serif; margin: 20px;'>` +
+        `<div style='text-align:center; margin-bottom:30px;'>` +
+        `<img src='/image.png' alt='Logo' style='display: block; margin: 0 auto 10px auto; width: 60px; height: 60px; object-fit: contain;' onerror='this.style.display="none"'/>` +
+        `<h2 style='margin:0; font-size: 18px; font-weight: bold;'>KARNATAK LAW SOCIETY'S</h2>` +
+        `<h3 style='margin: 4px 0; font-size: 16px; font-weight: bold;'>${
+          currentInstitute?.name || "N/A"
+        }</h3>` +
+        `<div style='font-size:12px; margin: 5px 0;'>(Permanently affiliated and Autonomous Institution under</div>` +
+        `<div style='font-size:12px; margin-bottom: 10px;'>Visvesvaraya Technological University, Belagavi)</div>` +
+        `<hr style='margin: 10px 0; border: 1px solid #000;'/>` +
+        `<div style='display: flex; justify-content: space-between; margin: 6px 0; font-size: 12px;'>` +
+        `<span>Ref. No KLS/Resolution/${gcNo}</span>` +
+        `<span>Date: ${gcDate}</span>` +
+        `</div>` +
+        `<h3 style='margin: 12px 0 6px 0; font-size: 16px; font-weight: bold;'>MEETING NOTICE</h3>` +
+        `<div style='font-size:12px; margin: 6px 0; text-align: left;'>The 01st meeting of the Governing Council (${tenure}), will be held on ${gcDate} at 4:00pm</div>` +
+        `<div style='font-size:12px; margin: 3px 0; text-align: left;'>Council Room of KLS-${instituteCode}.</div>` +
+        `<div style='font-size:12px; margin: 8px 0;'>All members of the Governing Council are requested to make it convenient to attend the meeting.</div>` +
+        `<h4 style='margin: 12px 0 8px 0; font-size: 14px; font-weight: bold;'>AGENDA of GC-${instituteCode} MEETING</h4>` +
         `</div>` +
         printContents +
         `</body></html>`
@@ -222,7 +371,6 @@ const GCResolutionPage = () => {
         .toLowerCase()
         .includes(searchLower);
 
-    // Only show data for the selected institute
     const matchesInstitute =
       String(item.institute_id) === String(selectedInstitute);
 
@@ -230,7 +378,6 @@ const GCResolutionPage = () => {
     if (formData.tenure) {
       if (item.gc_date) {
         const gcYear = new Date(item.gc_date).getFullYear();
-        // Calculate the tenure for this resolution
         let itemTenure = "";
         for (let start = 2021; start <= gcYear; start++) {
           const end = start + 2;
@@ -277,15 +424,21 @@ const GCResolutionPage = () => {
     });
   };
 
-  // Set up auto-refresh every 5 minutes
   useEffect(() => {
     const intervalId = setInterval(() => {
       window.location.reload();
-    }, 5 * 60 * 1000); // 5 minutes in milliseconds
+    }, 5 * 60 * 1000);
 
-    // Clean up the interval when the component unmounts
     return () => clearInterval(intervalId);
   }, []);
+
+  // Predefined sections in the desired order
+  const predefinedSections = [
+    "MAIN AGENDA",
+    "PURCHASE EXPENSE",
+    "STAFF MATTERS",
+    "OTHER MATTERS",
+  ];
 
   return (
     <div className="w-full">
@@ -327,12 +480,10 @@ const GCResolutionPage = () => {
         </div>
 
         <div className="mx-auto max-w-7xl">
-          {/* Institute Tabs & Tenure Dropdown */}
           {!isLoading && filteredInstitutes.length > 0 && (
             <div className="mb-6">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap gap-2">
-                  {/* Only show tabs for institutes with resolutions */}
                   {filteredInstitutes.map((inst) => (
                     <button
                       key={inst.id}
@@ -348,7 +499,6 @@ const GCResolutionPage = () => {
                   ))}
                 </div>
 
-                {/* Tenure Dropdown */}
                 <div className="ml-4">
                   <label
                     htmlFor="tenure"
@@ -380,7 +530,6 @@ const GCResolutionPage = () => {
             </div>
           )}
 
-          {/* Loading indicator */}
           {isLoading && (
             <div className="flex items-center justify-center h-64 bg-white shadow-md rounded-xl">
               <div className="text-center">
@@ -392,7 +541,6 @@ const GCResolutionPage = () => {
             </div>
           )}
 
-          {/* Search Bar and Stats */}
           {!isLoading && (
             <div className="p-6 mb-8 bg-white border border-gray-200 shadow-md rounded-xl">
               <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
@@ -431,7 +579,6 @@ const GCResolutionPage = () => {
             </div>
           )}
 
-          {/* Table - Grouped by Date */}
           {!isLoading && (
             <div className="overflow-hidden bg-white border border-gray-200 shadow-lg rounded-xl">
               <div className="overflow-x-auto">
@@ -614,62 +761,99 @@ const GCResolutionPage = () => {
                                     </div>
                                   </div>
                                   <div className="p-6" ref={expandedContentRef}>
-                                    <div className="grid grid-cols-1 gap-6">
-                                      {items.map((item, i) => (
-                                        <React.Fragment key={item.id || i}>
-                                          <div className="p-5 border border-gray-200 rounded-lg shadow-sm bg-gray-50">
-                                            <div className="mb-2 text-sm font-semibold text-indigo-700">
-                                              GC No: {item.gc_no || "N/A"}
-                                            </div>
-                                            <div className="mb-2 text-xs text-gray-500">
-                                              <span className="font-medium">
-                                                Date:
-                                              </span>{" "}
-                                              {item.gc_date
-                                                ? formatDate(item.gc_date)
-                                                : "N/A"}
-                                            </div>
-                                            <div className="mb-2">
-                                              <span className="font-medium">
-                                                Agenda:
-                                              </span>{" "}
-                                              {item.agenda || "N/A"}
-                                            </div>
-                                            <div className="mb-2">
-                                              <span className="font-medium">
-                                                Agenda Section:
-                                              </span>{" "}
-                                              {item.agenda_section || "N/A"}
-                                            </div>
-                                            <div className="mb-2">
-                                              <span className="font-medium">
-                                                Resolution:
-                                              </span>{" "}
-                                              {item.resolution || "N/A"}
-                                            </div>
-                                            <div className="mb-2">
-                                              <span className="font-medium">
-                                                Compliance:
-                                              </span>{" "}
-                                              {item.compliance || "N/A"}
-                                            </div>
-                                            <div className="mb-2">
-                                              <span className="font-medium">
-                                                Institute:
-                                              </span>{" "}
-                                              {getInstituteName(
-                                                item.institute_id
-                                              )}
-                                            </div>
+                                    <div className="w-full">
+                                      {(() => {
+                                        // Group items by the predefined sections
+                                        const groupedBySection = items.reduce(
+                                          (acc, item) => {
+                                            const sectionCategory =
+                                              mapToSectionCategory(
+                                                item.agenda_section
+                                              );
+                                            if (!acc[sectionCategory]) {
+                                              acc[sectionCategory] = [];
+                                            }
+                                            acc[sectionCategory].push(item);
+                                            return acc;
+                                          },
+                                          {}
+                                        );
+
+                                        return (
+                                          <div className="overflow-hidden border border-gray-300 rounded-lg">
+                                            <table className="w-full border-collapse">
+                                              <tbody>
+                                                {predefinedSections.map(
+                                                  (section, sectionIndex) => {
+                                                    const sectionItems =
+                                                      groupedBySection[
+                                                        section
+                                                      ] || [];
+                                                    if (
+                                                      sectionItems.length === 0
+                                                    )
+                                                      return null;
+
+                                                    return (
+                                                      <React.Fragment
+                                                        key={section}
+                                                      >
+                                                        {/* Section Header Row */}
+                                                        <tr>
+                                                          <td
+                                                            colSpan="2"
+                                                            className="px-4 py-3 font-bold text-left text-gray-800 bg-blue-100 border border-gray-300"
+                                                            style={{
+                                                              fontSize: "14px",
+                                                            }}
+                                                          >
+                                                            {section}
+                                                          </td>
+                                                        </tr>
+                                                        {/* Section Items */}
+                                                        {sectionItems.map(
+                                                          (item, index) => (
+                                                            <tr
+                                                              key={
+                                                                item.id || index
+                                                              }
+                                                            >
+                                                              <td
+                                                                className="px-4 py-3 font-medium text-center border border-gray-300 bg-gray-50"
+                                                                style={{
+                                                                  width: "80px",
+                                                                  fontSize:
+                                                                    "12px",
+                                                                }}
+                                                              >
+                                                                {index + 1}.
+                                                              </td>
+                                                              <td
+                                                                className="px-4 py-3 border border-gray-300 bg-white"
+                                                                style={{
+                                                                  fontSize:
+                                                                    "12px",
+                                                                  fontFamily:
+                                                                    "Arial, sans-serif",
+                                                                  lineHeight:
+                                                                    "1.4",
+                                                                }}
+                                                              >
+                                                                {item.agenda ||
+                                                                  "N/A"}
+                                                              </td>
+                                                            </tr>
+                                                          )
+                                                        )}
+                                                      </React.Fragment>
+                                                    );
+                                                  }
+                                                )}
+                                              </tbody>
+                                            </table>
                                           </div>
-                                          <hr
-                                            style={{
-                                              borderTop: "1px solid #e5e7eb",
-                                              margin: "16px 0",
-                                            }}
-                                          />
-                                        </React.Fragment>
-                                      ))}
+                                        );
+                                      })()}
                                     </div>
                                   </div>
                                   <div className="px-6 py-3 text-right border-t border-gray-200 bg-gray-50">
@@ -719,7 +903,6 @@ const GCResolutionPage = () => {
             </div>
           )}
 
-          {/* Footer */}
           {!isLoading && (
             <div className="mt-8 text-sm text-center text-gray-500">
               <p>Karnataka Law Society © {new Date().getFullYear()}</p>

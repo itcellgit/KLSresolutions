@@ -1,8 +1,7 @@
 // ../../api/memberRole.js
 import axios from "axios";
 
-const API_URL =
-  process.env.REACT_APP_API_URL || "https://resolutions.klsbelagavi.org/api";
+const API_URL = "https://resolutions.klsbelagavi.org/api";
 
 export const assignRole = async (data, token) => {
   // Convert string values to proper types before sending
@@ -11,6 +10,7 @@ export const assignRole = async (data, token) => {
     member_id: parseInt(data.member_id),
     role_id: parseInt(data.role_id),
     institute_id: data.institute_id ? parseInt(data.institute_id) : null,
+    tenure_id: data.tenure_id ? parseInt(data.tenure_id) : null,
   };
 
   //alert(JSON.stringify(processedData));
@@ -57,7 +57,9 @@ export const getAllMemberRoles = async (token) => {
     });
     return response.data;
   } catch (error) {
+    console.error("API response error:", error.response?.data);
     const message =
+      error.response?.data?.error ||
       error.response?.data?.message ||
       error.message ||
       "Failed to fetch member roles";
@@ -73,6 +75,7 @@ export const updateMemberRole = async (id, data, token) => {
     member_id: data.member_id ? parseInt(data.member_id) : undefined,
     role_id: data.role_id ? parseInt(data.role_id) : undefined,
     institute_id: data.institute_id ? parseInt(data.institute_id) : null,
+    tenure_id: data.tenure_id ? parseInt(data.tenure_id) : null,
   };
 
   try {

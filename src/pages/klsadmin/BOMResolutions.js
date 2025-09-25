@@ -1,6 +1,8 @@
 // pages/BOMResolutionsPage.js
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import RichTextEditor from "../../components/RichTextEditor";
+import HtmlContent from "../../components/HtmlContent";
 import { getGCResolutions } from "../../api/gcResolutions";
 import {
   getBOMResolutions,
@@ -41,6 +43,11 @@ const BOMResolutionsPage = () => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  // Handle rich text editor changes
+  const handleRichTextChange = (field) => (value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   // Handle form submission
@@ -395,22 +402,22 @@ const BOMResolutionsPage = () => {
                   <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-36">
                     BOM No
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-24">
+                  <th className="w-24 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words">
                     Agenda
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-24">
+                  <th className="w-24 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words">
                     Resolution
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-24">
+                  <th className="w-24 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words">
                     Compliance
                   </th>
                   <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-72">
                     GC Resolution
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-24">
+                  <th className="w-24 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words">
                     BOM Date
                   </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-24">
+                  <th className="w-24 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words">
                     Actions
                   </th>
                 </tr>
@@ -421,11 +428,11 @@ const BOMResolutionsPage = () => {
                     SL.NO
                   </th>
 
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-6">
+                  <th className="w-6 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
                     BOM No
                   </th>
 
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-24">
+                  <th className="w-24 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
                     Agenda Section
                   </th>
 
@@ -437,19 +444,19 @@ const BOMResolutionsPage = () => {
                     Resolution
                   </th>
 
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-12">
+                  <th className="w-12 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
                     Compliance
                   </th>
 
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-24">
+                  <th className="w-24 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
                     GC Resolution
                   </th>
 
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-6">
+                  <th className="w-6 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
                     Date
                   </th>
 
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-6">
+                  <th className="w-6 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
                     Actions
                   </th>
                 </tr>
@@ -486,27 +493,36 @@ const BOMResolutionsPage = () => {
                         {index + 1}
                       </td>
 
-                      <td className="px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap w-6">
+                      <td className="w-6 px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap">
                         {resolution.bom_no}
                       </td>
 
-                      <td className="px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap w-24">
+                      <td className="w-24 px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap">
                         {resolution.agenda_section || "N/A"}
                       </td>
 
-                      <td className="px-6 py-4 text-sm text-justify text-gray-500 w-120 break-words">
-                        {resolution.agenda}
+                      <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-120">
+                        <HtmlContent
+                          content={resolution.agenda}
+                          maxLength={200}
+                        />
                       </td>
 
-                      <td className="px-6 py-4 text-sm text-justify text-gray-500 w-120 break-words">
-                        {resolution.resolution}
+                      <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-120">
+                        <HtmlContent
+                          content={resolution.resolution}
+                          maxLength={250}
+                        />
                       </td>
 
-                      <td className="px-6 py-4 text-sm text-justify text-gray-500 w-12 break-words">
-                        {resolution.compliance}
+                      <td className="w-12 px-6 py-4 text-sm text-justify text-gray-500 break-words">
+                        <HtmlContent
+                          content={resolution.compliance}
+                          maxLength={200}
+                        />
                       </td>
 
-                      <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-24">
+                      <td className="w-24 px-6 py-4 text-sm text-justify text-gray-500 break-words">
                         {resolution.gc_resolution ? (
                           <button
                             type="button"
@@ -525,11 +541,11 @@ const BOMResolutionsPage = () => {
                         )}
                       </td>
 
-                      <td className="px-6 py-4 text-sm text-center text-gray-500 w-6 whitespace-nowrap">
+                      <td className="w-6 px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap">
                         {formatDate(resolution.bom_date)}
                       </td>
 
-                      <td className="px-6 py-4 text-sm font-medium text-center whitespace-nowrap w-6">
+                      <td className="w-6 px-6 py-4 text-sm font-medium text-center whitespace-nowrap">
                         <button
                           onClick={() => handleEdit(resolution)}
                           className="mr-3 text-indigo-600 hover:text-indigo-900"
@@ -718,14 +734,11 @@ const BOMResolutionsPage = () => {
                       >
                         Agenda
                       </label>
-                      <textarea
-                        id="agenda"
-                        name="agenda"
+                      <RichTextEditor
                         value={formData.agenda}
-                        onChange={handleInputChange}
-                        rows={3}
-                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        onChange={handleRichTextChange("agenda")}
                         placeholder="Enter agenda details"
+                        style={{ height: "150px" }}
                       />
                     </div>
                     <div className="mb-4">
@@ -735,14 +748,11 @@ const BOMResolutionsPage = () => {
                       >
                         Resolution
                       </label>
-                      <textarea
-                        id="resolution"
-                        name="resolution"
+                      <RichTextEditor
                         value={formData.resolution}
-                        onChange={handleInputChange}
-                        rows={4}
-                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        onChange={handleRichTextChange("resolution")}
                         placeholder="Enter resolution details"
+                        style={{ height: "200px" }}
                       />
                     </div>
                     <div className="mb-4">
@@ -752,17 +762,14 @@ const BOMResolutionsPage = () => {
                       >
                         Compliance (Optional)
                       </label>
-                      <textarea
-                        id="compliance"
-                        name="compliance"
+                      <RichTextEditor
                         value={formData.compliance}
-                        onChange={handleInputChange}
-                        rows={3}
-                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        onChange={handleRichTextChange("compliance")}
                         placeholder="Enter compliance details"
+                        style={{ height: "150px" }}
                       />
                     </div>
-                    <div className="flex justify-end space-x-4">
+                    <div className="flex justify-end pt-6 space-x-4 border-t border-gray-200 mt-6">
                       <button
                         type="button"
                         onClick={() => setIsModalOpen(false)}

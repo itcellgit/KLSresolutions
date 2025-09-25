@@ -1,10 +1,6 @@
 import axios from "axios";
-// Use relative path in development to leverage the proxy
-const API_URL =
-  process.env.NODE_ENV === "development"
-    ? ""
-    : process.env.REACT_APP_API_URL ||
-      "https://resolutions.klsbelagavi.org/api"; // Production fallback
+
+const API_URL = "https://resolutions.klsbelagavi.org/api";
 
 export const getBOMResolutions = async (token) => {
   try {

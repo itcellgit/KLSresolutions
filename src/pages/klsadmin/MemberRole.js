@@ -10,6 +10,7 @@ import {
   deleteMemberRole,
 } from "../../api/memberRole";
 import { getAllMemberRoles } from "../../api/memberRole";
+import { getAllManagementTenures } from "../../api/managementTenures";
 
 const MemberRoleManagementPage = () => {
   // Pagination state
@@ -24,7 +25,7 @@ const MemberRoleManagementPage = () => {
     role_id: "",
     level: "",
     institute_id: "",
-    tenure: "",
+    tenure_id: "",
   });
   // State for editing
   const [editingId, setEditingId] = useState(null);
@@ -34,6 +35,7 @@ const MemberRoleManagementPage = () => {
   const [members, setMembers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [institutes, setInstitutes] = useState([]);
+  const [managementTenures, setManagementTenures] = useState([]);
   // State for member roles
   const [memberRoles, setMemberRoles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -43,6 +45,7 @@ const MemberRoleManagementPage = () => {
     members: null,
     roles: null,
     institutes: null,
+    managementTenures: null,
   });
   // Add state for table loading
   const [tableLoading, setTableLoading] = useState(false);
@@ -54,6 +57,9 @@ const MemberRoleManagementPage = () => {
   });
   // State for expanded tenures
   const [expandedTenures, setExpandedTenures] = useState({});
+
+  // State for tenure view modes (Member/Institute toggle)
+  const [tenureViewModes, setTenureViewModes] = useState({});
 
   // State for searchable member dropdown
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
@@ -133,7 +139,12 @@ const MemberRoleManagementPage = () => {
 
     setDropdownLoading(true);
     setError(null);
-    setApiErrors({ members: null, roles: null, institutes: null });
+    setApiErrors({
+      members: null,
+      roles: null,
+      institutes: null,
+      managementTenures: null,
+    });
 
     try {
       // Fetch members
@@ -175,8 +186,28 @@ const MemberRoleManagementPage = () => {
         }));
       }
 
+      // Fetch management tenures
+      let managementTenuresData = [];
+      try {
+        managementTenuresData = await getAllManagementTenures(token);
+        setManagementTenures(
+          Array.isArray(managementTenuresData) ? managementTenuresData : []
+        );
+      } catch (err) {
+        console.error("Error fetching management tenures:", err);
+        setApiErrors((prev) => ({
+          ...prev,
+          managementTenures: err.message || "Failed to load management tenures",
+        }));
+      }
+
       // Check if all API calls failed
-      if (!membersData.length && !rolesData.length && !institutesData.length) {
+      if (
+        !membersData.length &&
+        !rolesData.length &&
+        !institutesData.length &&
+        !managementTenuresData.length
+      ) {
         setError(
           "Failed to load any dropdown data. Please check your connection and try again."
         );
@@ -223,7 +254,7 @@ const MemberRoleManagementPage = () => {
       !formData.member_id ||
       !formData.role_id ||
       !formData.level ||
-      !formData.tenure
+      !formData.tenure_id
     ) {
       alert("Please fill all required fields");
       return;
@@ -256,7 +287,7 @@ const MemberRoleManagementPage = () => {
         role_id: "",
         level: "",
         institute_id: "",
-        tenure: "",
+        tenure_id: "",
       });
       setEditingId(null);
       setIsModalOpen(false);
@@ -285,7 +316,7 @@ const MemberRoleManagementPage = () => {
       role_id: memberRole.role_id?.toString() || "",
       level: memberRole.level || "",
       institute_id: memberRole.institute_id?.toString() || "",
-      tenure: memberRole.tenure || "",
+      tenure_id: memberRole.tenure_id?.toString() || "",
     });
 
     // Set editing ID
@@ -345,7 +376,7 @@ const MemberRoleManagementPage = () => {
         role_id: "",
         level: "",
         institute_id: "",
-        tenure: "",
+        tenure_id: "",
       });
       setEditingId(null);
       setSelectedMember(null);
@@ -366,27 +397,82 @@ const MemberRoleManagementPage = () => {
     });
   };
 
+  // Toggle view mode for a specific tenure
+  const toggleTenureViewMode = (tenure) => {
+    setTenureViewModes((prev) => ({
+      ...prev,
+      [tenure]: prev[tenure] === "institute" ? "member" : "institute",
+    }));
+  };
+
+  // Get current view mode for a tenure (default is 'member')
+  const getTenureViewMode = (tenure) => {
+    return tenureViewModes[tenure] || "member";
+  };
+
+  // Helper function to get role priority for "Karnataka Law Society" (Not Assigned) institutes
+  const getRolePriorityForKLS = (roleId) => {
+    const role = roles.find((r) => r.id === roleId);
+    const roleName = role
+      ? (role.role_name || role.name || role.title || "").toLowerCase()
+      : "";
+
+    // Define role hierarchy for Karnataka Law Society (lower number = higher priority)
+    if (roleName.includes("president") && !roleName.includes("vice")) {
+      return 1; // President
+    } else if (roleName.includes("vice") && roleName.includes("president")) {
+      return 2; // Vice President
+    } else if (roleName.includes("chairman")) {
+      return 3; // Chairman
+    } else if (roleName.includes("secretary")) {
+      return 4; // Secretary
+    } else if (roleName.includes("member")) {
+      return 5; // Member
+    } else {
+      return 6; // Other roles
+    }
+  };
+
+  // Helper function to get role priority for other institutes
+  const getRolePriorityForOtherInstitutes = (roleId) => {
+    const role = roles.find((r) => r.id === roleId);
+    const roleName = role
+      ? (role.role_name || role.name || role.title || "").toLowerCase()
+      : "";
+
+    // Define role hierarchy for other institutes (lower number = higher priority)
+    if (roleName.includes("chairman")) {
+      return 1; // Chairman
+    } else if (roleName.includes("member")) {
+      return 2; // Member
+    } else {
+      return 3; // Other roles
+    }
+  };
+
   // Filter member roles based on search term
   const filteredMemberRoles = memberRoles.filter((memberRole) => {
     const member = members.find((m) => m.id === memberRole.member_id);
     const role = roles.find((r) => r.id === memberRole.role_id);
     const institute = institutes.find((i) => i.id === memberRole.institute_id);
 
+    const tenureName = getTenureName(memberRole.tenure_id, memberRole);
     return (
       member?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       role?.role_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       institute?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       memberRole.level.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      memberRole.tenure.toLowerCase().includes(searchTerm.toLowerCase())
+      tenureName.toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
 
   // Group member roles by tenure
   const groupedByTenure = filteredMemberRoles.reduce((acc, memberRole) => {
-    if (!acc[memberRole.tenure]) {
-      acc[memberRole.tenure] = [];
+    const tenureKey = getTenureName(memberRole.tenure_id, memberRole);
+    if (!acc[tenureKey]) {
+      acc[tenureKey] = [];
     }
-    acc[memberRole.tenure].push(memberRole);
+    acc[tenureKey].push(memberRole);
     return acc;
   }, {});
 
@@ -398,7 +484,6 @@ const MemberRoleManagementPage = () => {
       const nameB = getMemberName(b.member_id);
       return nameA.localeCompare(nameB);
     });
-
     const processedRows = [];
     let i = 0;
 
@@ -427,6 +512,83 @@ const MemberRoleManagementPage = () => {
     return processedRows;
   };
 
+  // Process rows for institute view - group by institutes
+  const processRowsForInstituteView = (rows) => {
+    // Group rows by institute
+    const groupedByInstitute = rows.reduce((acc, row) => {
+      const instituteKey = getInstituteName(row.institute_id);
+      if (!acc[instituteKey]) {
+        acc[instituteKey] = [];
+      }
+      acc[instituteKey].push(row);
+      return acc;
+    }, {});
+
+    // Sort institutes and process each group
+    const processedGroups = [];
+    Object.entries(groupedByInstitute)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .forEach(([instituteName, instituteRows]) => {
+        // Sort rows within institute by role priority first, then by member name
+        const sortedRows = [...instituteRows].sort((a, b) => {
+          let priorityA, priorityB;
+
+          // Use different role priorities based on institute
+          if (instituteName === "Karnataka Law Society") {
+            // For Karnataka Law Society (Not Assigned): President, Vice President, Chairman, Secretary, Member
+            priorityA = getRolePriorityForKLS(a.role_id);
+            priorityB = getRolePriorityForKLS(b.role_id);
+          } else {
+            // For other institutes: Chairman, Member
+            priorityA = getRolePriorityForOtherInstitutes(a.role_id);
+            priorityB = getRolePriorityForOtherInstitutes(b.role_id);
+          }
+
+          // First sort by role priority
+          if (priorityA !== priorityB) {
+            return priorityA - priorityB;
+          }
+
+          // If same role priority, sort by member name
+          const nameA = getMemberName(a.member_id);
+          const nameB = getMemberName(b.member_id);
+          return nameA.localeCompare(nameB);
+        }); // Add institute header
+        processedGroups.push({
+          isInstituteHeader: true,
+          instituteName: instituteName,
+          memberCount: new Set(sortedRows.map((row) => row.member_id)).size,
+          roleCount: sortedRows.length,
+        });
+
+        // Process member rows similar to tenure view
+        let i = 0;
+        while (i < sortedRows.length) {
+          let count = 1;
+          // Check consecutive rows with same member
+          while (
+            i + count < sortedRows.length &&
+            getMemberName(sortedRows[i].member_id) ===
+              getMemberName(sortedRows[i + count].member_id)
+          ) {
+            count++;
+          }
+
+          // For the first row of this member, set rowSpan = count
+          processedGroups.push({ ...sortedRows[i], rowSpan: count });
+
+          // For the next count-1 rows, mark as no rowSpan
+          for (let j = 1; j < count; j++) {
+            processedGroups.push({ ...sortedRows[i + j], rowSpan: 0 });
+          }
+
+          i += count;
+        }
+      });
+
+    return processedGroups;
+  };
+
   // Helper function to get member name by id
   const getMemberName = (memberId) => {
     const member = members.find((m) => m.id === memberId);
@@ -448,7 +610,19 @@ const MemberRoleManagementPage = () => {
     const institute = institutes.find((i) => i.id === instituteId);
     return institute
       ? institute.name || institute.institute_name || "Unknown"
-      : "Not Assigned";
+      : "Karnataka Law Society";
+  };
+
+  // Helper function to get tenure name by id
+  const getTenureName = (tenureId, memberRole) => {
+    if (!tenureId) return "No Tenure";
+    // First try from included managementTenure
+    if (memberRole?.managementTenure?.tenure) {
+      return memberRole.managementTenure.tenure;
+    }
+    // Fallback to fetched managementTenures
+    const tenure = managementTenures.find((t) => t.id === tenureId);
+    return tenure ? tenure.tenure : "Unknown Tenure";
   };
 
   return (
@@ -626,7 +800,7 @@ const MemberRoleManagementPage = () => {
           {tableLoading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <svg
-                className="animate-spin h-10 w-10 text-indigo-600 mb-4"
+                className="w-10 h-10 mb-4 text-indigo-600 animate-spin"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -674,7 +848,11 @@ const MemberRoleManagementPage = () => {
               {Object.entries(groupedByTenure)
                 .sort(([a], [b]) => b.localeCompare(a)) // Sort tenures in descending order
                 .map(([tenure, roles]) => {
-                  const processedRows = processRowsForTenure(roles);
+                  const viewMode = getTenureViewMode(tenure);
+                  const processedRows =
+                    viewMode === "institute"
+                      ? processRowsForInstituteView(roles)
+                      : processRowsForTenure(roles);
                   return (
                     <div
                       key={tenure}
@@ -703,7 +881,7 @@ const MemberRoleManagementPage = () => {
                           <span className="text-lg font-medium text-gray-900">
                             {tenure}
                           </span>
-                          <span className="ml-3 px-2 py-1 text-xs font-medium text-indigo-800 bg-indigo-100 rounded-full">
+                          <span className="px-2 py-1 ml-3 text-xs font-medium text-indigo-800 bg-indigo-100 rounded-full">
                             {roles.length}{" "}
                             {roles.length === 1 ? "Assignment" : "Assignments"}
                           </span>
@@ -724,6 +902,51 @@ const MemberRoleManagementPage = () => {
                           />
                         </svg>
                       </button>
+
+                      {/* Toggle Button for Member/Institute View - Only show when tenure is expanded */}
+                      {expandedTenures[tenure] && (
+                        <div className="px-4 py-2 border-t border-gray-200 bg-gray-50">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700">
+                              View Mode:
+                            </span>
+                            <div className="flex items-center p-1 bg-white border border-gray-300 rounded-lg">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (getTenureViewMode(tenure) !== "member") {
+                                    toggleTenureViewMode(tenure);
+                                  }
+                                }}
+                                className={`px-3 py-1 text-sm font-medium rounded-md transition-all duration-200 ${
+                                  getTenureViewMode(tenure) === "member"
+                                    ? "bg-indigo-600 text-white shadow-sm"
+                                    : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                                }`}
+                              >
+                                Member
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (
+                                    getTenureViewMode(tenure) !== "institute"
+                                  ) {
+                                    toggleTenureViewMode(tenure);
+                                  }
+                                }}
+                                className={`px-3 py-1 text-sm font-medium rounded-md transition-all duration-200 ${
+                                  getTenureViewMode(tenure) === "institute"
+                                    ? "bg-indigo-600 text-white shadow-sm"
+                                    : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                                }`}
+                              >
+                                Institute
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {expandedTenures[tenure] && (
                         <div className="overflow-x-auto">
@@ -763,79 +986,132 @@ const MemberRoleManagementPage = () => {
                               </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                              {processedRows.map((row, index) => (
-                                <tr key={row.id}>
-                                  {row.rowSpan > 0 ? (
-                                    <td
-                                      rowSpan={row.rowSpan}
-                                      className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap"
+                              {processedRows.map((row, index) => {
+                                // Handle institute header rows
+                                if (row.isInstituteHeader) {
+                                  return (
+                                    <tr
+                                      key={`institute-${row.instituteName}-${index}`}
+                                      className="bg-blue-50"
                                     >
-                                      {getMemberName(row.member_id)}
+                                      <td
+                                        colSpan="5"
+                                        className="px-6 py-3 text-sm font-semibold text-blue-800"
+                                      >
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex items-center">
+                                            <svg
+                                              className="w-5 h-5 mr-2 text-blue-600"
+                                              fill="none"
+                                              viewBox="0 0 24 24"
+                                              stroke="currentColor"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                                              />
+                                            </svg>
+                                            <span>{row.instituteName}</span>
+                                          </div>
+                                          <div className="flex space-x-2">
+                                            <span className="px-2 py-1 text-xs font-medium text-blue-800 bg-blue-100 rounded-full">
+                                              {row.memberCount}{" "}
+                                              {row.memberCount === 1
+                                                ? "Member"
+                                                : "Members"}
+                                            </span>
+                                            <span className="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full">
+                                              {row.roleCount}{" "}
+                                              {row.roleCount === 1
+                                                ? "Role"
+                                                : "Roles"}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                }
+
+                                // Handle regular member role rows
+                                return (
+                                  <tr key={row.id}>
+                                    {row.rowSpan > 0 ? (
+                                      <td
+                                        rowSpan={row.rowSpan}
+                                        className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap"
+                                      >
+                                        {getMemberName(row.member_id)}
+                                      </td>
+                                    ) : null}
+                                    <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                      {getRoleName(row.role_id)}
                                     </td>
-                                  ) : null}
-                                  <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                                    {getRoleName(row.role_id)}
-                                  </td>
-                                  <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                                    <span
-                                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                        row.level === "GC"
-                                          ? "bg-red-100 text-red-800"
-                                          : row.level === "BOM"
-                                          ? "bg-yellow-100 text-yellow-800"
-                                          : "bg-green-100 text-green-800"
-                                      }`}
-                                    >
-                                      {row.level}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                                    {getInstituteName(row.institute_id)}
-                                  </td>
-                                  <td className="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
-                                    <button
-                                      onClick={() => handleEdit(row)}
-                                      className="mr-3 text-indigo-600 hover:text-indigo-900"
-                                    >
-                                      <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="w-4 h-4 mr-1"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
+                                    <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                      <span
+                                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                          row.level === "GC"
+                                            ? "bg-red-100 text-red-800"
+                                            : row.level === "BOM"
+                                            ? "bg-yellow-100 text-yellow-800"
+                                            : "bg-green-100 text-green-800"
+                                        }`}
                                       >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                        />
-                                      </svg>
-                                      Edit
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteClick(row.id)}
-                                      className="text-red-600 hover:text-red-900"
-                                    >
-                                      <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="w-4 h-4 mr-1"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
+                                        {row.level}
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                      {getInstituteName(row.institute_id)}
+                                    </td>
+                                    <td className="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
+                                      <button
+                                        onClick={() => handleEdit(row)}
+                                        className="mr-3 text-indigo-600 hover:text-indigo-900"
                                       >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                        />
-                                      </svg>
-                                      Delete
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          className="w-4 h-4 mr-1"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          stroke="currentColor"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                          />
+                                        </svg>
+                                        Edit
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          handleDeleteClick(row.id)
+                                        }
+                                        className="text-red-600 hover:text-red-900"
+                                      >
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          className="w-4 h-4 mr-1"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          stroke="currentColor"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                          />
+                                        </svg>
+                                        Delete
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -968,7 +1244,7 @@ const MemberRoleManagementPage = () => {
                           {/* Searchable Member Dropdown */}
                           <div className="relative" ref={memberDropdownRef}>
                             <div
-                              className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg cursor-pointer focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white"
+                              className="block w-full py-3 pl-4 pr-10 bg-white border border-gray-300 rounded-lg cursor-pointer focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                               onClick={() =>
                                 setMemberDropdownOpen(!memberDropdownOpen)
                               }
@@ -1035,12 +1311,12 @@ const MemberRoleManagementPage = () => {
                                     </svg>
                                   </div>
                                 </div>
-                                <div className="max-h-48 overflow-y-auto">
+                                <div className="overflow-y-auto max-h-48">
                                   {filteredMembers.length > 0 ? (
                                     filteredMembers.map((member) => (
                                       <div
                                         key={member.id}
-                                        className="px-4 py-2 cursor-pointer hover:bg-gray-100 text-sm"
+                                        className="px-4 py-2 text-sm cursor-pointer hover:bg-gray-100"
                                         onClick={() =>
                                           handleMemberSelect(member)
                                         }
@@ -1053,7 +1329,7 @@ const MemberRoleManagementPage = () => {
                                         </div>
                                         {member.email &&
                                           (member.name || member.full_name) && (
-                                            <div className="text-gray-500 text-xs">
+                                            <div className="text-xs text-gray-500">
                                               {member.email}
                                             </div>
                                           )}
@@ -1182,29 +1458,25 @@ const MemberRoleManagementPage = () => {
                   <div className="grid gap-2 space-y-2 lg:grid-cols-2 lg:space-y-0">
                     <div className="mb-6">
                       <label
-                        htmlFor="tenure"
+                        htmlFor="tenure_id"
                         className="block mb-2 text-sm font-medium text-gray-700"
                       >
                         Tenure
                       </label>
                       <select
-                        id="tenure"
-                        name="tenure"
-                        value={formData.tenure}
+                        id="tenure_id"
+                        name="tenure_id"
+                        value={formData.tenure_id}
                         onChange={handleInputChange}
                         className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         required
                       >
                         <option value="">Select Tenure</option>
-                        {Array.from({ length: 6 }, (_, i) => {
-                          const start = 2021 + i;
-                          const end = start + 2;
-                          return (
-                            <option key={start} value={`${start}-${end}`}>
-                              {start}-{end}
-                            </option>
-                          );
-                        })}
+                        {managementTenures.map((tenure) => (
+                          <option key={tenure.id} value={tenure.id}>
+                            {tenure.tenure} ({tenure.start_date})
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -1300,7 +1572,7 @@ const MemberRoleManagementPage = () => {
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        strokeWidth={2}
+                        strokeWidth="2"
                         d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
                       />
                     </svg>
