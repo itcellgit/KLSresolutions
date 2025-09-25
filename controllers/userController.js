@@ -174,10 +174,11 @@ exports.validateUser = async (req, res) => {
       const memberId = memberRows.rows[0].id;
       // Get all roles for this member
       const memberRoles = await pool.query(
-        `SELECT mr.*, r.role_name, i.name as institute_name, i.id as institute_id
+        `SELECT mr.*, r.role_name, i.name as institute_name, i.id as institute_id, mt.tenure as tenure_name
          FROM member_role mr
          JOIN roles r ON mr.role_id = r.id
          LEFT JOIN institutes i ON mr.institute_id = i.id
+         LEFT JOIN management_tenures mt ON mr.tenure_id = mt.id
          WHERE mr.member_id = $1 AND mr.status = 'active'`,
         [memberId]
       );
@@ -187,7 +188,7 @@ exports.validateUser = async (req, res) => {
         institute_id: role.institute_id,
         institute_name: role.institute_name,
         level: role.level,
-        tenure: role.tenure,
+        tenure: role.tenure_name,
         status: role.status,
       }));
     }

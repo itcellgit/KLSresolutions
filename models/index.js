@@ -20,6 +20,7 @@ const Institute = require("./institutes")(sequelize, DataTypes);
 const GCResolution = require("./gc_resolutions")(sequelize, DataTypes);
 const BOMResolution = require("./bom_resolutions")(sequelize, DataTypes);
 const AGM = require("./agm")(sequelize, DataTypes);
+const ManagementTenure = require("./management_tenures")(sequelize, DataTypes);
 
 // Associations
 UserType.hasMany(User, { foreignKey: "usertypeid" });
@@ -32,9 +33,16 @@ GCResolution.hasMany(BOMResolution, { foreignKey: "gc_resolution_id" });
 BOMResolution.belongsTo(GCResolution, { foreignKey: "gc_resolution_id" });
 Institute.hasMany(User, { foreignKey: "institute_id" });
 User.belongsTo(Institute, { foreignKey: "institute_id" });
-Member.belongsToMany(Role, { through: MemberRole, foreignKey: "member_id" });
-Role.belongsToMany(Member, { through: MemberRole, foreignKey: "role_id" });
 Institute.hasMany(MemberRole, { foreignKey: "institute_id" });
+MemberRole.belongsTo(ManagementTenure, { foreignKey: "tenure_id" });
+ManagementTenure.hasMany(MemberRole, { foreignKey: "tenure_id" });
+// Simple many-to-one relationships (no through table needed)
+GCResolution.belongsTo(ManagementTenure, { foreignKey: "tenure_id" });
+ManagementTenure.hasMany(GCResolution, { foreignKey: "tenure_id" });
+BOMResolution.belongsTo(ManagementTenure, { foreignKey: "tenure_id" });
+ManagementTenure.hasMany(BOMResolution, { foreignKey: "tenure_id" });
+AGM.belongsTo(ManagementTenure, { foreignKey: "tenure_id" });
+ManagementTenure.hasMany(AGM, { foreignKey: "tenure_id" });
 
 // Call associate methods if present (for model-defined associations)
 const models = {
@@ -47,6 +55,7 @@ const models = {
   GCResolution,
   BOMResolution,
   AGM,
+  ManagementTenure,
 };
 Object.values(models).forEach((model) => {
   if (model.associate) {
@@ -76,4 +85,5 @@ module.exports = {
   GCResolution,
   BOMResolution,
   AGM,
+  ManagementTenure,
 };

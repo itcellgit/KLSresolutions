@@ -20,6 +20,7 @@ const Institute = require("./institutes")(sequelize, DataTypes);
 const GCResolution = require("./gc_resolutions")(sequelize, DataTypes);
 const BOMResolution = require("./bom_resolutions")(sequelize, DataTypes);
 const AGM = require("./agm")(sequelize, DataTypes);
+const ManagementTenure = require("./management_tenures")(sequelize, DataTypes);
 
 // Associations
 UserType.hasMany(User, { foreignKey: "usertypeid" });
@@ -35,6 +36,39 @@ User.belongsTo(Institute, { foreignKey: "institute_id" });
 
 Institute.hasMany(AGM, { foreignKey: "institute_id" });
 AGM.belongsTo(Institute, { foreignKey: "institute_id" });
+
+// Add these missing MemberRole associations
+Member.belongsToMany(Role, {
+  through: MemberRole,
+  foreignKey: "member_id",
+  otherKey: "role_id",
+});
+Role.belongsToMany(Member, {
+  through: MemberRole,
+  foreignKey: "role_id",
+  otherKey: "member_id",
+});
+
+// MemberRole belongs to Member and Role
+MemberRole.belongsTo(Member, { foreignKey: "member_id" });
+MemberRole.belongsTo(Role, { foreignKey: "role_id" });
+MemberRole.belongsTo(Institute, { foreignKey: "institute_id" });
+
+// Member and Role have many MemberRoles
+Member.hasMany(MemberRole, { foreignKey: "member_id" });
+Role.hasMany(MemberRole, { foreignKey: "role_id" });
+Institute.hasMany(MemberRole, { foreignKey: "institute_id" });
+
+// ManagementTenure associations (keep existing ones)
+ManagementTenure.hasMany(MemberRole, { foreignKey: "tenure_id" });
+MemberRole.belongsTo(ManagementTenure, {
+  foreignKey: "tenure_id",
+  as: "managementTenure",
+});
+
+// Add ManagementTenure associations with other models
+ManagementTenure.hasMany(GCResolution, { foreignKey: "tenure_id" });
+GCResolution.belongsTo(ManagementTenure, { foreignKey: "tenure_id" });
 
 // Sync database
 sequelize
@@ -57,5 +91,6 @@ module.exports = {
   Institute,
   GCResolution,
   BOMResolution,
-    AGM,
+  AGM,
+  ManagementTenure,
 };

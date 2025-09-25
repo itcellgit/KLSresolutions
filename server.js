@@ -27,6 +27,7 @@ const roleRoutes = require("./routes/roles");
 const agmRoutes = require("./routes/agm");
 const memberRoleRoutes = require("./routes/memberrole");
 const statisticsRoutes = require("./routes/statistics");
+const managementTenureRoutes = require("./routes/managementTenures");
 
 app.use("/api/user", userRoutes);
 app.use("/api/institute", instituteRoutes);
@@ -36,6 +37,7 @@ app.use("/api/members", require("./routes/members"));
 app.use("/api/roles", roleRoutes);
 app.use("/api/agm", agmRoutes); // Add this line
 app.use("/api/memberrole", memberRoleRoutes);
+app.use("/api/management_tenures", managementTenureRoutes);
 
 // Statistics API
 app.use("/api/statistics", statisticsRoutes);

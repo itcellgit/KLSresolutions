@@ -62,19 +62,12 @@ module.exports = (sequelize, DataTypes) => {
           },
         },
       },
-      tenure: {
-        type: DataTypes.STRING(128),
-        allowNull: false,
+      tenure_id: {
+        type: DataTypes.BIGINT,
+        allowNull: true, // Optional - some roles might not be tenure-based
         validate: {
-          notNull: {
-            msg: "tenure is required",
-          },
-          notEmpty: {
-            msg: "tenure cannot be empty",
-          },
-          len: {
-            args: [1, 128],
-            msg: "tenure must be between 1 and 128 characters",
+          isInt: {
+            msg: "tenure_id must be an integer when provided",
           },
         },
       },
@@ -116,6 +109,12 @@ module.exports = (sequelize, DataTypes) => {
     MemberRole.belongsTo(models.Member, {
       foreignKey: "member_id",
       targetKey: "id",
+    });
+
+    MemberRole.belongsTo(models.ManagementTenure, {
+      foreignKey: "tenure_id",
+      targetKey: "id",
+      as: "managementTenure", // Alias for the association
     });
   };
 

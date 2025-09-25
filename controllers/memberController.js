@@ -171,13 +171,13 @@ exports.deleteMember = async (req, res) => {
 // Assign role to a member for an institute
 exports.assignRole = async (req, res) => {
   try {
-    const { member_id, role_id, institute_id, level, tenure, status } =
+    const { member_id, role_id, institute_id, level, tenure_id, status } =
       req.body;
 
-    if (!member_id || !role_id || !tenure || !status) {
+    if (!member_id || !role_id || !tenure_id || !status) {
       return res.status(400).json({
         error:
-          "member_id, role_id, institute_id, tenure, and status are required",
+          "member_id, role_id, institute_id, tenure_id, and status are required",
       });
     }
 
@@ -188,7 +188,7 @@ exports.assignRole = async (req, res) => {
 
     if (memberRole) {
       memberRole.level = level || memberRole.level;
-      memberRole.tenure = tenure || memberRole.tenure;
+      memberRole.tenure_id = tenure_id || memberRole.tenure_id;
       memberRole.status = status || memberRole.status;
       await memberRole.save();
       return res
@@ -200,7 +200,7 @@ exports.assignRole = async (req, res) => {
         role_id,
         institute_id,
         level: level || "",
-        tenure,
+        tenure_id,
         status,
       });
       return res
