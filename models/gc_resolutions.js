@@ -35,6 +35,14 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
+      tenure_id: {
+        type: DataTypes.BIGINT,
+        allowNull: true,
+        references: {
+          model: "management_tenures",
+          key: "id",
+        },
+      },
     },
     {
       tableName: "gc_resolutions",

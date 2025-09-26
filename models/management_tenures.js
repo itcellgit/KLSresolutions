@@ -64,6 +64,12 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: "tenure_id",
       sourceKey: "id",
     });
+
+    // A tenure can have many BOM resolutions
+    ManagementTenure.hasMany(models.BOMResolution, {
+      foreignKey: "tenure_id",
+      sourceKey: "id",
+    });
   };
 
   return ManagementTenure;

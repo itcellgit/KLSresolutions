@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  return sequelize.define(
+  const BOMResolution = sequelize.define(
     "bom_resolutions",
     {
       id: {
@@ -34,10 +34,29 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
+      tenure_id: {
+        type: DataTypes.BIGINT,
+        allowNull: true,
+        references: {
+          model: "management_tenures",
+          key: "id",
+        },
+      },
     },
     {
       tableName: "bom_resolutions",
       timestamps: false,
     }
   );
+
+  // Define associations
+  BOMResolution.associate = (models) => {
+    // BOM Resolution belongs to a Management Tenure
+    BOMResolution.belongsTo(models.ManagementTenure, {
+      foreignKey: "tenure_id",
+      as: "managementTenure",
+    });
+  };
+
+  return BOMResolution;
 };

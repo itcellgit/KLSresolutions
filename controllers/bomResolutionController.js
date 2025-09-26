@@ -1,4 +1,4 @@
-const { BOMResolution, GCResolution } = require("../models");
+const { BOMResolution, GCResolution, ManagementTenure } = require("../models");
 
 // Dedicated method to generate BOM No
 async function generateBOMNo(bom_date) {
@@ -45,7 +45,13 @@ exports.getAllBOMResolutions = async (req, res) => {
     if (usertypeid === 1 || usertypeid === 3) {
       // Admin and all members get all BOM resolutions, ordered by id DESC (latest first)
       resolutions = await BOMResolution.findAll({
-        include: GCResolution,
+        include: [
+          GCResolution,
+          {
+            model: ManagementTenure,
+            as: "managementTenure",
+          },
+        ],
         order: [["id", "DESC"]],
       });
     } else if (usertypeid === 2) {
@@ -61,7 +67,13 @@ exports.getAllBOMResolutions = async (req, res) => {
       // Fetch BOM resolutions where gc_resolution_id is in the above list
       resolutions = await BOMResolution.findAll({
         where: { gc_resolution_id: gcResolutionIds },
-        include: GCResolution,
+        include: [
+          GCResolution,
+          {
+            model: ManagementTenure,
+            as: "managementTenure",
+          },
+        ],
         order: [["id", "DESC"]],
       });
     } else {
@@ -88,6 +100,7 @@ exports.createBOMResolution = async (req, res) => {
       gc_resolution_id,
       bom_date,
       agenda_section,
+      tenure_id,
     } = req.body;
 
     if (!agenda || !resolution || !gc_resolution_id || !bom_date) {
@@ -105,6 +118,7 @@ exports.createBOMResolution = async (req, res) => {
       gc_resolution_id,
       bom_date,
       bom_no,
+      tenure_id,
     });
     res.status(201).json(bomResolution);
   } catch (err) {
@@ -147,6 +161,7 @@ exports.updateBOMResolution = async (req, res) => {
       gc_resolution_id,
       bom_date,
       agenda_section,
+      tenure_id,
     } = req.body;
 
     const bomResolution = await BOMResolution.findByPk(id);
@@ -160,12 +175,13 @@ exports.updateBOMResolution = async (req, res) => {
     }
     await bomResolution.update({
       agenda: agenda || bomResolution.agenda,
-      agenda: agenda_section || bomResolution.agenda_section,
+      agenda_section: agenda_section || bomResolution.agenda_section,
       resolution: resolution || bomResolution.resolution,
       compliance: compliance || bomResolution.compliance,
       gc_resolution_id: gc_resolution_id || bomResolution.gc_resolution_id,
       bom_date: bom_date || bomResolution.bom_date,
       bom_no,
+      tenure_id: tenure_id || bomResolution.tenure_id,
     });
     res.json(bomResolution);
   } catch (err) {

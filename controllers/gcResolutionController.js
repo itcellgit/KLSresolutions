@@ -140,8 +140,14 @@ exports.createGCResolution = async (req, res) => {
         .status(403)
         .json({ error: "Only institute admin can add GC resolutions" });
     }
-    const { agenda_section, agenda, resolution, compliance, gc_date } =
-      req.body;
+    const {
+      agenda_section,
+      agenda,
+      resolution,
+      compliance,
+      gc_date,
+      tenure_id,
+    } = req.body;
     if (!agenda || !gc_date) {
       return res.status(400).json({ error: "Missing required fields" });
     }
@@ -157,6 +163,7 @@ exports.createGCResolution = async (req, res) => {
       gc_date,
       gc_no,
       institute_id: req.user.institute_id,
+      tenure_id,
     });
 
     res.status(201).json(gcResolution);
@@ -169,8 +176,14 @@ exports.createGCResolution = async (req, res) => {
 exports.updateGCResolution = async (req, res) => {
   try {
     const { id } = req.params;
-    const { agenda_section, agenda, resolution, compliance, gc_date } =
-      req.body;
+    const {
+      agenda_section,
+      agenda,
+      resolution,
+      compliance,
+      gc_date,
+      tenure_id,
+    } = req.body;
 
     const gcResolution = await GCResolution.findByPk(id);
     if (!gcResolution) {
@@ -193,6 +206,7 @@ exports.updateGCResolution = async (req, res) => {
       resolution,
       compliance,
       gc_date,
+      tenure_id,
     });
 
     res.json(gcResolution);
