@@ -12,6 +12,7 @@ import {
   deleteGCResolution,
 } from "../api/gcResolutions";
 import { getInstitutes } from "../api/institutes";
+import { getAllManagementTenures } from "../api/managementTenures";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -24,10 +25,13 @@ const AddGCResolution = () => {
   const [searchTerm, setSearchTerm] = useState("");
   // State for dropdown data (will be populated from backend)
   const [institutes, setInstitutes] = useState([]);
+  const [tenures, setTenures] = useState([]);
   // State for loading
   const [loading, setLoading] = useState(true);
+  const [tenuresLoading, setTenuresLoading] = useState(true);
   // State for errors
   const [error, setError] = useState(null);
+  const [tenuresError, setTenuresError] = useState(null);
   // State for resolutions (will be populated from backend)
   const [resolutions, setResolutions] = useState([]);
   // State for loading resolutions
@@ -45,6 +49,7 @@ const AddGCResolution = () => {
     compliance: "",
     gc_date: "",
     institute_id: "",
+    tenure_id: "",
   });
   // Form submission states
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -108,9 +113,26 @@ const AddGCResolution = () => {
         setResolutionsLoading(false);
       }
     };
+
+    const fetchTenures = async () => {
+      try {
+        setTenuresLoading(true);
+        const data = await getAllManagementTenures(token);
+        setTenures(data);
+        setTenuresError(null);
+      } catch (err) {
+        console.error("Error fetching tenures:", err);
+        setTenuresError("Failed to load tenures. Please try again later.");
+        setTenures([]);
+      } finally {
+        setTenuresLoading(false);
+      }
+    };
+
     if (token) {
       fetchInstitutes();
       fetchResolutions();
+      fetchTenures();
     }
   }, [token]);
 
@@ -148,6 +170,7 @@ const AddGCResolution = () => {
         compliance: "",
         gc_date: "",
         institute_id: "",
+        tenure_id: "",
       });
       setIsModalOpen(false);
       setEditingId(null);
@@ -173,6 +196,7 @@ const AddGCResolution = () => {
       compliance: resolution.compliance || "",
       gc_date: resolution.gc_date,
       institute_id: resolution.institute_id,
+      tenure_id: resolution.tenure_id || "",
     });
     setEditingId(resolution.id);
     setIsModalOpen(true);
@@ -187,6 +211,7 @@ const AddGCResolution = () => {
       compliance: "",
       gc_date: "",
       institute_id: "",
+      tenure_id: "",
     });
     setEditingId(null);
     setIsModalOpen(true);
@@ -334,6 +359,13 @@ const AddGCResolution = () => {
   const getInstituteName = (instituteId) => {
     const institute = institutes.find((i) => i.id === instituteId);
     return institute ? institute.name : "Unknown";
+  };
+
+  // Helper function to get tenure name by id
+  const getTenureName = (tenureId) => {
+    if (!tenureId) return "Not Assigned";
+    const tenure = tenures.find((t) => t.id === tenureId);
+    return tenure ? tenure.tenure : "Unknown";
   };
 
   // Helper function to format date
@@ -1050,6 +1082,12 @@ const AddGCResolution = () => {
                                         scope="col"
                                         className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
                                       >
+                                        Tenure
+                                      </th>
+                                      <th
+                                        scope="col"
+                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                      >
                                         Agenda
                                       </th>
                                       <th
@@ -1087,6 +1125,11 @@ const AddGCResolution = () => {
                                           </td>
                                           <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
                                             {resolution.gc_no}
+                                          </td>
+                                          <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
+                                            {getTenureName(
+                                              resolution.tenure_id
+                                            )}
                                           </td>
                                           <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
                                             <HtmlContent
@@ -1344,6 +1387,40 @@ const AddGCResolution = () => {
                                 className="block w-full py-3 pl-4 pr-4 transition-all duration-200 border border-gray-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                 required
                               />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <div>
+                              <label
+                                htmlFor="tenure_id"
+                                className="block mb-2 text-sm font-medium text-gray-700"
+                              >
+                                Management Tenure
+                              </label>
+                              <select
+                                id="tenure_id"
+                                name="tenure_id"
+                                value={formData.tenure_id}
+                                onChange={handleInputChange}
+                                className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                required
+                              >
+                                <option value="">Select tenure</option>
+                                {tenuresLoading ? (
+                                  <option disabled>Loading tenures...</option>
+                                ) : tenuresError ? (
+                                  <option disabled>
+                                    Error loading tenures
+                                  </option>
+                                ) : (
+                                  tenures.map((tenure) => (
+                                    <option key={tenure.id} value={tenure.id}>
+                                      {tenure.tenure}
+                                    </option>
+                                  ))
+                                )}
+                              </select>
                             </div>
                           </div>
                           <div>

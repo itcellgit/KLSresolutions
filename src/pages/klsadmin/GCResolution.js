@@ -286,19 +286,19 @@ const GCResolutionPage = () => {
           </div>
 
           {/* Filters Row */}
-          <div className="flex flex-wrap gap-4 w-full sm:w-auto">
+          <div className="flex flex-wrap items-end gap-4 w-full sm:w-auto">
             {/* Date Filter */}
             <div className="relative w-full sm:w-48">
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full py-3 pl-10 pr-4 transition-all duration-200 border border-gray-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Select date"
               />
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="absolute w-5 h-5 text-gray-400 left-3 top-4"
+                className="absolute w-5 h-5 text-gray-400 left-3 top-2.5"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -314,18 +314,6 @@ const GCResolutionPage = () => {
 
             {/* Tenure Filter Dropdown */}
             <div className="relative w-full sm:w-64">
-              {/* <select
-                value={selectedTenure}
-                onChange={(e) => setSelectedTenure(e.target.value)}
-                className="w-full py-2 pl-3 pr-10 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="">All Tenures</option>
-                {tenures.map((tenure) => (
-                  <option key={tenure.id} value={String(tenure.id)}>
-                    {tenure.start_date} - {tenure.end_date}
-                  </option>
-                ))}
-              </select> */}
               <select
                 value={selectedTenure}
                 onChange={(e) => setSelectedTenure(e.target.value)}
@@ -386,19 +374,24 @@ const GCResolutionPage = () => {
             </div>
 
             {/* Clear Filters Button */}
-            {(selectedDate || selectedInstitute || selectedTenure) && (
-              <button
-                onClick={() => {
-                  setSelectedDate("");
-                  setSelectedInstitute("");
-                  setSelectedTenure("");
-                  setSearchTerm("");
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
-              >
-                Clear Filters
-              </button>
-            )}
+            <div className="w-full sm:w-auto">
+              {(selectedDate ||
+                selectedInstitute ||
+                selectedTenure ||
+                searchTerm) && (
+                <button
+                  onClick={() => {
+                    setSelectedDate("");
+                    setSelectedInstitute("");
+                    setSelectedTenure("");
+                    setSearchTerm("");
+                  }}
+                  className="w-full sm:w-auto h-10 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -555,7 +548,10 @@ const GCResolutionPage = () => {
                     No resolutions found
                   </h3>
                   <p className="mt-2 text-sm text-gray-500">
-                    {selectedInstitute || selectedTenure || selectedDate
+                    {selectedInstitute ||
+                    selectedTenure ||
+                    selectedDate ||
+                    searchTerm
                       ? "Try adjusting your filter criteria."
                       : "Try adjusting your search criteria."}
                   </p>

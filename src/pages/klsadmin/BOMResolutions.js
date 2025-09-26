@@ -10,6 +10,7 @@ import {
   deleteBOMResolution,
   updateBOMResolution, // <-- Import the update API
 } from "../../api/bomResolutions";
+import { getAllManagementTenures } from "../../api/managementTenures";
 
 const BOMResolutionsPage = () => {
   // State for modal visibility
@@ -22,17 +23,30 @@ const BOMResolutionsPage = () => {
     bom_date: "",
     gc_resolution_id: "",
     agenda_section: "",
+    tenure_id: "",
   });
   // State for editing
   const [editingId, setEditingId] = useState(null);
   // State for search
   const [searchTerm, setSearchTerm] = useState("");
+  // State for filters
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTenure, setSelectedTenure] = useState("");
   // State for resolutions (will be populated from backend)
   const [resolutions, setResolutions] = useState([]);
   // State for GC resolutions (for dropdown)
   const [gcResolutions, setGcResolutions] = useState([]);
   const [selectedGCResolution, setSelectedGCResolution] = useState(null);
   const [isGCModalOpen, setIsGCModalOpen] = useState(false);
+  // State for management tenures (for dropdown)
+  const [managementTenures, setManagementTenures] = useState([]);
+  // State for accordion sections - only one section can be open at a time
+  const [openSections, setOpenSections] = useState({
+    "MAIN AGENDA": false,
+    "PURCHASE EXPENSES": false,
+    "STAFF MATTERS": false,
+    "OTHER MATTERS": false,
+  });
   // Get token from Redux store
   const token = useSelector((state) => state.auth.token);
 
@@ -69,6 +83,7 @@ const BOMResolutionsPage = () => {
         bom_date: "",
         gc_resolution_id: "",
         agenda_section: "",
+        tenure_id: "",
       });
       setEditingId(null);
 
@@ -94,6 +109,7 @@ const BOMResolutionsPage = () => {
       bom_date: resolution.bom_date || "",
       gc_resolution_id: resolution.gc_resolution_id || "",
       agenda_section: resolution.agenda_section || "",
+      tenure_id: resolution.tenure_id || "",
     });
   };
 
@@ -138,6 +154,7 @@ const BOMResolutionsPage = () => {
         bom_date: "",
         gc_resolution_id: "",
         agenda_section: "",
+        tenure_id: "",
       });
       setEditingId(null);
     }
@@ -193,13 +210,46 @@ const BOMResolutionsPage = () => {
     fetchBOMResolutions();
   }, [token]); // Added token as dependency
 
-  // Filter resolutions based on search term
+  // Fetch management tenures for dropdown
+  useEffect(() => {
+    const fetchManagementTenures = async () => {
+      try {
+        if (!token) {
+          console.error("No authentication token found");
+          return;
+        }
+        const data = await getAllManagementTenures(token);
+        console.log("Management Tenures data:", data); // Debug log
+        // Check if data has a tenures property that is an array
+        if (data && data.tenures && Array.isArray(data.tenures)) {
+          setManagementTenures(data.tenures);
+        } else if (Array.isArray(data)) {
+          setManagementTenures(data);
+        } else {
+          console.error(
+            "Management Tenures data is not in expected format:",
+            data
+          );
+          setManagementTenures([]);
+        }
+      } catch (error) {
+        console.error("Error fetching Management Tenures:", error);
+        setManagementTenures([]);
+      }
+    };
+    fetchManagementTenures();
+  }, [token]); // Added token as dependency
+
+  // Filter resolutions based on search term, date, and tenure
   const filteredResolutions = resolutions.filter((resolution) => {
     // First check if gc_resolution exists directly on the resolution object
     const gcResolution =
       resolution.gc_resolution ||
       gcResolutions.find((gc) => gc.id === resolution.gc_resolution_id);
-    return (
+
+    // Search term filter
+    const matchesSearch =
+      !searchTerm ||
       resolution.agenda.toLowerCase().includes(searchTerm.toLowerCase()) ||
       resolution.resolution.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (resolution.compliance &&
@@ -213,9 +263,36 @@ const BOMResolutionsPage = () => {
           .toLowerCase()
           .includes(searchTerm.toLowerCase())) ||
       (gcResolution &&
-        gcResolution.agenda.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+        gcResolution.agenda.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    // Date filter
+    const matchesDate = !selectedDate || resolution.bom_date === selectedDate;
+
+    // Tenure filter
+    const matchesTenure =
+      !selectedTenure ||
+      (resolution.tenure_id && String(resolution.tenure_id) === selectedTenure);
+
+    return matchesSearch && matchesDate && matchesTenure;
   });
+
+  // Group resolutions by agenda section
+  const groupedResolutions = filteredResolutions.reduce((acc, resolution) => {
+    const section = resolution.agenda_section || "OTHER MATTERS";
+    if (!acc[section]) {
+      acc[section] = [];
+    }
+    acc[section].push(resolution);
+    return acc;
+  }, {});
+
+  // Handle accordion toggle
+  const toggleSection = (section) => {
+    setOpenSections((prev) => ({
+      ...Object.keys(prev).reduce((acc, key) => ({ ...acc, [key]: false }), {}),
+      [section]: !prev[section],
+    }));
+  };
 
   // Helper function to format date
   const formatDate = (dateString) => {
@@ -345,8 +422,9 @@ const BOMResolutionsPage = () => {
           </div>
         </div>
 
-        {/* Action Bar */}
+        {/* Filter Section */}
         <div className="flex flex-col items-start justify-between gap-4 mb-6 sm:flex-row sm:items-center">
+          {/* Search Input */}
           <div className="relative w-full sm:w-64">
             <input
               type="text"
@@ -370,230 +448,298 @@ const BOMResolutionsPage = () => {
               />
             </svg>
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center w-full px-6 py-3 font-medium text-white transition-all duration-300 transform rounded-lg shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:-translate-y-1 hover:scale-105 sm:w-auto"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-5 h-5 mr-2"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                clipRule="evenodd"
+
+          {/* Filters Row */}
+          <div className="flex flex-wrap items-end w-full gap-4 sm:w-auto">
+            {/* Date Filter */}
+            <div className="relative w-full sm:w-48">
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Select date"
               />
-            </svg>
-            Add New BOM Resolution
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="absolute w-5 h-5 text-gray-400 left-3 top-2.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+
+            {/* Tenure Filter Dropdown */}
+            <div className="relative w-full sm:w-64">
+              <select
+                value={selectedTenure}
+                onChange={(e) => setSelectedTenure(e.target.value)}
+                className="w-full py-2 pl-3 pr-10 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">All Tenures</option>
+                {managementTenures.map((tenure) => (
+                  <option key={tenure.id} value={String(tenure.id)}>
+                    {tenure.tenure}
+                  </option>
+                ))}
+              </select>
+
+              <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                <svg
+                  className="w-5 h-5 text-gray-400"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            </div>
+
+            {/* Add New Button */}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center justify-center w-full px-6 py-3 font-medium text-white transition-all duration-300 transform rounded-lg shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:-translate-y-1 hover:scale-105 sm:w-auto"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-5 h-5 mr-2"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Add New BOM Resolution
+            </button>
+          </div>
         </div>
 
-        {/* Resolutions Table */}
-        <div className="mb-10 overflow-hidden bg-white shadow-xl rounded-xl">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              {/* <thead className="bg-gray-50">
-                <tr>
-                  <th className="w-16 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
-                    SL.NO
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-36">
-                    BOM No
-                  </th>
-                  <th className="w-24 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words">
-                    Agenda
-                  </th>
-                  <th className="w-24 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words">
-                    Resolution
-                  </th>
-                  <th className="w-24 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words">
-                    Compliance
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words w-72">
-                    GC Resolution
-                  </th>
-                  <th className="w-24 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words">
-                    BOM Date
-                  </th>
-                  <th className="w-24 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase break-words">
-                    Actions
-                  </th>
-                </tr>
-              </thead> */}
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="w-4 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
-                    SL.NO
-                  </th>
+        {/* Resolutions Accordion */}
+        <div className="mb-10 space-y-6">
+          {Object.keys(groupedResolutions).length === 0 ? (
+            <div className="p-12 bg-white shadow-lg rounded-xl">
+              <div className="flex flex-col items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-16 h-16 mb-4 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                <h3 className="mb-1 text-lg font-medium text-gray-900">
+                  No resolutions found
+                </h3>
+                <p className="text-gray-500">
+                  Try adjusting your search or filter criteria
+                </p>
+              </div>
+            </div>
+          ) : (
+            Object.entries(groupedResolutions).map(
+              ([section, sectionResolutions]) => (
+                <div
+                  key={section}
+                  className="overflow-hidden bg-white shadow-lg rounded-xl"
+                >
+                  {/* Accordion Header */}
+                  <button
+                    onClick={() => toggleSection(section)}
+                    className="flex items-center justify-between w-full px-6 py-4 text-left bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <div className="flex items-center">
+                      <h3 className="text-xl font-bold text-gray-900">
+                        {section}
+                      </h3>
+                      <span className="px-3 py-1 ml-3 text-sm text-indigo-800 bg-indigo-100 rounded-full">
+                        {sectionResolutions.length}
+                      </span>
+                    </div>
+                    <svg
+                      className={`w-5 h-5 text-gray-500 transform transition-transform ${
+                        openSections[section] ? "rotate-180" : ""
+                      }`}
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
 
-                  <th className="w-6 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
-                    BOM No
-                  </th>
+                  {/* Accordion Content */}
+                  {openSections[section] && (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                              S.NO
+                            </th>
+                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                              BOM No
+                            </th>
+                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                              Agenda
+                            </th>
+                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                              Resolution
+                            </th>
+                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                              Compliance
+                            </th>
+                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                              GC Resolution
+                            </th>
+                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                              BOM Date
+                            </th>
+                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {sectionResolutions.map((resolution, index) => (
+                            <tr key={resolution.id}>
+                              <td className="w-4 px-6 py-4 text-sm font-medium text-center text-gray-900">
+                                {index + 1}
+                              </td>
 
-                  <th className="w-24 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
-                    Agenda Section
-                  </th>
+                              <td className="w-6 px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap">
+                                {resolution.bom_no}
+                              </td>
 
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-120">
-                    Agenda
-                  </th>
+                              <td className="w-24 px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap">
+                                {resolution.agenda_section || "N/A"}
+                              </td>
 
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase w-120">
-                    Resolution
-                  </th>
+                              <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-120">
+                                <HtmlContent
+                                  content={resolution.agenda}
+                                  maxLength={200}
+                                />
+                              </td>
 
-                  <th className="w-12 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
-                    Compliance
-                  </th>
+                              <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-120">
+                                <HtmlContent
+                                  content={resolution.resolution}
+                                  maxLength={250}
+                                />
+                              </td>
 
-                  <th className="w-24 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
-                    GC Resolution
-                  </th>
+                              <td className="w-12 px-6 py-4 text-sm text-justify text-gray-500 break-words">
+                                <HtmlContent
+                                  content={resolution.compliance}
+                                  maxLength={200}
+                                />
+                              </td>
 
-                  <th className="w-6 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
-                    Date
-                  </th>
+                              <td className="w-24 px-6 py-4 text-sm text-justify text-gray-500 break-words">
+                                {resolution.gc_resolution ? (
+                                  <button
+                                    type="button"
+                                    className="text-indigo-600 underline hover:text-indigo-900"
+                                    onClick={() =>
+                                      handleGCResolutionClick(
+                                        resolution.gc_resolution
+                                      )
+                                    }
+                                    title={resolution.gc_resolution.agenda}
+                                  >
+                                    {resolution.gc_resolution.gc_no}-
+                                    {resolution.gc_resolution.agenda}-Dated{" "}
+                                    {formatDate(
+                                      resolution.gc_resolution.gc_date
+                                    )}
+                                  </button>
+                                ) : (
+                                  "Unknown"
+                                )}
+                              </td>
 
-                  <th className="w-6 px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredResolutions.length === 0 ? (
-                  <tr>
-                    <td colSpan="9" className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="w-16 h-16 mb-4 text-gray-400"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                        <h3 className="mb-1 text-lg font-medium text-gray-900">
-                          No resolutions found
-                        </h3>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredResolutions.map((resolution, index) => (
-                    <tr key={resolution.id}>
-                      <td className="w-4 px-6 py-4 text-sm font-medium text-center text-gray-900">
-                        {index + 1}
-                      </td>
+                              <td className="w-6 px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap">
+                                {formatDate(resolution.bom_date)}
+                              </td>
 
-                      <td className="w-6 px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap">
-                        {resolution.bom_no}
-                      </td>
+                              <td className="w-6 px-6 py-4 text-sm font-medium text-center whitespace-nowrap">
+                                <button
+                                  onClick={() => handleEdit(resolution)}
+                                  className="mr-3 text-indigo-600 hover:text-indigo-900"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="w-4 h-4 mr-1"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                    />
+                                  </svg>
+                                  Edit
+                                </button>
 
-                      <td className="w-24 px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap">
-                        {resolution.agenda_section || "N/A"}
-                      </td>
-
-                      <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-120">
-                        <HtmlContent
-                          content={resolution.agenda}
-                          maxLength={200}
-                        />
-                      </td>
-
-                      <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-120">
-                        <HtmlContent
-                          content={resolution.resolution}
-                          maxLength={250}
-                        />
-                      </td>
-
-                      <td className="w-12 px-6 py-4 text-sm text-justify text-gray-500 break-words">
-                        <HtmlContent
-                          content={resolution.compliance}
-                          maxLength={200}
-                        />
-                      </td>
-
-                      <td className="w-24 px-6 py-4 text-sm text-justify text-gray-500 break-words">
-                        {resolution.gc_resolution ? (
-                          <button
-                            type="button"
-                            className="text-indigo-600 underline hover:text-indigo-900"
-                            onClick={() =>
-                              handleGCResolutionClick(resolution.gc_resolution)
-                            }
-                            title={resolution.gc_resolution.agenda}
-                          >
-                            {resolution.gc_resolution.gc_no}-
-                            {resolution.gc_resolution.agenda}-Dated{" "}
-                            {formatDate(resolution.gc_resolution.gc_date)}
-                          </button>
-                        ) : (
-                          "Unknown"
-                        )}
-                      </td>
-
-                      <td className="w-6 px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap">
-                        {formatDate(resolution.bom_date)}
-                      </td>
-
-                      <td className="w-6 px-6 py-4 text-sm font-medium text-center whitespace-nowrap">
-                        <button
-                          onClick={() => handleEdit(resolution)}
-                          className="mr-3 text-indigo-600 hover:text-indigo-900"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="w-4 h-4 mr-1"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                            />
-                          </svg>
-                          Edit
-                        </button>
-
-                        <button
-                          onClick={() => handleDelete(resolution.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="w-4 h-4 mr-1"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                                <button
+                                  onClick={() => handleDelete(resolution.id)}
+                                  className="text-red-600 hover:text-red-900"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="w-4 h-4 mr-1"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                  </svg>
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )
+            )
+          )}
         </div>
 
         {/* Add/Edit Resolution Modal */}
@@ -726,6 +872,35 @@ const BOMResolutionsPage = () => {
                           required
                         />
                       </div>
+                      <div>
+                        <label
+                          htmlFor="tenure_id"
+                          className="block mb-2 text-sm font-medium text-gray-700"
+                        >
+                          Management Tenure
+                        </label>
+                        <select
+                          id="tenure_id"
+                          name="tenure_id"
+                          value={formData.tenure_id}
+                          onChange={handleInputChange}
+                          className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          required
+                        >
+                          <option value="">Select Management Tenure</option>
+                          {managementTenures.length > 0 ? (
+                            managementTenures.map((tenure) => (
+                              <option key={tenure.id} value={tenure.id}>
+                                {tenure.tenure}
+                              </option>
+                            ))
+                          ) : (
+                            <option disabled>
+                              Loading Management Tenures...
+                            </option>
+                          )}
+                        </select>
+                      </div>
                     </div>
                     <div className="mb-4">
                       <label
@@ -769,7 +944,7 @@ const BOMResolutionsPage = () => {
                         style={{ height: "150px" }}
                       />
                     </div>
-                    <div className="flex justify-end pt-6 space-x-4 border-t border-gray-200 mt-6">
+                    <div className="flex justify-end pt-6 mt-6 space-x-4 border-t border-gray-200">
                       <button
                         type="button"
                         onClick={() => setIsModalOpen(false)}

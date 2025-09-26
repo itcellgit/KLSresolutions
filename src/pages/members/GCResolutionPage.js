@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { getGCResolutions } from "../../api/gcResolutions";
 import { getInstitutes } from "../../api/institutes";
+import { getMemberRoles } from "../../api/memberRole";
+import { getAllManagementTenures } from "../../api/managementTenures";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
@@ -19,6 +21,43 @@ const getCurrentTenure = () => {
   return "";
 };
 
+// Helper function to get current tenure from dynamic data
+const getCurrentTenureFromData = (tenures) => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const currentTenure = tenures.find((tenure) => {
+    // Handle different possible field names for tenure
+    const startYear =
+      tenure.start_year ||
+      tenure.startYear ||
+      (tenure.start_date ? new Date(tenure.start_date).getFullYear() : null);
+    const endYear =
+      tenure.end_year ||
+      tenure.endYear ||
+      (tenure.end_date ? new Date(tenure.end_date).getFullYear() : null);
+
+    return startYear && endYear && year >= startYear && year <= endYear;
+  });
+
+  if (currentTenure) {
+    const startYear =
+      currentTenure.start_year ||
+      currentTenure.startYear ||
+      (currentTenure.start_date
+        ? new Date(currentTenure.start_date).getFullYear()
+        : null);
+    const endYear =
+      currentTenure.end_year ||
+      currentTenure.endYear ||
+      (currentTenure.end_date
+        ? new Date(currentTenure.end_date).getFullYear()
+        : null);
+    return startYear && endYear ? `${startYear}-${endYear}` : "";
+  }
+
+  return "";
+};
+
 // Helper function to map agenda sections to predefined categories
 const mapToSectionCategory = (agendaSection) => {
   if (!agendaSection) return "OTHER MATTERS";
@@ -34,7 +73,7 @@ const mapToSectionCategory = (agendaSection) => {
 
 const GCResolutionPage = () => {
   const [gcResolutions, setGCResolutions] = useState([]);
-  const [formData, setFormData] = useState({ tenure: getCurrentTenure() });
+  const [formData, setFormData] = useState({ tenure_id: null });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -48,11 +87,16 @@ const GCResolutionPage = () => {
   const [apiError, setApiError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
+  const [expandedSections, setExpandedSections] = useState({});
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const expandedContentRef = useRef(null);
+  const [memberInstitutes, setMemberInstitutes] = useState([]);
+  const [managementTenures, setManagementTenures] = useState([]);
+  const [selectedTenure, setSelectedTenure] = useState("");
 
   const token =
     useSelector((state) => state.auth.token) || localStorage.getItem("token");
+  const user = useSelector((state) => state.auth.user);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -67,16 +111,52 @@ const GCResolutionPage = () => {
         const institutesData = await getInstitutes(token);
         setInstitutes(institutesData);
 
-        const allowedInstituteIds = [
-          ...new Set(resolutions.map((item) => item.institute_id)),
-        ];
-        const filtered = institutesData.filter((inst) =>
-          allowedInstituteIds.includes(inst.id)
-        );
-        setFilteredInstitutes(filtered);
+        // Fetch management tenures
+        const tenuresData = await getAllManagementTenures(token);
+        setManagementTenures(tenuresData);
 
-        if (filtered.length > 0) {
-          setSelectedInstitute(String(filtered[0].id));
+        // Set the latest tenure as default
+        if (tenuresData && tenuresData.length > 0) {
+          const latestTenure = tenuresData.reduce((latest, current) => {
+            return new Date(current.start_date) > new Date(latest.start_date)
+              ? current
+              : latest;
+          });
+          setFormData((prev) => ({ ...prev, tenure_id: latestTenure.id }));
+        }
+
+        // Get member's institutes from their roles
+        if (user?.id) {
+          try {
+            const memberRoles = await getMemberRoles(user.id, token);
+            const memberInstituteIds = [
+              ...new Set(
+                memberRoles.map((role) => role.institute_id).filter(Boolean)
+              ),
+            ];
+            const memberInsts = institutesData.filter((inst) =>
+              memberInstituteIds.includes(inst.id)
+            );
+            setMemberInstitutes(memberInsts);
+            setFilteredInstitutes(memberInsts);
+
+            if (memberInsts.length > 0) {
+              setSelectedInstitute(String(memberInsts[0].id));
+            }
+          } catch (roleError) {
+            console.error("Error fetching member roles:", roleError);
+            // Fallback to showing all institutes if member roles fetch fails
+            setFilteredInstitutes(institutesData);
+            if (institutesData.length > 0) {
+              setSelectedInstitute(String(institutesData[0].id));
+            }
+          }
+        } else {
+          // Fallback if no user ID
+          setFilteredInstitutes(institutesData);
+          if (institutesData.length > 0) {
+            setSelectedInstitute(String(institutesData[0].id));
+          }
         }
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -84,6 +164,8 @@ const GCResolutionPage = () => {
         setGCResolutions([]);
         setInstitutes([]);
         setFilteredInstitutes([]);
+        setMemberInstitutes([]);
+        setManagementTenures([]);
       } finally {
         setIsLoading(false);
       }
@@ -97,8 +179,10 @@ const GCResolutionPage = () => {
       setGCResolutions([]);
       setInstitutes([]);
       setFilteredInstitutes([]);
+      setMemberInstitutes([]);
+      setManagementTenures([]);
     }
-  }, [token]);
+  }, [token, user?.id]);
 
   const getInstituteName = (instituteId) => {
     if (!instituteId) return "N/A";
@@ -130,16 +214,29 @@ const GCResolutionPage = () => {
       const gcNo = firstItem?.gc_no || "N/A";
       const gcDate = firstItem?.gc_date ? formatDate(firstItem.gc_date) : "N/A";
 
-      // Get tenure from current year or first item's date
+      // Get tenure from current year or first item's date using dynamic tenures
       const currentYear = firstItem?.gc_date
         ? new Date(firstItem.gc_date).getFullYear()
         : new Date().getFullYear();
       let tenure = "";
-      for (let start = 2021; start <= currentYear; start++) {
-        const end = start + 2;
-        if (currentYear >= start && currentYear <= end) {
-          tenure = `${start}-${end}`;
-          break;
+
+      // Find matching tenure from fetched tenures
+      const matchingTenure = managementTenures.find(
+        (tenureItem) =>
+          currentYear >= tenureItem.start_year &&
+          currentYear <= tenureItem.end_year
+      );
+
+      if (matchingTenure) {
+        tenure = `${matchingTenure.start_year}-${matchingTenure.end_year}`;
+      } else {
+        // Fallback to hardcoded logic if no dynamic tenure found
+        for (let start = 2021; start <= currentYear; start++) {
+          const end = start + 2;
+          if (currentYear >= start && currentYear <= end) {
+            tenure = `${start}-${end}`;
+            break;
+          }
         }
       }
 
@@ -302,16 +399,29 @@ const GCResolutionPage = () => {
     const gcNo = firstItem?.gc_no || "N/A";
     const gcDate = firstItem?.gc_date ? formatDate(firstItem.gc_date) : "N/A";
 
-    // Get tenure from current year or first item's date
+    // Get tenure from current year or first item's date using dynamic tenures
     const currentYear = firstItem?.gc_date
       ? new Date(firstItem.gc_date).getFullYear()
       : new Date().getFullYear();
     let tenure = "";
-    for (let start = 2021; start <= currentYear; start++) {
-      const end = start + 2;
-      if (currentYear >= start && currentYear <= end) {
-        tenure = `${start}-${end}`;
-        break;
+
+    // Find matching tenure from fetched tenures
+    const matchingTenure = managementTenures.find(
+      (tenureItem) =>
+        currentYear >= tenureItem.start_year &&
+        currentYear <= tenureItem.end_year
+    );
+
+    if (matchingTenure) {
+      tenure = `${matchingTenure.start_year}-${matchingTenure.end_year}`;
+    } else {
+      // Fallback to hardcoded logic if no dynamic tenure found
+      for (let start = 2021; start <= currentYear; start++) {
+        const end = start + 2;
+        if (currentYear >= start && currentYear <= end) {
+          tenure = `${start}-${end}`;
+          break;
+        }
       }
     }
 
@@ -375,18 +485,33 @@ const GCResolutionPage = () => {
       String(item.institute_id) === String(selectedInstitute);
 
     let matchesTenure = true;
-    if (formData.tenure) {
-      if (item.gc_date) {
+    if (formData.tenure_id) {
+      // If the item has a tenure_id field, use it directly
+      if (item.tenure_id) {
+        matchesTenure = item.tenure_id === formData.tenure_id;
+      } else if (item.gc_date) {
+        // Fallback: calculate tenure from gc_date using robust field handling
         const gcYear = new Date(item.gc_date).getFullYear();
-        let itemTenure = "";
-        for (let start = 2021; start <= gcYear; start++) {
-          const end = start + 2;
-          if (gcYear >= start && gcYear <= end) {
-            itemTenure = `${start}-${end}`;
-            break;
-          }
-        }
-        matchesTenure = itemTenure === formData.tenure;
+        const matchingTenure = managementTenures.find((tenure) => {
+          // Handle different possible field names for tenure
+          const startYear =
+            tenure.start_year ||
+            tenure.startYear ||
+            (tenure.start_date
+              ? new Date(tenure.start_date).getFullYear()
+              : null);
+          const endYear =
+            tenure.end_year ||
+            tenure.endYear ||
+            (tenure.end_date ? new Date(tenure.end_date).getFullYear() : null);
+
+          return (
+            startYear && endYear && gcYear >= startYear && gcYear <= endYear
+          );
+        });
+        matchesTenure = matchingTenure
+          ? matchingTenure.id === formData.tenure_id
+          : false;
       } else {
         matchesTenure = false;
       }
@@ -412,6 +537,23 @@ const GCResolutionPage = () => {
 
   const toggleExpand = (id) => {
     setExpandedId(expandedId === id ? null : id);
+
+    // Auto-expand all sections when a date is expanded
+    if (expandedId !== id) {
+      const newExpandedSections = {};
+      predefinedSections.forEach((section) => {
+        newExpandedSections[`${id}-${section}`] = true;
+      });
+      setExpandedSections(newExpandedSections);
+    }
+  };
+
+  const toggleSection = (dateKey, section) => {
+    const key = `${dateKey}-${section}`;
+    setExpandedSections((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
   };
 
   const formatDate = (dateString) => {
@@ -431,6 +573,20 @@ const GCResolutionPage = () => {
 
     return () => clearInterval(intervalId);
   }, []);
+
+  // Update formData with current tenure when tenures are loaded
+  useEffect(() => {
+    if (managementTenures.length > 0 && !formData.tenure_id) {
+      const today = new Date();
+      const year = today.getFullYear();
+      const currentTenure = managementTenures.find(
+        (tenure) => year >= tenure.start_year && year <= tenure.end_year
+      );
+      if (currentTenure) {
+        setFormData((prev) => ({ ...prev, tenure_id: currentTenure.id }));
+      }
+    }
+  }, [managementTenures]);
 
   // Predefined sections in the desired order
   const predefinedSections = [
@@ -474,6 +630,13 @@ const GCResolutionPage = () => {
               <p className="max-w-2xl mx-auto mt-2 text-gray-600">
                 View and search all resolutions passed by the Governing Council
               </p>
+              <p className="max-w-2xl mx-auto mt-1 text-sm text-indigo-600 font-medium">
+                Showing current tenure (
+                {managementTenures.length > 0
+                  ? getCurrentTenureFromData(managementTenures)
+                  : getCurrentTenure()}
+                ) by default
+              </p>
             </div>
             <div className="w-32"></div>
           </div>
@@ -504,23 +667,55 @@ const GCResolutionPage = () => {
                     htmlFor="tenure"
                     className="block mb-1 text-sm font-medium text-gray-700"
                   >
-                    Tenure
+                    Select Tenure (Current:{" "}
+                    {managementTenures.length > 0
+                      ? getCurrentTenureFromData(managementTenures)
+                      : getCurrentTenure()}
+                    )
                   </label>
                   <select
                     id="tenure"
-                    name="tenure"
-                    value={formData?.tenure || ""}
+                    name="tenure_id"
+                    value={formData?.tenure_id || ""}
                     onChange={handleInputChange}
                     className="block w-40 py-2 pl-3 pr-8 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     required
                   >
                     <option value="">Select Tenure</option>
-                    {Array.from({ length: 6 }, (_, i) => {
-                      const start = 2021 + i;
-                      const end = start + 2;
+                    {managementTenures.map((tenure) => {
+                      // Handle different possible field names for tenure
+                      const startYear =
+                        tenure.start_year ||
+                        tenure.startYear ||
+                        (tenure.start_date
+                          ? new Date(tenure.start_date).getFullYear()
+                          : null);
+                      const endYear =
+                        tenure.end_year ||
+                        tenure.endYear ||
+                        (tenure.end_date
+                          ? new Date(tenure.end_date).getFullYear()
+                          : null);
+
+                      // Fallback to tenure.tenure if it exists, or display raw tenure data for debugging
+                      const tenureDisplay =
+                        startYear && endYear
+                          ? `${startYear}-${endYear}`
+                          : tenure.tenure ||
+                            tenure.name ||
+                            `Tenure ${tenure.id}`;
+
+                      const currentTenureStr =
+                        getCurrentTenureFromData(managementTenures);
+                      const isCurrent =
+                        startYear && endYear
+                          ? `${startYear}-${endYear}` === currentTenureStr
+                          : false;
+
                       return (
-                        <option key={start} value={`${start}-${end}`}>
-                          {start}-{end}
+                        <option key={tenure.id} value={tenure.id}>
+                          {tenureDisplay}
+                          {isCurrent ? " (Current)" : ""}
                         </option>
                       );
                     })}
@@ -780,77 +975,145 @@ const GCResolutionPage = () => {
                                         );
 
                                         return (
-                                          <div className="overflow-hidden border border-gray-300 rounded-lg">
-                                            <table className="w-full border-collapse">
-                                              <tbody>
-                                                {predefinedSections.map(
-                                                  (section, sectionIndex) => {
-                                                    const sectionItems =
-                                                      groupedBySection[
-                                                        section
-                                                      ] || [];
-                                                    if (
-                                                      sectionItems.length === 0
-                                                    )
-                                                      return null;
+                                          <div className="space-y-4">
+                                            {predefinedSections.map(
+                                              (section, sectionIndex) => {
+                                                const sectionItems =
+                                                  groupedBySection[section] ||
+                                                  [];
+                                                if (sectionItems.length === 0)
+                                                  return null;
 
-                                                    return (
-                                                      <React.Fragment
-                                                        key={section}
+                                                const sectionKey = `${expandedId}-${section}`;
+                                                const isSectionExpanded =
+                                                  expandedSections[sectionKey];
+
+                                                return (
+                                                  <div
+                                                    key={section}
+                                                    className="border border-gray-300 rounded-lg overflow-hidden"
+                                                  >
+                                                    {/* Section Header - Clickable */}
+                                                    <button
+                                                      onClick={() =>
+                                                        toggleSection(
+                                                          expandedId,
+                                                          section
+                                                        )
+                                                      }
+                                                      className="w-full px-4 py-3 text-left font-bold text-gray-800 bg-blue-100 hover:bg-blue-200 transition-colors duration-200 border-b border-gray-300 flex items-center justify-between"
+                                                      style={{
+                                                        fontSize: "14px",
+                                                      }}
+                                                    >
+                                                      <span>
+                                                        {section} (
+                                                        {sectionItems.length}{" "}
+                                                        items)
+                                                      </span>
+                                                      <svg
+                                                        className={`w-5 h-5 transition-transform duration-200 ${
+                                                          isSectionExpanded
+                                                            ? "transform rotate-180"
+                                                            : ""
+                                                        }`}
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                        xmlns="http://www.w3.org/2000/svg"
                                                       >
-                                                        {/* Section Header Row */}
-                                                        <tr>
-                                                          <td
-                                                            colSpan="2"
-                                                            className="px-4 py-3 font-bold text-left text-gray-800 bg-blue-100 border border-gray-300"
-                                                            style={{
-                                                              fontSize: "14px",
-                                                            }}
-                                                          >
-                                                            {section}
-                                                          </td>
-                                                        </tr>
-                                                        {/* Section Items */}
-                                                        {sectionItems.map(
-                                                          (item, index) => (
-                                                            <tr
-                                                              key={
-                                                                item.id || index
-                                                              }
-                                                            >
-                                                              <td
-                                                                className="px-4 py-3 font-medium text-center border border-gray-300 bg-gray-50"
-                                                                style={{
-                                                                  width: "80px",
-                                                                  fontSize:
-                                                                    "12px",
-                                                                }}
-                                                              >
-                                                                {index + 1}.
-                                                              </td>
-                                                              <td
-                                                                className="px-4 py-3 border border-gray-300 bg-white"
-                                                                style={{
-                                                                  fontSize:
-                                                                    "12px",
-                                                                  fontFamily:
-                                                                    "Arial, sans-serif",
-                                                                  lineHeight:
-                                                                    "1.4",
-                                                                }}
-                                                              >
-                                                                {item.agenda ||
-                                                                  "N/A"}
-                                                              </td>
-                                                            </tr>
-                                                          )
-                                                        )}
-                                                      </React.Fragment>
-                                                    );
-                                                  }
-                                                )}
-                                              </tbody>
-                                            </table>
+                                                        <path
+                                                          strokeLinecap="round"
+                                                          strokeLinejoin="round"
+                                                          strokeWidth="2"
+                                                          d="M19 9l-7 7-7-7"
+                                                        />
+                                                      </svg>
+                                                    </button>
+
+                                                    {/* Section Content - Collapsible */}
+                                                    {isSectionExpanded && (
+                                                      <div className="bg-white">
+                                                        <table className="w-full border-collapse">
+                                                          <tbody>
+                                                            {sectionItems.map(
+                                                              (item, index) => (
+                                                                <tr
+                                                                  key={
+                                                                    item.id ||
+                                                                    index
+                                                                  }
+                                                                  className={
+                                                                    index %
+                                                                      2 ===
+                                                                    0
+                                                                      ? "bg-gray-50"
+                                                                      : "bg-white"
+                                                                  }
+                                                                >
+                                                                  <td
+                                                                    className="px-4 py-3 font-medium text-center border-r border-gray-200"
+                                                                    style={{
+                                                                      width:
+                                                                        "80px",
+                                                                      fontSize:
+                                                                        "12px",
+                                                                    }}
+                                                                  >
+                                                                    {index + 1}.
+                                                                  </td>
+                                                                  <td
+                                                                    className="px-4 py-3"
+                                                                    style={{
+                                                                      fontSize:
+                                                                        "12px",
+                                                                      fontFamily:
+                                                                        "Arial, sans-serif",
+                                                                      lineHeight:
+                                                                        "1.4",
+                                                                    }}
+                                                                  >
+                                                                    <div className="space-y-2">
+                                                                      <div>
+                                                                        <strong>
+                                                                          Agenda:
+                                                                        </strong>{" "}
+                                                                        {item.agenda ||
+                                                                          "N/A"}
+                                                                      </div>
+                                                                      {item.resolution && (
+                                                                        <div>
+                                                                          <strong>
+                                                                            Resolution:
+                                                                          </strong>{" "}
+                                                                          {
+                                                                            item.resolution
+                                                                          }
+                                                                        </div>
+                                                                      )}
+                                                                      {item.compliance && (
+                                                                        <div>
+                                                                          <strong>
+                                                                            Compliance:
+                                                                          </strong>{" "}
+                                                                          {
+                                                                            item.compliance
+                                                                          }
+                                                                        </div>
+                                                                      )}
+                                                                    </div>
+                                                                  </td>
+                                                                </tr>
+                                                              )
+                                                            )}
+                                                          </tbody>
+                                                        </table>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                );
+                                              }
+                                            )}
                                           </div>
                                         );
                                       })()}
