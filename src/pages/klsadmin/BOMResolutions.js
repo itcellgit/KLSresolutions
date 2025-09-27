@@ -1013,24 +1013,40 @@ const BOMResolutionsPage = () => {
                 </div>
                 <div className="px-6 py-5 bg-white">
                   <div className="mb-4">
-                    <span className="block mb-2 text-sm font-medium text-gray-700">
+                    <div className="block mb-4 text-sm font-medium text-gray-700">
                       <strong>ID:</strong> {selectedGCResolution.id}
-                    </span>
-                    <span className="block mb-2 text-sm font-medium text-gray-700">
-                      <strong>Agenda:</strong> {selectedGCResolution.agenda}
-                    </span>
-                    <span className="block mb-2 text-sm font-medium text-gray-700">
-                      <strong>Resolution:</strong>{" "}
-                      {selectedGCResolution.resolution}
-                    </span>
-                    <span className="block mb-2 text-sm font-medium text-gray-700">
-                      <strong>Compliance:</strong>{" "}
-                      {selectedGCResolution.compliance}
-                    </span>
-                    <span className="block mb-2 text-sm font-medium text-gray-700">
+                    </div>
+                    <div className="block mb-4 text-sm font-medium text-gray-700">
+                      <strong>Agenda:</strong>
+                      <div className="mt-2 text-gray-600">
+                        <HtmlContent
+                          content={selectedGCResolution.agenda}
+                          maxLength={1000}
+                        />
+                      </div>
+                    </div>
+                    <div className="block mb-4 text-sm font-medium text-gray-700">
+                      <strong>Resolution:</strong>
+                      <div className="mt-2 text-gray-600">
+                        <HtmlContent
+                          content={selectedGCResolution.resolution}
+                          maxLength={1000}
+                        />
+                      </div>
+                    </div>
+                    <div className="block mb-4 text-sm font-medium text-gray-700">
+                      <strong>Compliance:</strong>
+                      <div className="mt-2 text-gray-600">
+                        <HtmlContent
+                          content={selectedGCResolution.compliance}
+                          maxLength={1000}
+                        />
+                      </div>
+                    </div>
+                    <div className="block mb-2 text-sm font-medium text-gray-700">
                       <strong>Date:</strong>{" "}
                       {formatDate(selectedGCResolution.gc_date)}
-                    </span>
+                    </div>
                   </div>
                 </div>
               </div>

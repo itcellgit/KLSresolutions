@@ -33,6 +33,12 @@ const mapToSectionCategory = (agendaSection) => {
   return "OTHER MATTERS";
 };
 
+// Helper function to strip HTML tags from a string
+const stripHtmlTags = (str) => {
+  if (!str) return "";
+  return str.replace(/<[^>]*>/g, "");
+};
+
 const GCResolutionPage = () => {
   const [gcResolutions, setGCResolutions] = useState([]);
   const [formData, setFormData] = useState({ tenure: getCurrentTenure() });
@@ -860,8 +866,24 @@ const GCResolutionPage = () => {
                                                                     "1.4",
                                                                 }}
                                                               >
-                                                                {item.agenda ||
-                                                                  "N/A"}
+                                                                <h4>Agenda:</h4>{" "}
+                                                                {stripHtmlTags(
+                                                                  item.agenda
+                                                                ) || "N/A"}
+                                                                <br />
+                                                                <h4>
+                                                                  Resolution:
+                                                                </h4>
+                                                                {stripHtmlTags(
+                                                                  item.resolution
+                                                                ) || "N/A"}
+                                                                <br />
+                                                                <h4>
+                                                                  Compliance:
+                                                                </h4>
+                                                                {stripHtmlTags(
+                                                                  item.compliance
+                                                                ) || "N/A"}
                                                               </td>
                                                             </tr>
                                                           )

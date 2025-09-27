@@ -110,7 +110,7 @@ const Header = ({ toggleSidebar }) => {
             />
             <div className="flex flex-col justify-center">
               <h1 className="font-serif text-2xl md:text-3xl font-bold leading-tight tracking-wide text-indigo-700 drop-shadow-lg">
-                Karnataka Law Society
+                Karnatak Law Society
               </h1>
               <span className="text-xs md:text-sm font-semibold tracking-wide text-indigo-500">
                 Management Portal

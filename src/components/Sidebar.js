@@ -148,7 +148,7 @@ const Sidebar = () => {
             className="w-16 h-16 mb-2 rounded-full shadow-lg"
           />
           <h1 className="text-2xl font-extrabold text-indigo-700 tracking-wide font-serif mb-1 text-center">
-            Karnataka Law Society
+            Karnatak Law Society
           </h1>
           {/* <span className="text-xs font-medium text-gray-500 text-center">
             Management Portal

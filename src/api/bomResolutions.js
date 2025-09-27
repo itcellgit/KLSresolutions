@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://resolutions.klsbelagavi.org/api"; //"http://10.22.0.152:3000";
+const API_URL = "https://resolutions.klsbelagavi.org/api";
 
 export const getBOMResolutions = async (token) => {
   try {

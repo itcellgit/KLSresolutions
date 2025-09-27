@@ -54,7 +54,7 @@ const Login = () => {
             className="w-20 h-20 mb-4 rounded-full shadow"
           />
           <h1 className="mb-2 text-3xl font-extrabold text-center text-indigo-700 md:text-4xl">
-            Karnataka Law Society
+            Karnatak Law Society
           </h1>
           <p className="mb-2 text-base text-center text-gray-600 md:text-lg">
             A secure portal for KLS management and institutions to view and
