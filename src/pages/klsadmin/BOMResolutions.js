@@ -1,8 +1,7 @@
 // pages/BOMResolutionsPage.js
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
-import RichTextEditor from "../../components/RichTextEditor";
-import HtmlContent from "../../components/HtmlContent";
+import FileLink from "../../components/FileLink";
 import { getGCResolutions } from "../../api/gcResolutions";
 import {
   getBOMResolutions,
@@ -20,6 +19,7 @@ const BOMResolutionsPage = () => {
     agenda: "",
     resolution: "",
     compliance: "",
+    meeting_notes: "",
     bom_date: "",
     gc_resolution_id: "",
     agenda_section: "",
@@ -80,6 +80,7 @@ const BOMResolutionsPage = () => {
         agenda: "",
         resolution: "",
         compliance: "",
+        meeting_notes: "",
         bom_date: "",
         gc_resolution_id: "",
         agenda_section: "",
@@ -106,6 +107,7 @@ const BOMResolutionsPage = () => {
       agenda: resolution.agenda || "",
       resolution: resolution.resolution || "",
       compliance: resolution.compliance || "",
+      meeting_notes: resolution.meeting_notes || "",
       bom_date: resolution.bom_date || "",
       gc_resolution_id: resolution.gc_resolution_id || "",
       agenda_section: resolution.agenda_section || "",
@@ -151,6 +153,7 @@ const BOMResolutionsPage = () => {
         agenda: "",
         resolution: "",
         compliance: "",
+        meeting_notes: "",
         bom_date: "",
         gc_resolution_id: "",
         agenda_section: "",
@@ -254,6 +257,10 @@ const BOMResolutionsPage = () => {
       resolution.resolution.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (resolution.compliance &&
         resolution.compliance
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())) ||
+      (resolution.meeting_notes &&
+        resolution.meeting_notes
           .toLowerCase()
           .includes(searchTerm.toLowerCase())) ||
       resolution.bom_date.includes(searchTerm) ||
@@ -428,7 +435,7 @@ const BOMResolutionsPage = () => {
           <div className="relative w-full sm:w-64">
             <input
               type="text"
-              placeholder="Search BOM resolutions..."
+              placeholder="Search BOM resolutions by agenda, resolution, compliance, meeting notes..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -614,6 +621,9 @@ const BOMResolutionsPage = () => {
                               Compliance
                             </th>
                             <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                              Meeting Notes
+                            </th>
+                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                               GC Resolution
                             </th>
                             <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
@@ -640,23 +650,30 @@ const BOMResolutionsPage = () => {
                               </td>
 
                               <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-120">
-                                <HtmlContent
-                                  content={resolution.agenda}
-                                  maxLength={200}
+                                <FileLink
+                                  filename={resolution.agenda}
+                                  label="View Agenda"
                                 />
                               </td>
 
                               <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-120">
-                                <HtmlContent
-                                  content={resolution.resolution}
-                                  maxLength={250}
+                                <FileLink
+                                  filename={resolution.resolution}
+                                  label="View Resolution"
                                 />
                               </td>
 
                               <td className="w-12 px-6 py-4 text-sm text-justify text-gray-500 break-words">
-                                <HtmlContent
-                                  content={resolution.compliance}
-                                  maxLength={200}
+                                <FileLink
+                                  filename={resolution.compliance}
+                                  label="View Compliance"
+                                />
+                              </td>
+
+                              <td className="w-12 px-6 py-4 text-sm text-justify text-gray-500 break-words">
+                                <FileLink
+                                  filename={resolution.meeting_notes}
+                                  label="View Meeting Notes"
                                 />
                               </td>
 
@@ -672,8 +689,7 @@ const BOMResolutionsPage = () => {
                                     }
                                     title={resolution.gc_resolution.agenda}
                                   >
-                                    {resolution.gc_resolution.gc_no}-
-                                    {resolution.gc_resolution.agenda}-Dated{" "}
+                                    {resolution.gc_resolution.agenda} - Dated{" "}
                                     {formatDate(
                                       resolution.gc_resolution.gc_date
                                     )}
@@ -844,8 +860,8 @@ const BOMResolutionsPage = () => {
                                   value={gcResolution.id}
                                   disabled={isUsed}
                                 >
-                                  {gcResolution.gc_no} - {gcResolution.agenda} -
-                                  Dated {formatDate(gcResolution.gc_date)}
+                                  {gcResolution.agenda} - Dated{" "}
+                                  {formatDate(gcResolution.gc_date)}
                                   {isUsed ? " (Already Added)" : ""}
                                 </option>
                               );
@@ -909,12 +925,12 @@ const BOMResolutionsPage = () => {
                       >
                         Agenda
                       </label>
-                      <RichTextEditor
-                        value={formData.agenda}
-                        onChange={handleRichTextChange("agenda")}
-                        placeholder="Enter agenda details"
-                        style={{ height: "150px" }}
-                      />
+                      <div className="p-4 bg-gray-100 border rounded-lg">
+                        <p className="text-sm text-gray-600">
+                          File upload for agenda will be available in the next
+                          update.
+                        </p>
+                      </div>
                     </div>
                     <div className="mb-4">
                       <label
@@ -923,12 +939,12 @@ const BOMResolutionsPage = () => {
                       >
                         Resolution
                       </label>
-                      <RichTextEditor
-                        value={formData.resolution}
-                        onChange={handleRichTextChange("resolution")}
-                        placeholder="Enter resolution details"
-                        style={{ height: "200px" }}
-                      />
+                      <div className="p-4 bg-gray-100 border rounded-lg">
+                        <p className="text-sm text-gray-600">
+                          File upload for resolution will be available in the
+                          next update.
+                        </p>
+                      </div>
                     </div>
                     <div className="mb-4">
                       <label
@@ -937,12 +953,26 @@ const BOMResolutionsPage = () => {
                       >
                         Compliance (Optional)
                       </label>
-                      <RichTextEditor
-                        value={formData.compliance}
-                        onChange={handleRichTextChange("compliance")}
-                        placeholder="Enter compliance details"
-                        style={{ height: "150px" }}
-                      />
+                      <div className="p-4 bg-gray-100 border rounded-lg">
+                        <p className="text-sm text-gray-600">
+                          File upload for compliance will be available in the
+                          next update.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mb-4">
+                      <label
+                        htmlFor="meeting_notes"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
+                        Meeting Notes (Optional)
+                      </label>
+                      <div className="p-4 bg-gray-100 border rounded-lg">
+                        <p className="text-sm text-gray-600">
+                          File upload for meeting notes will be available in the
+                          next update.
+                        </p>
+                      </div>
                     </div>
                     <div className="flex justify-end pt-6 mt-6 space-x-4 border-t border-gray-200">
                       <button
@@ -1019,27 +1049,27 @@ const BOMResolutionsPage = () => {
                     <div className="block mb-4 text-sm font-medium text-gray-700">
                       <strong>Agenda:</strong>
                       <div className="mt-2 text-gray-600">
-                        <HtmlContent
-                          content={selectedGCResolution.agenda}
-                          maxLength={1000}
+                        <FileLink
+                          filename={selectedGCResolution.agenda}
+                          label="Download Agenda"
                         />
                       </div>
                     </div>
                     <div className="block mb-4 text-sm font-medium text-gray-700">
                       <strong>Resolution:</strong>
                       <div className="mt-2 text-gray-600">
-                        <HtmlContent
-                          content={selectedGCResolution.resolution}
-                          maxLength={1000}
+                        <FileLink
+                          filename={selectedGCResolution.resolution}
+                          label="Download Resolution"
                         />
                       </div>
                     </div>
                     <div className="block mb-4 text-sm font-medium text-gray-700">
                       <strong>Compliance:</strong>
                       <div className="mt-2 text-gray-600">
-                        <HtmlContent
-                          content={selectedGCResolution.compliance}
-                          maxLength={1000}
+                        <FileLink
+                          filename={selectedGCResolution.compliance}
+                          label="Download Compliance"
                         />
                       </div>
                     </div>

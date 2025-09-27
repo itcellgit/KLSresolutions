@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import Header from "../../components/Header";
-import HtmlContent from "../../components/HtmlContent";
+import FileLink from "../../components/FileLink";
 
 // Helper function to map agenda sections to predefined categories
 const mapToSectionCategory = (agendaSection) => {
@@ -730,22 +730,25 @@ const BOMResolutionPage = () => {
                                 </td>
                                 <td className="px-6 py-4 text-sm text-gray-900">
                                   <div className="max-w-xs">
-                                    <HtmlContent
-                                      content={resolution.agenda || "N/A"}
+                                    <FileLink
+                                      filename={resolution.agenda}
+                                      label="View Agenda"
                                     />
                                   </div>
                                 </td>
                                 <td className="px-6 py-4 text-sm text-gray-900">
                                   <div className="max-w-md">
-                                    <HtmlContent
-                                      content={resolution.resolution || "N/A"}
+                                    <FileLink
+                                      filename={resolution.resolution}
+                                      label="View Resolution"
                                     />
                                   </div>
                                 </td>
                                 <td className="px-6 py-4 text-sm text-gray-900">
                                   <div className="max-w-xs">
-                                    <HtmlContent
-                                      content={resolution.compliance || "N/A"}
+                                    <FileLink
+                                      filename={resolution.compliance}
+                                      label="View Compliance"
                                     />
                                   </div>
                                 </td>

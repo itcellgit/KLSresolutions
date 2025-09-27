@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Header from "../components/Header";
 import DashboardLayout from "../components/DashboardLayout";
-import RichTextEditor from "../components/RichTextEditor";
-import HtmlContent from "../components/HtmlContent";
+import FileLink from "../components/FileLink";
+import FileUpload from "../components/FileUpload";
+
 import {
   getGCResolutions,
   createGCResolution,
@@ -43,10 +44,10 @@ const AddGCResolution = () => {
   const [editingId, setEditingId] = useState(null);
   // State for form data
   const [formData, setFormData] = useState({
-    agenda_section: "",
     agenda: "",
     resolution: "",
     compliance: "",
+    meeting_notes: "",
     gc_date: "",
     institute_id: "",
     tenure_id: "",
@@ -59,13 +60,6 @@ const AddGCResolution = () => {
   const [itemsPerPage] = useState(10);
   // State for date filter
   const [selectedDate, setSelectedDate] = useState("");
-  // State for accordion sections - only one section can be open at a time
-  const [openSections, setOpenSections] = useState({
-    "MAIN AGENDA": false,
-    "PURCHASE EXPENSES": false,
-    "STAFF MATTERS": false,
-    "OTHER MATTERS": false,
-  });
   // Get token and user from Redux store
   const token = useSelector((state) => state.auth.token);
   const user = useSelector((state) => state.auth.user);
@@ -142,9 +136,9 @@ const AddGCResolution = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle rich text editor changes
-  const handleRichTextChange = (field) => (value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  // Handle file upload changes
+  const handleFileChange = (field, file) => {
+    setFormData((prev) => ({ ...prev, [field]: file }));
   };
 
   // Handle form submission
@@ -164,10 +158,10 @@ const AddGCResolution = () => {
       }
       // Reset form and close modal
       setFormData({
-        agenda_section: "",
         agenda: "",
         resolution: "",
         compliance: "",
+        meeting_notes: "",
         gc_date: "",
         institute_id: "",
         tenure_id: "",
@@ -190,10 +184,10 @@ const AddGCResolution = () => {
   // Function to open modal for editing
   const openEditModal = (resolution) => {
     setFormData({
-      agenda_section: resolution.agenda_section || "",
       agenda: resolution.agenda,
       resolution: resolution.resolution,
       compliance: resolution.compliance || "",
+      meeting_notes: resolution.meeting_notes || "",
       gc_date: resolution.gc_date,
       institute_id: resolution.institute_id,
       tenure_id: resolution.tenure_id || "",
@@ -205,10 +199,10 @@ const AddGCResolution = () => {
   // Function to reset form when opening modal for new resolution
   const openAddModal = () => {
     setFormData({
-      agenda_section: "",
       agenda: "",
       resolution: "",
       compliance: "",
+      meeting_notes: "",
       gc_date: "",
       institute_id: "",
       tenure_id: "",
@@ -253,19 +247,6 @@ const AddGCResolution = () => {
   };
 
   // Toggle accordion section - only one section can be open at a time
-  const toggleSection = (section) => {
-    setOpenSections((prev) => {
-      const newSections = {};
-      // Close all sections first
-      Object.keys(prev).forEach((key) => {
-        newSections[key] = false;
-      });
-      // Open the clicked section only if it was previously closed
-      newSections[section] = !prev[section];
-      return newSections;
-    });
-  };
-
   // Get latest date from resolutions
   const getLatestDate = () => {
     if (resolutions.length === 0) return "";
@@ -278,26 +259,6 @@ const AddGCResolution = () => {
     if (resolutions.length > 0 && !selectedDate) {
       const latestDate = getLatestDate();
       setSelectedDate(latestDate);
-
-      // Open first section with data by default
-      const sectionsWithData = sectionOrder.filter((section) =>
-        resolutions.some(
-          (r) => r.agenda_section === section && r.gc_date === latestDate
-        )
-      );
-
-      if (sectionsWithData.length > 0) {
-        setOpenSections((prev) => {
-          const newSections = {};
-          // Close all sections first
-          Object.keys(prev).forEach((key) => {
-            newSections[key] = false;
-          });
-          // Open only the first section with data
-          newSections[sectionsWithData[0]] = true;
-          return newSections;
-        });
-      }
     }
   }, [resolutions]);
 
@@ -320,35 +281,6 @@ const AddGCResolution = () => {
       resolution.gc_date.includes(searchTerm)
     );
   });
-
-  // Define section order
-  const sectionOrder = [
-    "MAIN AGENDA",
-    "PURCHASE EXPENSES",
-    "STAFF MATTERS",
-    "OTHER MATTERS",
-  ];
-
-  // Group resolutions by agenda section in the defined order
-  const groupedResolutions = sectionOrder.reduce((acc, section) => {
-    const sectionResolutions = filteredResolutions.filter(
-      (resolution) => resolution.agenda_section === section
-    );
-    if (sectionResolutions.length > 0) {
-      acc[section] = sectionResolutions;
-    }
-    return acc;
-  }, {});
-
-  // Add uncategorized resolutions if any
-  const uncategorizedResolutions = filteredResolutions.filter(
-    (resolution) =>
-      !resolution.agenda_section ||
-      !sectionOrder.includes(resolution.agenda_section)
-  );
-  if (uncategorizedResolutions.length > 0) {
-    groupedResolutions["Uncategorized"] = uncategorizedResolutions;
-  }
 
   // Reset to first page when search term or date filter changes
   useEffect(() => {
@@ -385,7 +317,7 @@ const AddGCResolution = () => {
 
   // Function to download PDF
   const downloadPDF = async () => {
-    if (Object.keys(groupedResolutions).length === 0) {
+    if (filteredResolutions.length === 0) {
       alert("No resolutions available to download");
       return;
     }
@@ -396,12 +328,7 @@ const AddGCResolution = () => {
       const pdf = new jsPDF("p", "mm", "a4");
 
       // Get first resolution to extract some basic info
-      const firstSection = sectionOrder.find(
-        (s) => groupedResolutions[s]?.length
-      );
-      const firstItem = firstSection
-        ? groupedResolutions[firstSection][0]
-        : null;
+      const firstItem = filteredResolutions[0];
 
       // ✅ Get institute info from logged-in institute admin's user data
       const userInstituteId = user?.institute_id;
@@ -411,7 +338,6 @@ const AddGCResolution = () => {
 
       const instituteCode = currentInstitute?.code || "N/A";
       const instituteName = currentInstitute?.name || "N/A";
-      const gcNo = firstItem?.gc_no || "N/A";
       const gcDate = firstItem?.gc_date ? formatDate(firstItem.gc_date) : "N/A";
 
       // ✅ Tenure calculation
@@ -492,7 +418,7 @@ const AddGCResolution = () => {
 
       // Ref & Date
       pdf.setFontSize(10);
-      pdf.text(`Ref. No KLS/Resolution/${gcNo}`, 15, y);
+      pdf.text(`Ref. No KLS/Resolution/GC`, 15, y);
       pdf.text(`Date: ${gcDate}`, pageWidth - 15, y, { align: "right" });
       y += 8;
 
@@ -531,81 +457,33 @@ const AddGCResolution = () => {
       y += 10;
 
       // ==== RESOLUTIONS ====
-      for (const section of sectionOrder) {
-        if (groupedResolutions[section]) {
-          // Section heading - keep bold
-          pdf.setFontSize(14);
-          pdf.setFont("helvetica", "bold");
-          pdf.text(section, 14, y);
-          y += 8;
+      // Table headers
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("S.No", 14, y);
+      pdf.text("Agenda", 30, y);
+      y += 5;
+      pdf.line(14, y, pageWidth - 14, y);
+      y += 5;
 
-          // Table headers - make normal weight
-          pdf.setFontSize(10);
-          pdf.setFont("helvetica", "normal");
-          pdf.text("S.No", 14, y);
-          pdf.text("Agenda", 30, y);
-          y += 5;
-          pdf.line(14, y, pageWidth - 14, y);
-          y += 5;
-
-          // Resolution content - set to normal font
-          pdf.setFont("helvetica", "normal");
-          groupedResolutions[section].forEach((resolution, index) => {
-            if (y > pageHeight - 20) {
-              pdf.addPage();
-              y = 20;
-            }
-
-            // S.No - normal weight
-            pdf.text(`${index + 1}`, 14, y);
-
-            // Agenda content - normal weight
-            const agendaText = extractTextFromHTML(resolution.agenda);
-            const splitText = pdf.splitTextToSize(agendaText, pageWidth - 44);
-            pdf.text(splitText, 30, y);
-
-            y += splitText.length * 5;
-          });
-
-          y += 8;
+      // Resolution content
+      pdf.setFont("helvetica", "normal");
+      filteredResolutions.forEach((resolution, index) => {
+        if (y > pageHeight - 20) {
+          pdf.addPage();
+          y = 20;
         }
-      }
 
-      if (groupedResolutions["Uncategorized"]) {
-        // Section heading - keep bold
-        pdf.setFontSize(14);
-        pdf.setFont("helvetica", "bold");
-        pdf.text("Uncategorized", 14, y);
-        y += 8;
+        // S.No
+        pdf.text(`${index + 1}`, 14, y);
 
-        // Table headers - make normal weight
-        pdf.setFontSize(10);
-        pdf.setFont("helvetica", "normal");
-        pdf.text("S.No", 14, y);
-        pdf.text("Agenda", 30, y);
-        y += 5;
-        pdf.line(14, y, pageWidth - 14, y);
-        y += 5;
+        // Agenda content
+        const agendaText = extractTextFromHTML(resolution.agenda);
+        const splitText = pdf.splitTextToSize(agendaText, pageWidth - 44);
+        pdf.text(splitText, 30, y);
 
-        // Resolution content - set to normal font
-        pdf.setFont("helvetica", "normal");
-        groupedResolutions["Uncategorized"].forEach((resolution, index) => {
-          if (y > pageHeight - 20) {
-            pdf.addPage();
-            y = 20;
-          }
-
-          // S.No - normal weight
-          pdf.text(`${index + 1}`, 14, y);
-
-          // Agenda content - normal weight
-          const agendaText = extractTextFromHTML(resolution.agenda);
-          const splitText = pdf.splitTextToSize(agendaText, pageWidth - 44);
-          pdf.text(splitText, 30, y);
-
-          y += splitText.length * 5;
-        });
-      }
+        y += splitText.length * 5;
+      });
 
       // Save PDF
       const filename = firstItem
@@ -813,10 +691,10 @@ const AddGCResolution = () => {
                     </div>
                     <div className="ml-4">
                       <p className="text-sm font-semibold tracking-wide text-gray-600 uppercase">
-                        Total Sections
+                        Total Resolutions
                       </p>
                       <p className="mt-1 text-3xl font-bold text-gray-900">
-                        {Object.keys(groupedResolutions).length}
+                        {filteredResolutions.length}
                       </p>
                     </div>
                   </div>
@@ -972,7 +850,7 @@ const AddGCResolution = () => {
                     </h3>
                     <p className="text-gray-600">{resolutionsError}</p>
                   </div>
-                ) : Object.keys(groupedResolutions).length === 0 ? (
+                ) : filteredResolutions.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -1020,213 +898,138 @@ const AddGCResolution = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {Object.entries(groupedResolutions).map(
-                      ([section, sectionResolutions]) => (
-                        <div
-                          key={section}
-                          className="bg-white border border-gray-200 rounded-lg shadow-sm"
-                        >
-                          {/* Accordion Header */}
-                          <button
-                            onClick={() => toggleSection(section)}
-                            className="flex items-center justify-between w-full px-6 py-4 text-left transition-colors duration-200 hover:bg-gray-50"
-                          >
-                            <div className="flex items-center space-x-3">
-                              <h2 className="text-xl font-bold text-gray-900">
-                                {section}
-                              </h2>
-                              <span className="px-3 py-1 text-sm font-medium text-indigo-800 bg-indigo-100 rounded-full">
-                                {sectionResolutions.length}{" "}
-                                {sectionResolutions.length === 1
-                                  ? "Resolution"
-                                  : "Resolutions"}
-                              </span>
-                            </div>
-                            <svg
-                              className={`w-5 h-5 text-gray-500 transform transition-transform duration-200 ${
-                                openSections[section] ? "rotate-180" : ""
-                              }`}
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          </button>
-
-                          {/* Accordion Content */}
-                          {openSections[section] && (
-                            <div className="border-t border-gray-200">
-                              <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                  <thead className="bg-gray-50">
-                                    <tr>
-                                      <th
-                                        scope="col"
-                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                      >
-                                        S.NO
-                                      </th>
-                                      <th
-                                        scope="col"
-                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                      >
-                                        GC-NO
-                                      </th>
-                                      <th
-                                        scope="col"
-                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                      >
-                                        Tenure
-                                      </th>
-                                      <th
-                                        scope="col"
-                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                      >
-                                        Agenda
-                                      </th>
-                                      <th
-                                        scope="col"
-                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                      >
-                                        Resolution
-                                      </th>
-                                      <th
-                                        scope="col"
-                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                      >
-                                        Compliance
-                                      </th>
-                                      <th
-                                        scope="col"
-                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                      >
-                                        Details
-                                      </th>
-                                      <th
-                                        scope="col"
-                                        className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
-                                      >
-                                        Actions
-                                      </th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="bg-white divide-y divide-gray-200">
-                                    {sectionResolutions.map(
-                                      (resolution, index) => (
-                                        <tr key={resolution.id}>
-                                          <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
-                                            {index + 1}
-                                          </td>
-                                          <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
-                                            {resolution.gc_no}
-                                          </td>
-                                          <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
-                                            {getTenureName(
-                                              resolution.tenure_id
-                                            )}
-                                          </td>
-                                          <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
-                                            <HtmlContent
-                                              content={resolution.agenda}
-                                              maxLength={200}
-                                            />
-                                          </td>
-                                          <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
-                                            <HtmlContent
-                                              content={resolution.resolution}
-                                              maxLength={250}
-                                            />
-                                          </td>
-                                          <td className="px-6 py-4 text-sm text-gray-500 break-words w-72">
-                                            <HtmlContent
-                                              content={resolution.compliance}
-                                              maxLength={200}
-                                            />
-                                          </td>
-                                          <td className="w-16 px-6 py-4 text-sm text-gray-500 break-words">
-                                            <div className="flex flex-col">
-                                              <span>
-                                                {getInstituteName(
-                                                  resolution.institute_id
-                                                )}
-                                              </span>
-                                              <span className="text-xs text-gray-400">
-                                                Dated -{" "}
-                                                {formatDate(resolution.gc_date)}
-                                              </span>
-                                            </div>
-                                          </td>
-                                          <td className="px-6 py-4 text-sm text-gray-500 break-words">
-                                            <div className="flex space-x-2">
-                                              <button
-                                                onClick={() =>
-                                                  openEditModal(resolution)
-                                                }
-                                                className="mr-3 text-indigo-600 hover:text-indigo-900"
-                                              >
-                                                <svg
-                                                  xmlns="http://www.w3.org/2000/svg"
-                                                  className="w-4 h-4 mr-1"
-                                                  fill="none"
-                                                  viewBox="0 0 24 24"
-                                                  stroke="currentColor"
-                                                >
-                                                  <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                                  />
-                                                </svg>
-                                                Edit
-                                              </button>
-                                              <button
-                                                onClick={() =>
-                                                  handleDelete(resolution.id)
-                                                }
-                                                className="text-red-600 hover:text-red-900"
-                                              >
-                                                <svg
-                                                  xmlns="http://www.w3.org/2000/svg"
-                                                  className="w-4 h-4 mr-1"
-                                                  fill="none"
-                                                  viewBox="0 0 24 24"
-                                                  stroke="currentColor"
-                                                >
-                                                  <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                                  />
-                                                </svg>
-                                                Delete
-                                              </button>
-                                            </div>
-                                          </td>
-                                        </tr>
-                                      )
-                                    )}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    )}
+                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th
+                                scope="col"
+                                className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                              >
+                                Date
+                              </th>
+                              <th
+                                scope="col"
+                                className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                              >
+                                Tenure
+                              </th>
+                              <th
+                                scope="col"
+                                className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                              >
+                                Agenda
+                              </th>
+                              <th
+                                scope="col"
+                                className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                              >
+                                Resolution
+                              </th>
+                              <th
+                                scope="col"
+                                className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                              >
+                                Compliance
+                              </th>
+                              <th
+                                scope="col"
+                                className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                              >
+                                Meeting Notes
+                              </th>
+                              <th
+                                scope="col"
+                                className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                              >
+                                Details
+                              </th>
+                              <th
+                                scope="col"
+                                className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                              >
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {filteredResolutions.map((resolution, index) => (
+                              <tr key={resolution.id}>
+                                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                  {formatDate(resolution.gc_date)}
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                  {getTenureName(resolution.tenure_id)}
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-500 break-words w-72">
+                                  <FileLink
+                                    filename={resolution.agenda}
+                                    label="View Agenda"
+                                  />
+                                </td>
+                                <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
+                                  <FileLink
+                                    filename={resolution.resolution}
+                                    label="View Resolution"
+                                  />
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-500 break-words w-72">
+                                  <FileLink
+                                    filename={resolution.compliance}
+                                    label="View Compliance"
+                                  />
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-500 break-words w-72">
+                                  <FileLink
+                                    filename={resolution.meeting_notes}
+                                    label="View Meeting Notes"
+                                  />
+                                </td>
+                                <td className="w-16 px-6 py-4 text-sm text-gray-500 break-words">
+                                  <div className="flex flex-col">
+                                    <span>
+                                      <strong>Institute:</strong>{" "}
+                                      {getInstituteName(
+                                        resolution.institute_id
+                                      )}
+                                    </span>
+                                    <span>
+                                      <strong>Tenure:</strong>{" "}
+                                      {getTenureName(resolution.tenure_id)}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 text-sm font-medium whitespace-nowrap">
+                                  <div className="flex space-x-2">
+                                    <button
+                                      onClick={() => openEditModal(resolution)}
+                                      className="text-indigo-600 transition-colors duration-200 hover:text-indigo-900"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleDelete(resolution.id)
+                                      }
+                                      className="text-red-600 transition-colors duration-200 hover:text-red-900"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
 
               {/* Results Summary */}
-              {Object.keys(groupedResolutions).length > 0 && (
+              {filteredResolutions.length > 0 && (
                 <div className="p-4 mt-4 border border-gray-200 rounded-lg bg-gray-50">
                   <div className="flex items-center justify-between text-sm text-gray-600">
                     <span>
@@ -1240,9 +1043,9 @@ const AddGCResolution = () => {
                       )}
                     </span>
                     <span>
-                      Sections:{" "}
+                      Filtered:{" "}
                       <span className="font-medium text-gray-900">
-                        {Object.keys(groupedResolutions).length}
+                        {filteredResolutions.length}
                       </span>
                     </span>
                   </div>
@@ -1345,34 +1148,6 @@ const AddGCResolution = () => {
                           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                             <div>
                               <label
-                                htmlFor="agenda_section"
-                                className="block mb-3 text-sm font-semibold text-gray-700"
-                              >
-                                Agenda Section *
-                              </label>
-                              <select
-                                id="agenda_section"
-                                name="agenda_section"
-                                value={formData.agenda_section}
-                                onChange={handleInputChange}
-                                className="block w-full py-3 pl-4 pr-10 transition-all duration-200 border border-gray-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                              >
-                                <option value="">Select agenda section</option>
-                                <option value="MAIN AGENDA">MAIN AGENDA</option>
-                                <option value="PURCHASE EXPENSES">
-                                  PURCHASE EXPENSES
-                                </option>
-                                <option value="STAFF MATTERS">
-                                  STAFF MATTERS
-                                </option>
-                                <option value="OTHER MATTERS">
-                                  OTHER MATTERS
-                                </option>
-                              </select>
-                            </div>
-
-                            <div>
-                              <label
                                 htmlFor="gc_date"
                                 className="block mb-3 text-sm font-semibold text-gray-700"
                               >
@@ -1430,15 +1205,18 @@ const AddGCResolution = () => {
                             >
                               Agenda *
                             </label>
-                            <RichTextEditor
+                            <FileUpload
+                              label="Upload Agenda File"
+                              name="agenda"
+                              accept=".pdf"
+                              onChange={(file) =>
+                                handleFileChange("agenda", file)
+                              }
                               value={formData.agenda}
-                              onChange={handleRichTextChange("agenda")}
-                              placeholder="Enter detailed agenda information..."
-                              style={{ height: "200px" }}
+                              existingFile={formData.agenda}
                             />
                             <p className="mt-2 text-xs text-gray-500">
-                              Provide comprehensive agenda details for the
-                              resolution
+                              Upload PDF agenda document for the resolution
                             </p>
                           </div>
                           <div>
@@ -1448,15 +1226,18 @@ const AddGCResolution = () => {
                             >
                               Resolution *
                             </label>
-                            <RichTextEditor
+                            <FileUpload
+                              label="Upload Resolution File"
+                              name="resolution"
+                              accept=".pdf"
+                              onChange={(file) =>
+                                handleFileChange("resolution", file)
+                              }
                               value={formData.resolution}
-                              onChange={handleRichTextChange("resolution")}
-                              placeholder="Enter the complete resolution text and decisions made..."
-                              style={{ height: "250px" }}
+                              existingFile={formData.resolution}
                             />
                             <p className="mt-2 text-xs text-gray-500">
-                              Document the complete resolution with all
-                              decisions and actions
+                              Upload PDF resolution document
                             </p>
                           </div>
                           <div>
@@ -1469,15 +1250,43 @@ const AddGCResolution = () => {
                                 (Optional)
                               </span>
                             </label>
-                            <RichTextEditor
+                            <FileUpload
+                              label="Upload Compliance File"
+                              name="compliance"
+                              accept=".pdf"
+                              onChange={(file) =>
+                                handleFileChange("compliance", file)
+                              }
                               value={formData.compliance}
-                              onChange={handleRichTextChange("compliance")}
-                              placeholder="Enter compliance status, implementation details, or follow-up actions taken..."
-                              style={{ height: "200px" }}
+                              existingFile={formData.compliance}
                             />
                             <p className="mt-2 text-xs text-gray-500">
-                              Document any compliance actions taken or
-                              implementation status
+                              Upload PDF compliance document
+                            </p>
+                          </div>
+
+                          <div>
+                            <label
+                              htmlFor="meeting_notes"
+                              className="block mb-3 text-sm font-semibold text-gray-700"
+                            >
+                              Meeting Notes
+                              <span className="ml-1 font-normal text-gray-400">
+                                (Optional)
+                              </span>
+                            </label>
+                            <FileUpload
+                              label="Upload Meeting Notes File"
+                              name="meeting_notes"
+                              accept=".pdf"
+                              onChange={(file) =>
+                                handleFileChange("meeting_notes", file)
+                              }
+                              value={formData.meeting_notes}
+                              existingFile={formData.meeting_notes}
+                            />
+                            <p className="mt-2 text-xs text-gray-500">
+                              Upload PDF meeting notes document
                             </p>
                           </div>
 
