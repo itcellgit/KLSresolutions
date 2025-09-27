@@ -575,9 +575,9 @@ const BOMResolutionPage = () => {
               <div className="flex flex-col gap-3 mt-4 sm:flex-row sm:gap-4">
                 {/* Date Filter */}
                 <div className="flex-1">
-                  <label className="block mb-1 text-sm font-medium text-gray-700">
+                  {/* <label className="block mb-1 text-sm font-medium text-gray-700">
                     Filter by Date
-                  </label>
+                  </label> */}
                   <input
                     type="date"
                     value={selectedDate}
@@ -588,11 +588,6 @@ const BOMResolutionPage = () => {
 
                 {/* Tenure Filter */}
                 <div className="flex-1">
-                  <label className="block mb-1 text-sm font-medium text-gray-700">
-                    Filter by Tenure{" "}
-                    {managementTenures.length > 0 &&
-                      `(${managementTenures.length} available)`}
-                  </label>
                   <select
                     value={selectedTenure}
                     onChange={(e) => setSelectedTenure(e.target.value)}
@@ -615,7 +610,7 @@ const BOMResolutionPage = () => {
                         value={tenure.id}
                         style={{ color: "#1f2937", backgroundColor: "white" }}
                       >
-                        {tenure.tenure_name}
+                        {tenure.tenure}
                       </option>
                     ))}
                   </select>

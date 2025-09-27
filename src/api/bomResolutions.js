@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://resolutions.klsbelagavi.org/api";
+const API_URL = "https://resolutions.klsbelagavi.org/api"; //"http://10.22.0.152:3000";
 
 export const getBOMResolutions = async (token) => {
   try {
@@ -46,7 +46,7 @@ export const createBOMResolution = async (data, token) => {
     alert("BOM Resolution created successfully");
     return response.data;
   } catch (error) {
-    console.error("Failed to create BOM Resolution:", error);
+    console.error("Failed to create BOM Resolution:", error.message);
     if (error.response) {
       console.error("Error response data:", error.response.data);
       console.error("Error response status:", error.response.status);

@@ -4,6 +4,12 @@ import { getInstitutes } from "../../api/institutes";
 import { getGCResolutions } from "../../api/gcResolutions";
 import { getAllManagementTenures } from "../../api/managementTenures";
 
+// Helper function to strip HTML tags from a string
+const stripHtmlTags = (str) => {
+  if (!str) return "";
+  return str.replace(/<[^>]*>/g, "");
+};
+
 const GCResolutionPage = () => {
   // State for search
   const [searchTerm, setSearchTerm] = useState("");
@@ -471,7 +477,7 @@ const GCResolutionPage = () => {
                               {resolution.agenda}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 break-words max-w-md">
-                              {resolution.resolution}
+                              {stripHtmlTags(resolution.resolution)}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 break-words max-w-xs">
                               {resolution.compliance || "N/A"}
