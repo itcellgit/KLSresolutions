@@ -24,7 +24,10 @@ const BOMResolutionsPage = () => {
     gc_resolution_id: "",
     agenda_section: "",
     tenure_id: "",
+    file: null,
   });
+  // State for file upload
+  const [selectedFile, setSelectedFile] = useState(null);
   // State for editing
   const [editingId, setEditingId] = useState(null);
   // State for search
@@ -64,6 +67,13 @@ const BOMResolutionsPage = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Handle file selection
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setSelectedFile(file);
+    setFormData((prev) => ({ ...prev, file: file }));
+  };
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -85,8 +95,10 @@ const BOMResolutionsPage = () => {
         gc_resolution_id: "",
         agenda_section: "",
         tenure_id: "",
+        file: null,
       });
       setEditingId(null);
+      setSelectedFile(null);
 
       // Refresh the resolutions list after creation/update
       const updatedResolutions = await getBOMResolutions(token);
@@ -112,7 +124,9 @@ const BOMResolutionsPage = () => {
       gc_resolution_id: resolution.gc_resolution_id || "",
       agenda_section: resolution.agenda_section || "",
       tenure_id: resolution.tenure_id || "",
+      file: null, // Don't prefill file for editing
     });
+    setSelectedFile(null);
   };
 
   // Handle delete button click
@@ -158,8 +172,10 @@ const BOMResolutionsPage = () => {
         gc_resolution_id: "",
         agenda_section: "",
         tenure_id: "",
+        file: null,
       });
       setEditingId(null);
+      setSelectedFile(null);
     }
   }, [isModalOpen]);
 
@@ -925,12 +941,16 @@ const BOMResolutionsPage = () => {
                       >
                         Agenda
                       </label>
-                      <div className="p-4 bg-gray-100 border rounded-lg">
-                        <p className="text-sm text-gray-600">
-                          File upload for agenda will be available in the next
-                          update.
-                        </p>
-                      </div>
+                      <textarea
+                        id="agenda"
+                        name="agenda"
+                        value={formData.agenda}
+                        onChange={handleInputChange}
+                        rows={3}
+                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        placeholder="Enter agenda details..."
+                        required
+                      />
                     </div>
                     <div className="mb-4">
                       <label
@@ -939,12 +959,15 @@ const BOMResolutionsPage = () => {
                       >
                         Resolution
                       </label>
-                      <div className="p-4 bg-gray-100 border rounded-lg">
-                        <p className="text-sm text-gray-600">
-                          File upload for resolution will be available in the
-                          next update.
-                        </p>
-                      </div>
+                      <textarea
+                        id="resolution"
+                        name="resolution"
+                        value={formData.resolution}
+                        onChange={handleInputChange}
+                        rows={3}
+                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        placeholder="Enter resolution details..."
+                      />
                     </div>
                     <div className="mb-4">
                       <label
@@ -953,12 +976,15 @@ const BOMResolutionsPage = () => {
                       >
                         Compliance (Optional)
                       </label>
-                      <div className="p-4 bg-gray-100 border rounded-lg">
-                        <p className="text-sm text-gray-600">
-                          File upload for compliance will be available in the
-                          next update.
-                        </p>
-                      </div>
+                      <textarea
+                        id="compliance"
+                        name="compliance"
+                        value={formData.compliance}
+                        onChange={handleInputChange}
+                        rows={2}
+                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        placeholder="Enter compliance details..."
+                      />
                     </div>
                     <div className="mb-4">
                       <label
@@ -967,12 +993,70 @@ const BOMResolutionsPage = () => {
                       >
                         Meeting Notes (Optional)
                       </label>
-                      <div className="p-4 bg-gray-100 border rounded-lg">
-                        <p className="text-sm text-gray-600">
-                          File upload for meeting notes will be available in the
-                          next update.
-                        </p>
+                      <textarea
+                        id="meeting_notes"
+                        name="meeting_notes"
+                        value={formData.meeting_notes}
+                        onChange={handleInputChange}
+                        rows={2}
+                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        placeholder="Enter meeting notes..."
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label
+                        htmlFor="file"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
+                        Upload File (Optional)
+                      </label>
+                      <div className="flex items-center justify-center w-full">
+                        <label
+                          htmlFor="file"
+                          className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+                        >
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <svg
+                              className="w-8 h-8 mb-4 text-gray-500"
+                              aria-hidden="true"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 20 16"
+                            >
+                              <path
+                                stroke="currentColor"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+                              />
+                            </svg>
+                            <p className="mb-2 text-sm text-gray-500">
+                              <span className="font-semibold">
+                                Click to upload
+                              </span>{" "}
+                              or drag and drop
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              PDF, DOC, DOCX, JPG, PNG (MAX. 10MB)
+                            </p>
+                          </div>
+                          <input
+                            id="file"
+                            type="file"
+                            className="hidden"
+                            onChange={handleFileChange}
+                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt"
+                          />
+                        </label>
                       </div>
+                      {selectedFile && (
+                        <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                          <p className="text-sm text-blue-700">
+                            Selected file: {selectedFile.name}
+                          </p>
+                        </div>
+                      )}
                     </div>
                     <div className="flex justify-end pt-6 mt-6 space-x-4 border-t border-gray-200">
                       <button

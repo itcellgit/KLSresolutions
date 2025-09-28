@@ -35,11 +35,23 @@ export const createBOMResolution = async (data, token) => {
       console.error("No token provided to createBOMResolution");
       return null;
     }
+
+    // Create FormData if file is included
+    const formData = new FormData();
+    Object.keys(data).forEach((key) => {
+      if (key === "file" && data[key]) {
+        formData.append("file", data[key]);
+      } else if (data[key] !== null && data[key] !== undefined) {
+        formData.append(key, data[key]);
+      }
+    });
+
     const headers = {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
+      // Don't set Content-Type for FormData, let browser set it with boundary
     };
-    const response = await axios.post(`${API_URL}/bom_resolutions`, data, {
+
+    const response = await axios.post(`${API_URL}/bom_resolutions`, formData, {
       headers,
     });
     console.log("Create BOM Resolution Response:", response.data);
@@ -97,14 +109,30 @@ export const updateBOMResolution = async (id, data, token) => {
       console.error("No token provided to updateBOMResolution");
       return null;
     }
+
+    // Create FormData if file is included
+    const formData = new FormData();
+    Object.keys(data).forEach((key) => {
+      if (key === "file" && data[key]) {
+        formData.append("file", data[key]);
+      } else if (data[key] !== null && data[key] !== undefined) {
+        formData.append(key, data[key]);
+      }
+    });
+
     const headers = {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
+      // Don't set Content-Type for FormData, let browser set it with boundary
     };
+
     console.log(`Updating BOM Resolution with ID: ${id}`, data);
-    const response = await axios.put(`${API_URL}/bom_resolutions/${id}`, data, {
-      headers,
-    });
+    const response = await axios.put(
+      `${API_URL}/bom_resolutions/${id}`,
+      formData,
+      {
+        headers,
+      }
+    );
     console.log("Update BOM Resolution Response:", response.data);
     alert("BOM Resolution updated successfully");
     return response.data;

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://resolutions.klsbelagavi.org/api/api";
+const API_URL = "https://resolutions.klsbelagavi.org/api";
 
 // Get all management tenures
 export const getAllManagementTenures = async (token) => {
