@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://resolutions.klsbelagavi.org/api/api";
+const API_URL = "https://resolutions.klsbelagavi.org/api";
 
 export const getBOMResolutions = async (token) => {
   try {
@@ -36,15 +36,36 @@ export const createBOMResolution = async (data, token) => {
       return null;
     }
 
-    // Create FormData if file is included
+    // Create FormData for file uploads
     const formData = new FormData();
+
+    // Add non-file fields
     Object.keys(data).forEach((key) => {
-      if (key === "file" && data[key]) {
-        formData.append("file", data[key]);
-      } else if (data[key] !== null && data[key] !== undefined) {
-        formData.append(key, data[key]);
+      if (
+        key !== "agendaFile" &&
+        key !== "meetingNotesFile" &&
+        key !== "resolutionFile" &&
+        key !== "complianceFile"
+      ) {
+        if (data[key] !== null && data[key] !== undefined) {
+          formData.append(key, data[key]);
+        }
       }
     });
+
+    // Add file fields with specific names matching backend expectations
+    if (data.agendaFile) {
+      formData.append("agenda", data.agendaFile);
+    }
+    if (data.meetingNotesFile) {
+      formData.append("meeting_notes", data.meetingNotesFile);
+    }
+    if (data.resolutionFile) {
+      formData.append("resolution", data.resolutionFile);
+    }
+    if (data.complianceFile) {
+      formData.append("compliance", data.complianceFile);
+    }
 
     const headers = {
       Authorization: `Bearer ${token}`,
@@ -110,15 +131,36 @@ export const updateBOMResolution = async (id, data, token) => {
       return null;
     }
 
-    // Create FormData if file is included
+    // Create FormData for file uploads
     const formData = new FormData();
+
+    // Add non-file fields
     Object.keys(data).forEach((key) => {
-      if (key === "file" && data[key]) {
-        formData.append("file", data[key]);
-      } else if (data[key] !== null && data[key] !== undefined) {
-        formData.append(key, data[key]);
+      if (
+        key !== "agendaFile" &&
+        key !== "meetingNotesFile" &&
+        key !== "resolutionFile" &&
+        key !== "complianceFile"
+      ) {
+        if (data[key] !== null && data[key] !== undefined) {
+          formData.append(key, data[key]);
+        }
       }
     });
+
+    // Add file fields with specific names matching backend expectations
+    if (data.agendaFile) {
+      formData.append("agenda", data.agendaFile);
+    }
+    if (data.meetingNotesFile) {
+      formData.append("meeting_notes", data.meetingNotesFile);
+    }
+    if (data.resolutionFile) {
+      formData.append("resolution", data.resolutionFile);
+    }
+    if (data.complianceFile) {
+      formData.append("compliance", data.complianceFile);
+    }
 
     const headers = {
       Authorization: `Bearer ${token}`,

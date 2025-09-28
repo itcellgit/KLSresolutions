@@ -16,18 +16,22 @@ const BOMResolutionsPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   // State for form inputs
   const [formData, setFormData] = useState({
-    agenda: "",
-    resolution: "",
-    compliance: "",
-    meeting_notes: "",
     bom_date: "",
     gc_resolution_id: "",
     agenda_section: "",
     tenure_id: "",
-    file: null,
+    agendaFile: null,
+    meetingNotesFile: null,
+    resolutionFile: null,
+    complianceFile: null,
   });
-  // State for file upload
-  const [selectedFile, setSelectedFile] = useState(null);
+  // State for file selections
+  const [selectedFiles, setSelectedFiles] = useState({
+    agenda: null,
+    meetingNotes: null,
+    resolution: null,
+    compliance: null,
+  });
   // State for editing
   const [editingId, setEditingId] = useState(null);
   // State for search
@@ -68,10 +72,13 @@ const BOMResolutionsPage = () => {
   };
 
   // Handle file selection
-  const handleFileChange = (e) => {
+  const handleFileChange = (fileType) => (e) => {
     const file = e.target.files[0];
-    setSelectedFile(file);
-    setFormData((prev) => ({ ...prev, file: file }));
+    setSelectedFiles((prev) => ({ ...prev, [fileType]: file }));
+
+    // Update formData with file based on type
+    const fileKey = `${fileType}File`;
+    setFormData((prev) => ({ ...prev, [fileKey]: file }));
   };
 
   // Handle form submission
@@ -87,18 +94,22 @@ const BOMResolutionsPage = () => {
       }
       setIsModalOpen(false);
       setFormData({
-        agenda: "",
-        resolution: "",
-        compliance: "",
-        meeting_notes: "",
         bom_date: "",
         gc_resolution_id: "",
         agenda_section: "",
         tenure_id: "",
-        file: null,
+        agendaFile: null,
+        meetingNotesFile: null,
+        resolutionFile: null,
+        complianceFile: null,
+      });
+      setSelectedFiles({
+        agenda: null,
+        meetingNotes: null,
+        resolution: null,
+        compliance: null,
       });
       setEditingId(null);
-      setSelectedFile(null);
 
       // Refresh the resolutions list after creation/update
       const updatedResolutions = await getBOMResolutions(token);
@@ -116,17 +127,21 @@ const BOMResolutionsPage = () => {
     setIsModalOpen(true);
     setEditingId(resolution.id);
     setFormData({
-      agenda: resolution.agenda || "",
-      resolution: resolution.resolution || "",
-      compliance: resolution.compliance || "",
-      meeting_notes: resolution.meeting_notes || "",
       bom_date: resolution.bom_date || "",
       gc_resolution_id: resolution.gc_resolution_id || "",
       agenda_section: resolution.agenda_section || "",
       tenure_id: resolution.tenure_id || "",
-      file: null, // Don't prefill file for editing
+      agendaFile: null,
+      meetingNotesFile: null,
+      resolutionFile: null,
+      complianceFile: null,
     });
-    setSelectedFile(null);
+    setSelectedFiles({
+      agenda: null,
+      meetingNotes: null,
+      resolution: null,
+      compliance: null,
+    });
   };
 
   // Handle delete button click
@@ -164,18 +179,22 @@ const BOMResolutionsPage = () => {
   useEffect(() => {
     if (!isModalOpen) {
       setFormData({
-        agenda: "",
-        resolution: "",
-        compliance: "",
-        meeting_notes: "",
         bom_date: "",
         gc_resolution_id: "",
         agenda_section: "",
         tenure_id: "",
-        file: null,
+        agendaFile: null,
+        meetingNotesFile: null,
+        resolutionFile: null,
+        complianceFile: null,
+      });
+      setSelectedFiles({
+        agenda: null,
+        meetingNotes: null,
+        resolution: null,
+        compliance: null,
       });
       setEditingId(null);
-      setSelectedFile(null);
     }
   }, [isModalOpen]);
 
@@ -666,31 +685,63 @@ const BOMResolutionsPage = () => {
                               </td>
 
                               <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-120">
-                                <FileLink
-                                  filename={resolution.agenda}
-                                  label="View Agenda"
-                                />
+                                {resolution.agenda ? (
+                                  <a
+                                    href={`https://resolutions.klsbelagavi.org/api/${resolution.agenda}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-indigo-600 hover:text-indigo-900 underline"
+                                  >
+                                    View Agenda
+                                  </a>
+                                ) : (
+                                  <span className="text-gray-400">No File</span>
+                                )}
                               </td>
 
                               <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-120">
-                                <FileLink
-                                  filename={resolution.resolution}
-                                  label="View Resolution"
-                                />
+                                {resolution.resolution ? (
+                                  <a
+                                    href={`https://resolutions.klsbelagavi.org/api/${resolution.resolution}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-indigo-600 hover:text-indigo-900 underline"
+                                  >
+                                    View Resolution
+                                  </a>
+                                ) : (
+                                  <span className="text-gray-400">No File</span>
+                                )}
                               </td>
 
                               <td className="w-12 px-6 py-4 text-sm text-justify text-gray-500 break-words">
-                                <FileLink
-                                  filename={resolution.compliance}
-                                  label="View Compliance"
-                                />
+                                {resolution.compliance ? (
+                                  <a
+                                    href={`https://resolutions.klsbelagavi.org/api/${resolution.compliance}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-indigo-600 hover:text-indigo-900 underline"
+                                  >
+                                    View Compliance
+                                  </a>
+                                ) : (
+                                  <span className="text-gray-400">No File</span>
+                                )}
                               </td>
 
                               <td className="w-12 px-6 py-4 text-sm text-justify text-gray-500 break-words">
-                                <FileLink
-                                  filename={resolution.meeting_notes}
-                                  label="View Meeting Notes"
-                                />
+                                {resolution.meeting_notes ? (
+                                  <a
+                                    href={`https://resolutions.klsbelagavi.org/api/${resolution.meeting_notes}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-indigo-600 hover:text-indigo-900 underline"
+                                  >
+                                    View Meeting Notes
+                                  </a>
+                                ) : (
+                                  <span className="text-gray-400">No File</span>
+                                )}
                               </td>
 
                               <td className="w-24 px-6 py-4 text-sm text-justify text-gray-500 break-words">
@@ -934,6 +985,7 @@ const BOMResolutionsPage = () => {
                         </select>
                       </div>
                     </div>
+                    {/* Agenda File Upload */}
                     <div className="mb-4">
                       <label
                         htmlFor="agenda"
@@ -941,78 +993,9 @@ const BOMResolutionsPage = () => {
                       >
                         Agenda
                       </label>
-                      <textarea
-                        id="agenda"
-                        name="agenda"
-                        value={formData.agenda}
-                        onChange={handleInputChange}
-                        rows={3}
-                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        placeholder="Enter agenda details..."
-                        required
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label
-                        htmlFor="resolution"
-                        className="block mb-2 text-sm font-medium text-gray-700"
-                      >
-                        Resolution
-                      </label>
-                      <textarea
-                        id="resolution"
-                        name="resolution"
-                        value={formData.resolution}
-                        onChange={handleInputChange}
-                        rows={3}
-                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        placeholder="Enter resolution details..."
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label
-                        htmlFor="compliance"
-                        className="block mb-2 text-sm font-medium text-gray-700"
-                      >
-                        Compliance (Optional)
-                      </label>
-                      <textarea
-                        id="compliance"
-                        name="compliance"
-                        value={formData.compliance}
-                        onChange={handleInputChange}
-                        rows={2}
-                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        placeholder="Enter compliance details..."
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label
-                        htmlFor="meeting_notes"
-                        className="block mb-2 text-sm font-medium text-gray-700"
-                      >
-                        Meeting Notes (Optional)
-                      </label>
-                      <textarea
-                        id="meeting_notes"
-                        name="meeting_notes"
-                        value={formData.meeting_notes}
-                        onChange={handleInputChange}
-                        rows={2}
-                        className="block w-full py-3 pl-4 pr-12 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        placeholder="Enter meeting notes..."
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label
-                        htmlFor="file"
-                        className="block mb-2 text-sm font-medium text-gray-700"
-                      >
-                        Upload File (Optional)
-                      </label>
                       <div className="flex items-center justify-center w-full">
                         <label
-                          htmlFor="file"
+                          htmlFor="agendaFile"
                           className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
                         >
                           <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -1035,25 +1018,196 @@ const BOMResolutionsPage = () => {
                               <span className="font-semibold">
                                 Click to upload
                               </span>{" "}
-                              or drag and drop
+                              agenda file
                             </p>
                             <p className="text-xs text-gray-500">
                               PDF, DOC, DOCX, JPG, PNG (MAX. 10MB)
                             </p>
                           </div>
                           <input
-                            id="file"
+                            id="agendaFile"
                             type="file"
                             className="hidden"
-                            onChange={handleFileChange}
+                            onChange={handleFileChange("agenda")}
                             accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt"
                           />
                         </label>
                       </div>
-                      {selectedFile && (
+                      {selectedFiles.agenda && (
                         <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
                           <p className="text-sm text-blue-700">
-                            Selected file: {selectedFile.name}
+                            Selected file: {selectedFiles.agenda.name}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Meeting Notes File Upload */}
+                    <div className="mb-4">
+                      <label
+                        htmlFor="meeting_notes"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
+                        Meeting Notes (Optional)
+                      </label>
+                      <div className="flex items-center justify-center w-full">
+                        <label
+                          htmlFor="meetingNotesFile"
+                          className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+                        >
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <svg
+                              className="w-8 h-8 mb-4 text-gray-500"
+                              aria-hidden="true"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 20 16"
+                            >
+                              <path
+                                stroke="currentColor"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+                              />
+                            </svg>
+                            <p className="mb-2 text-sm text-gray-500">
+                              <span className="font-semibold">
+                                Click to upload
+                              </span>{" "}
+                              meeting notes file
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              PDF, DOC, DOCX, JPG, PNG (MAX. 10MB)
+                            </p>
+                          </div>
+                          <input
+                            id="meetingNotesFile"
+                            type="file"
+                            className="hidden"
+                            onChange={handleFileChange("meetingNotes")}
+                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt"
+                          />
+                        </label>
+                      </div>
+                      {selectedFiles.meetingNotes && (
+                        <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                          <p className="text-sm text-blue-700">
+                            Selected file: {selectedFiles.meetingNotes.name}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Resolution File Upload */}
+                    <div className="mb-4">
+                      <label
+                        htmlFor="resolution"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
+                        Resolution
+                      </label>
+                      <div className="flex items-center justify-center w-full">
+                        <label
+                          htmlFor="resolutionFile"
+                          className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+                        >
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <svg
+                              className="w-8 h-8 mb-4 text-gray-500"
+                              aria-hidden="true"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 20 16"
+                            >
+                              <path
+                                stroke="currentColor"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+                              />
+                            </svg>
+                            <p className="mb-2 text-sm text-gray-500">
+                              <span className="font-semibold">
+                                Click to upload
+                              </span>{" "}
+                              resolution file
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              PDF, DOC, DOCX, JPG, PNG (MAX. 10MB)
+                            </p>
+                          </div>
+                          <input
+                            id="resolutionFile"
+                            type="file"
+                            className="hidden"
+                            onChange={handleFileChange("resolution")}
+                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt"
+                          />
+                        </label>
+                      </div>
+                      {selectedFiles.resolution && (
+                        <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                          <p className="text-sm text-blue-700">
+                            Selected file: {selectedFiles.resolution.name}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Compliance File Upload */}
+                    <div className="mb-4">
+                      <label
+                        htmlFor="compliance"
+                        className="block mb-2 text-sm font-medium text-gray-700"
+                      >
+                        Compliance (Optional)
+                      </label>
+                      <div className="flex items-center justify-center w-full">
+                        <label
+                          htmlFor="complianceFile"
+                          className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+                        >
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <svg
+                              className="w-8 h-8 mb-4 text-gray-500"
+                              aria-hidden="true"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 20 16"
+                            >
+                              <path
+                                stroke="currentColor"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+                              />
+                            </svg>
+                            <p className="mb-2 text-sm text-gray-500">
+                              <span className="font-semibold">
+                                Click to upload
+                              </span>{" "}
+                              compliance file
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              PDF, DOC, DOCX, JPG, PNG (MAX. 10MB)
+                            </p>
+                          </div>
+                          <input
+                            id="complianceFile"
+                            type="file"
+                            className="hidden"
+                            onChange={handleFileChange("compliance")}
+                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt"
+                          />
+                        </label>
+                      </div>
+                      {selectedFiles.compliance && (
+                        <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                          <p className="text-sm text-blue-700">
+                            Selected file: {selectedFiles.compliance.name}
                           </p>
                         </div>
                       )}

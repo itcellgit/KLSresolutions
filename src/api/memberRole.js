@@ -1,7 +1,7 @@
 // ../../api/memberRole.js
 import axios from "axios";
 
-const API_URL = "https://resolutions.klsbelagavi.org/api/api";
+const API_URL = "https://resolutions.klsbelagavi.org/api";
 
 export const assignRole = async (data, token) => {
   // Convert string values to proper types before sending
