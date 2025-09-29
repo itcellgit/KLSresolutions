@@ -60,19 +60,9 @@ const GCResolutionPage = () => {
         if (response.ok) {
           const blob = await response.blob();
           const url = window.URL.createObjectURL(blob);
-
-          // Open PDF in new tab for all user agents
-          window.open(url, "_blank");
-
-          // Clean up the URL after a short delay
-          setTimeout(() => {
-            window.URL.revokeObjectURL(url);
-          }, 1000);
-
-          // Don't set viewing state, just show normal tab content
-          setViewingPDF(null);
-          setPdfUrl("");
-          setActiveTab(type);
+          setPdfUrl(url);
+          setViewingPDF(type);
+          setActiveTab(null); // Clear active tab when viewing PDF
         } else {
           console.error("Failed to fetch PDF:", response.status);
           // Fallback to normal tab content
@@ -126,6 +116,14 @@ const GCResolutionPage = () => {
     }
 
     await handlePDFView(tab, filename);
+  };
+
+  // Detect iOS/iPad for better PDF handling
+  const isIOS = () => {
+    return (
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+    );
   };
 
   const [institutes, setInstitutes] = useState([]);
@@ -332,6 +330,15 @@ const GCResolutionPage = () => {
 
     return () => clearInterval(intervalId);
   }, []);
+
+  // Cleanup blob URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (pdfUrl) {
+        window.URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [pdfUrl]);
 
   // Predefined sections in the desired order
   const predefinedSections = [
@@ -774,11 +781,95 @@ const GCResolutionPage = () => {
                         </div>
 
                         {/* Content Display */}
-                        {activeTab && (
+                        {viewingPDF && pdfUrl ? (
+                          <div className="p-6 mt-8 bg-gray-50 rounded-xl">
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="text-lg font-semibold text-gray-800 capitalize">
+                                {viewingPDF === "meeting-notes"
+                                  ? "Meeting Notes"
+                                  : viewingPDF}{" "}
+                                PDF
+                              </h3>
+                              <div className="flex gap-2">
+                                {isIOS() && (
+                                  <a
+                                    href={pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-4 py-2 text-sm text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  >
+                                    Open in New Tab
+                                  </a>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    if (pdfUrl) {
+                                      window.URL.revokeObjectURL(pdfUrl);
+                                    }
+                                    setViewingPDF(null);
+                                    setPdfUrl("");
+                                    setActiveTab(null);
+                                  }}
+                                  className="px-4 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                  Close PDF
+                                </button>
+                              </div>
+                            </div>
+                            {isIOS() ? (
+                              <div className="flex items-center justify-center w-full overflow-hidden border border-gray-300 rounded-lg h-96 bg-gray-50">
+                                <div className="p-8 text-center">
+                                  <div className="mb-4 text-6xl">📱</div>
+                                  <h3 className="mb-2 text-lg font-semibold text-gray-800">
+                                    iPad/iPhone PDF Viewer
+                                  </h3>
+                                  <p className="mb-4 text-gray-600">
+                                    For the best PDF viewing experience on
+                                    iPad/iPhone, please use the "Open in New
+                                    Tab" button above.
+                                  </p>
+                                  <a
+                                    href={pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center px-6 py-3 text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  >
+                                    <svg
+                                      className="w-4 h-4 mr-2"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                      />
+                                    </svg>
+                                    Open PDF in New Tab
+                                  </a>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="w-full overflow-hidden border border-gray-300 rounded-lg h-96">
+                                <iframe
+                                  src={`${pdfUrl}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
+                                  className="w-full h-full"
+                                  title={`${viewingPDF} PDF`}
+                                  style={{
+                                    border: "none",
+                                    minHeight: "600px",
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ) : activeTab ? (
                           <div className="p-6 mt-8 bg-gray-50 rounded-xl">
                             {renderTabContent()}
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   )}
