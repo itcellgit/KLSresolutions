@@ -5,6 +5,7 @@ import { getAllManagementTenures } from "../../api/managementTenures";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/Header";
+import FileDownloadLink from "../../components/FileDownloadLink";
 
 const getCurrentTenure = () => {
   const today = new Date();
@@ -335,7 +336,7 @@ const GCResolutionPage = () => {
             <h4 className="mb-4 text-lg font-semibold text-gray-800">
               Meeting Notes for {formatDate(selectedDate)}
             </h4>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
                 <span className="font-medium">Institute:</span>{" "}
                 {getInstituteName(items[0]?.institute_id)}
@@ -344,6 +345,16 @@ const GCResolutionPage = () => {
                 <span className="font-medium">Meeting Notes:</span>{" "}
                 {items[0]?.meeting_notes || "N/A"}
               </div>
+              {items[0]?.meeting_notes && (
+                <div className="mt-4">
+                  <FileDownloadLink
+                    filename={items[0].meeting_notes}
+                    label="Download Meeting Notes PDF"
+                    token={token}
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  />
+                </div>
+              )}
             </div>
           </div>
         );
@@ -506,17 +517,8 @@ const GCResolutionPage = () => {
                           <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 border-r">
                             Month
                           </th>
-                          <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 border-r">
-                            Meeting Date 1
-                          </th>
-                          <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 border-r">
-                            Meeting Date 2
-                          </th>
-                          <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 border-r">
-                            Meeting Date 3
-                          </th>
                           <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
-                            Meeting Date 4
+                            Meeting Dates
                           </th>
                         </tr>
                       </thead>
@@ -532,31 +534,23 @@ const GCResolutionPage = () => {
                               <td className="px-6 py-4 text-sm font-medium text-gray-900 border-r bg-gray-50">
                                 {formatMonthYear(monthYearKey)}
                               </td>
-                              {[0, 1, 2, 3].map((index) => (
-                                <td
-                                  key={index}
-                                  className={`px-6 py-4 text-center ${
-                                    index < 3 ? "border-r" : ""
-                                  }`}
-                                >
-                                  {sortedDateKeys[index] ? (
+                              <td className="px-6 py-4 text-center">
+                                <div className="flex flex-wrap justify-center gap-2">
+                                  {sortedDateKeys.map((dateKey) => (
                                     <button
-                                      onClick={() =>
-                                        handleDateClick(sortedDateKeys[index])
-                                      }
+                                      key={dateKey}
+                                      onClick={() => handleDateClick(dateKey)}
                                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                        selectedDate === sortedDateKeys[index]
+                                        selectedDate === dateKey
                                           ? "bg-indigo-600 text-white shadow-lg"
                                           : "bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
                                       }`}
                                     >
-                                      {getDateNumber(sortedDateKeys[index])}
+                                      {getDateNumber(dateKey)}
                                     </button>
-                                  ) : (
-                                    <span className="text-gray-400">-</span>
-                                  )}
-                                </td>
-                              ))}
+                                  ))}
+                                </div>
+                              </td>
                             </tr>
                           );
                         })}
@@ -593,26 +587,152 @@ const GCResolutionPage = () => {
                         </div>
                       </div>
 
-                      {/* Tabs */}
-                      <div className="flex border-b border-gray-200 bg-gray-50">
-                        {tabs.map((tab) => (
+                      {/* Dashboard-style Big Box Buttons */}
+                      <div className="p-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          {/* Agenda Button */}
                           <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                              activeTab === tab.id
-                                ? "bg-white text-indigo-600 border-b-2 border-indigo-600"
-                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                            onClick={() => setActiveTab("agenda")}
+                            className={`group block bg-gradient-to-br from-blue-300 via-blue-400 to-blue-600 shadow-xl rounded-3xl p-8 md:p-10 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-blue-300 ${
+                              activeTab === "agenda"
+                                ? "scale-105 shadow-2xl ring-4 ring-blue-300"
+                                : ""
                             }`}
+                            style={{ minHeight: 200 }}
                           >
-                            <span className="mr-2">{tab.icon}</span>
-                            {tab.label}
+                            <div className="flex flex-col items-center justify-center h-full">
+                              <span
+                                className="mb-6 text-6xl md:text-7xl animate-bounce-slow"
+                                aria-label="Agenda"
+                              >
+                                📋
+                              </span>
+                              <h2 className="mb-2 text-2xl md:text-3xl font-bold text-blue-900 group-hover:text-white text-center transition-colors font-serif">
+                                Agenda
+                              </h2>
+                              <p className="text-lg font-medium text-center text-gray-900 md:text-xl group-hover:text-white drop-shadow-sm">
+                                View meeting agenda items
+                              </p>
+                            </div>
                           </button>
-                        ))}
-                      </div>
 
-                      {/* Tab Content */}
-                      <div className="p-6">{renderTabContent()}</div>
+                          {/* Meeting Notes Button with PDF Download */}
+                          <div
+                            className={`relative group bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 shadow-xl rounded-3xl p-8 md:p-10 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 ${
+                              activeTab === "meeting-notes"
+                                ? "scale-105 shadow-2xl ring-4 ring-yellow-300"
+                                : ""
+                            }`}
+                            style={{ minHeight: 200 }}
+                          >
+                            {groupedByDate[selectedDate] &&
+                            groupedByDate[selectedDate][0]?.meeting_notes ? (
+                              <FileDownloadLink
+                                filename={
+                                  groupedByDate[selectedDate][0].meeting_notes
+                                }
+                                label=""
+                                token={token}
+                                className="absolute inset-0 w-full h-full focus:outline-none focus:ring-4 focus:ring-yellow-300 rounded-3xl"
+                              >
+                                <div className="flex flex-col items-center justify-center h-full">
+                                  <span
+                                    className="mb-6 text-6xl md:text-7xl animate-bounce-slow"
+                                    aria-label="Meeting Notes"
+                                  >
+                                    📝
+                                  </span>
+                                  <h2 className="mb-2 text-2xl md:text-3xl font-bold text-yellow-900 group-hover:text-white text-center transition-colors font-serif">
+                                    Meeting Notes
+                                  </h2>
+                                  <p className="text-lg font-medium text-center text-gray-900 md:text-xl group-hover:text-white drop-shadow-sm">
+                                    Click to download PDF
+                                  </p>
+                                </div>
+                              </FileDownloadLink>
+                            ) : (
+                              <button
+                                onClick={() => setActiveTab("meeting-notes")}
+                                className="w-full h-full focus:outline-none focus:ring-4 focus:ring-yellow-300 rounded-3xl"
+                              >
+                                <div className="flex flex-col items-center justify-center h-full">
+                                  <span
+                                    className="mb-6 text-6xl md:text-7xl animate-bounce-slow"
+                                    aria-label="Meeting Notes"
+                                  >
+                                    📝
+                                  </span>
+                                  <h2 className="mb-2 text-2xl md:text-3xl font-bold text-yellow-900 group-hover:text-white text-center transition-colors font-serif">
+                                    Meeting Notes
+                                  </h2>
+                                  <p className="text-lg font-medium text-center text-gray-900 md:text-xl group-hover:text-white drop-shadow-sm">
+                                    View meeting notes and details
+                                  </p>
+                                </div>
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Resolution Button */}
+                          <button
+                            onClick={() => setActiveTab("resolution")}
+                            className={`group block bg-gradient-to-br from-purple-300 via-purple-400 to-purple-600 shadow-xl rounded-3xl p-8 md:p-10 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-purple-300 ${
+                              activeTab === "resolution"
+                                ? "scale-105 shadow-2xl ring-4 ring-purple-300"
+                                : ""
+                            }`}
+                            style={{ minHeight: 200 }}
+                          >
+                            <div className="flex flex-col items-center justify-center h-full">
+                              <span
+                                className="mb-6 text-6xl md:text-7xl animate-bounce-slow"
+                                aria-label="Resolution"
+                              >
+                                ⚖️
+                              </span>
+                              <h2 className="mb-2 text-2xl md:text-3xl font-bold text-purple-900 group-hover:text-white text-center transition-colors font-serif">
+                                Resolution
+                              </h2>
+                              <p className="text-lg font-medium text-center text-gray-900 md:text-xl group-hover:text-white drop-shadow-sm">
+                                View meeting resolutions
+                              </p>
+                            </div>
+                          </button>
+
+                          {/* Compliance Button */}
+                          <button
+                            onClick={() => setActiveTab("compliance")}
+                            className={`group block bg-gradient-to-br from-green-300 via-green-400 to-green-600 shadow-xl rounded-3xl p-8 md:p-10 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-green-300 ${
+                              activeTab === "compliance"
+                                ? "scale-105 shadow-2xl ring-4 ring-green-300"
+                                : ""
+                            }`}
+                            style={{ minHeight: 200 }}
+                          >
+                            <div className="flex flex-col items-center justify-center h-full">
+                              <span
+                                className="mb-6 text-6xl md:text-7xl animate-bounce-slow"
+                                aria-label="Compliance"
+                              >
+                                ✅
+                              </span>
+                              <h2 className="mb-2 text-2xl md:text-3xl font-bold text-green-900 group-hover:text-white text-center transition-colors font-serif">
+                                Compliance
+                              </h2>
+                              <p className="text-lg font-medium text-center text-gray-900 md:text-xl group-hover:text-white drop-shadow-sm">
+                                View compliance information
+                              </p>
+                            </div>
+                          </button>
+                        </div>
+
+                        {/* Content Display */}
+                        {activeTab && (
+                          <div className="mt-8 p-6 bg-gray-50 rounded-xl">
+                            {renderTabContent()}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

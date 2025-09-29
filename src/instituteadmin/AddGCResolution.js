@@ -185,7 +185,7 @@ const AddGCResolution = () => {
       if (editingId && !fileData.agenda) {
         // For editing, check if there's an existing agenda file
         const existingResolution = resolutions.find((r) => r.id === editingId);
-        if (!existingResolution?.agenda_file_path) {
+        if (!existingResolution?.agenda) {
           setFormError("Agenda file is required");
           setIsSubmitting(false);
           return;
@@ -202,10 +202,14 @@ const AddGCResolution = () => {
         }
       });
 
-      // Add file fields
+      // Add file fields - for editing, preserve existing files if no new file uploaded
       Object.keys(fileData).forEach((key) => {
         if (fileData[key]) {
+          // New file uploaded
           submitData.append(key, fileData[key]);
+        } else if (editingId && formData[key]) {
+          // Editing mode: preserve existing file by sending its filename
+          submitData.append(`existing_${key}`, formData[key]);
         }
       });
 

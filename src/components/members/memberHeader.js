@@ -49,7 +49,7 @@ const MemberHeader = ({ toggleSidebar }) => {
           {user && (
             <div className="hidden md:block">
               <span className="mr-4 text-sm text-gray-600">
-                Welcome, {user.email}
+                Welcome, {user.username}
               </span>
             </div>
           )}
