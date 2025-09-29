@@ -63,11 +63,38 @@ router.get("/file/:filename", authMiddleware, (req, res) => {
   }
 });
 
+// Error handling middleware for multer errors
+const handleMulterError = (err, req, res, next) => {
+  if (err) {
+    console.error("Multer error:", err);
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ 
+        error: "File too large. Maximum file size is 50MB." 
+      });
+    }
+    if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      return res.status(400).json({ 
+        error: "Too many files or unexpected file field." 
+      });
+    }
+    if (err.message.includes('Invalid file type')) {
+      return res.status(400).json({ 
+        error: err.message 
+      });
+    }
+    return res.status(400).json({ 
+      error: "File upload error: " + err.message 
+    });
+  }
+  next();
+};
+
 // Institute admin can add GC resolution (with file upload)
 router.post(
   "/",
   authMiddleware,
   uploadGCFiles,
+  handleMulterError,
   gcResolutionController.createGCResolution
 );
 
@@ -76,6 +103,7 @@ router.put(
   "/:id",
   authMiddleware,
   uploadGCFiles,
+  handleMulterError,
   gcResolutionController.updateGCResolution
 );
 
