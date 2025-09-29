@@ -2,7 +2,7 @@
 import axios from "axios";
 
 // Base API URL
-const API_URL = "http://10.22.0.152:3000/api";
+const API_URL = "https://resolutions.klsbelagavi.org/api"; //"http://10.22.0.152:3000/api";
 
 export const assignRole = async (data, token) => {
   // Convert string values to proper types before sending
