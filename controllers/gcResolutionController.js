@@ -7,76 +7,33 @@ const {
   Institute,
 } = require("../models");
 
-// Dedicated method to generate GC No
-async function generateGCNo(institute_id, gc_date) {
-  console.log(
-    "Generating GC No for institute_id:",
-    institute_id,
-    "on date:",
-    gc_date
-  );
-  // Fetch institute short name
-  const institute = await Institute.findByPk(institute_id);
-  if (!institute || !institute.code) {
-    throw new Error("Institute short name not found");
-  }
-  const code = institute.code;
-
-  // Find all GC resolutions for this institute and date
-  const sameDateResolutions = await GCResolution.findAll({
-    where: {
-      institute_id,
-      gc_date,
-    },
-    order: [["id", "ASC"]],
-  });
-
-  // Determine the series number (next in sequence)
-  const seriesNo = sameDateResolutions.length + 1;
-
-  // Find the group number for this date (lowest id for this date)
-  let groupNo = 1;
-  if (sameDateResolutions.length > 0) {
-    // Find the minimum group number for this date
-    const firstResolution = sameDateResolutions[0];
-    // Extract group number from existing gc_no (e.g., KLSGIT_1_1)
-    const match = firstResolution.gc_no.match(/^[A-Za-z0-9]+_(\d+)_\d+$/);
-    groupNo = match ? parseInt(match[1], 10) : 1;
-  } else {
-    // Find max group number for this institute
-    const allResolutions = await GCResolution.findAll({
-      where: { institute_id },
-      order: [["id", "ASC"]],
-    });
-    const groupNos = allResolutions
-      .map((r) => {
-        const m = r.gc_no && r.gc_no.match(/^[A-Za-z0-9]+_(\d+)_\d+$/);
-        return m ? parseInt(m[1], 10) : null;
-      })
-      .filter((n) => n !== null);
-    groupNo = groupNos.length > 0 ? Math.max(...groupNos) + 1 : 1;
-  }
-
-  // Format: code_groupNo_seriesNo
-  return `${code}_${groupNo}_${seriesNo}`;
-}
-
 // Get all GC resolutions (admin sees all, institute admin sees only their own)
 //condition addeed
 exports.getAllGCResolutions = async (req, res) => {
   try {
     const { usertypeid, id } = req.user;
+    const { tenure_id } = req.query; // Add tenure filtering from query params
     let resolutions = [];
+
+    // Build where clause for tenure filtering
+    const whereClause = {};
+    if (tenure_id) {
+      whereClause.tenure_id = tenure_id;
+    }
 
     if (usertypeid === 1) {
       // Admin: all resolutions, latest first
       resolutions = await GCResolution.findAll({
+        where: whereClause,
         order: [["id", "DESC"]],
       });
     } else if (usertypeid === 2) {
       // Institute admin: only their institute's resolutions, latest first
       resolutions = await GCResolution.findAll({
-        where: { institute_id: req.user.institute_id },
+        where: {
+          institute_id: req.user.institute_id,
+          ...whereClause,
+        },
         order: [["id", "DESC"]],
       });
     } else if (usertypeid === 3) {
@@ -100,6 +57,7 @@ exports.getAllGCResolutions = async (req, res) => {
       if (hasSpecialRole) {
         // President or Vice President: view all resolutions
         resolutions = await GCResolution.findAll({
+          where: whereClause,
           order: [["id", "DESC"]],
         });
       } else {
@@ -117,7 +75,10 @@ exports.getAllGCResolutions = async (req, res) => {
             .json({ error: "Member does not belong to any institute" });
         }
         resolutions = await GCResolution.findAll({
-          where: { institute_id: instituteIds },
+          where: {
+            institute_id: instituteIds,
+            ...whereClause,
+          },
           order: [["id", "DESC"]],
         });
       }
@@ -133,6 +94,7 @@ exports.getAllGCResolutions = async (req, res) => {
 // Institute admin can add GC resolution
 exports.createGCResolution = async (req, res) => {
   console.log("Request body:", req.body);
+  console.log("Request files:", req.files);
   console.log("User info:", req.user);
   try {
     if (req.user.usertypeid !== 2) {
@@ -140,34 +102,59 @@ exports.createGCResolution = async (req, res) => {
         .status(403)
         .json({ error: "Only institute admin can add GC resolutions" });
     }
-    const {
-      agenda_section,
-      agenda,
-      resolution,
-      compliance,
-      gc_date,
-      tenure_id,
-    } = req.body;
-    if (!agenda || !gc_date) {
-      return res.status(400).json({ error: "Missing required fields" });
+
+    const { gc_date, tenure_id } = req.body;
+
+    // Check required fields
+    if (!gc_date) {
+      return res.status(400).json({ error: "GC date is required" });
     }
 
-    // Generate GC No
-    const gc_no = await generateGCNo(req.user.institute_id, gc_date);
+    // Check if at least agenda file is uploaded
+    if (!req.files || !req.files.agenda) {
+      return res.status(400).json({ error: "Agenda file is required" });
+    }
+
+    // Extract file paths from uploaded files
+    const filePaths = {};
+    if (req.files.agenda) {
+      filePaths.agenda = req.files.agenda[0].filename;
+      console.log("Agenda file saved as:", filePaths.agenda);
+    }
+    if (req.files.resolution) {
+      filePaths.resolution = req.files.resolution[0].filename;
+      console.log("Resolution file saved as:", filePaths.resolution);
+    }
+    if (req.files.compliance) {
+      filePaths.compliance = req.files.compliance[0].filename;
+      console.log("Compliance file saved as:", filePaths.compliance);
+    }
+    if (req.files.meeting_notes) {
+      filePaths.meeting_notes = req.files.meeting_notes[0].filename;
+      console.log("Meeting notes file saved as:", filePaths.meeting_notes);
+    }
 
     const gcResolution = await GCResolution.create({
-      agenda_section,
-      agenda,
-      resolution,
-      compliance,
+      agenda: filePaths.agenda || null,
+      resolution: filePaths.resolution || null,
+      compliance: filePaths.compliance || null,
+      meeting_notes: filePaths.meeting_notes || null,
       gc_date,
-      gc_no,
       institute_id: req.user.institute_id,
       tenure_id,
     });
 
+    console.log("Created GC Resolution with files:", {
+      id: gcResolution.id,
+      agenda: gcResolution.agenda,
+      resolution: gcResolution.resolution,
+      compliance: gcResolution.compliance,
+      meeting_notes: gcResolution.meeting_notes,
+    });
+
     res.status(201).json(gcResolution);
   } catch (err) {
+    console.error("Error creating GC resolution:", err);
     res.status(400).json({ error: err.message });
   }
 };
@@ -176,14 +163,7 @@ exports.createGCResolution = async (req, res) => {
 exports.updateGCResolution = async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      agenda_section,
-      agenda,
-      resolution,
-      compliance,
-      gc_date,
-      tenure_id,
-    } = req.body;
+    const { gc_date, tenure_id } = req.body;
 
     const gcResolution = await GCResolution.findByPk(id);
     if (!gcResolution) {
@@ -200,17 +180,28 @@ exports.updateGCResolution = async (req, res) => {
         .json({ error: "You can only update resolutions of your institute" });
     }
 
-    await gcResolution.update({
-      agenda_section,
-      agenda,
-      resolution,
-      compliance,
-      gc_date,
-      tenure_id,
-    });
+    // Prepare update data with existing values as defaults
+    const updateData = {
+      gc_date: gc_date || gcResolution.gc_date,
+      tenure_id: tenure_id || gcResolution.tenure_id,
+    };
+
+    // Update file paths only if new files are uploaded
+    if (req.files) {
+      if (req.files.agenda) updateData.agenda = req.files.agenda[0].filename;
+      if (req.files.resolution)
+        updateData.resolution = req.files.resolution[0].filename;
+      if (req.files.compliance)
+        updateData.compliance = req.files.compliance[0].filename;
+      if (req.files.meeting_notes)
+        updateData.meeting_notes = req.files.meeting_notes[0].filename;
+    }
+
+    await gcResolution.update(updateData);
 
     res.json(gcResolution);
   } catch (err) {
+    console.error("Error updating GC resolution:", err);
     res.status(400).json({ error: err.message });
   }
 };

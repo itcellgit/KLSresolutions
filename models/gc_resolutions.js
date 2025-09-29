@@ -8,15 +8,20 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
       },
       agenda: {
-        type: DataTypes.TEXT,
+        type: DataTypes.STRING(255),
         allowNull: false,
       },
       resolution: {
-        type: DataTypes.TEXT,
-        allowNull: false,
+        type: DataTypes.STRING(255),
+        allowNull: true,
       },
       compliance: {
-        type: DataTypes.TEXT,
+        type: DataTypes.STRING(255),
+        allowNull: true,
+      },
+      meeting_notes: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
       },
       institute_id: {
         type: DataTypes.INTEGER,
@@ -25,15 +30,6 @@ module.exports = (sequelize, DataTypes) => {
       gc_date: {
         type: DataTypes.DATEONLY,
         allowNull: false,
-      },
-      gc_no: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
-      },
-      agenda_section: {
-        type: DataTypes.STRING,
-        allowNull: true,
       },
       tenure_id: {
         type: DataTypes.BIGINT,
