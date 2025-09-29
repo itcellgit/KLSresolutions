@@ -6,6 +6,28 @@ const {
   BOMResolution,
   Institute,
 } = require("../models");
+const fs = require("fs");
+const path = require("path");
+
+// Helper function to delete a file from the server
+const deleteFileFromServer = (filename) => {
+  if (!filename) return;
+
+  const filePath = path.join(__dirname, "../uploads", filename);
+
+  // Check if file exists before attempting to delete
+  if (fs.existsSync(filePath)) {
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        console.error(`Error deleting file ${filename}:`, err);
+      } else {
+        console.log(`Successfully deleted file: ${filename}`);
+      }
+    });
+  } else {
+    console.log(`File ${filename} does not exist, skipping deletion`);
+  }
+};
 
 // Get all GC resolutions (admin sees all, institute admin sees only their own)
 //condition addeed
@@ -186,16 +208,57 @@ exports.updateGCResolution = async (req, res) => {
       tenure_id: tenure_id || gcResolution.tenure_id,
     };
 
-    // Update file paths only if new files are uploaded
+    // Handle file updates
     if (req.files) {
-      if (req.files.agenda) updateData.agenda = req.files.agenda[0].filename;
-      if (req.files.resolution)
+      // Update file paths only if new files are uploaded
+      // Also delete old files when they are replaced
+      if (req.files.agenda) {
+        if (gcResolution.agenda) {
+          console.log(
+            `Replacing agenda file: ${gcResolution.agenda} with ${req.files.agenda[0].filename}`
+          );
+          deleteFileFromServer(gcResolution.agenda);
+        }
+        updateData.agenda = req.files.agenda[0].filename;
+      }
+      if (req.files.resolution) {
+        if (gcResolution.resolution) {
+          console.log(
+            `Replacing resolution file: ${gcResolution.resolution} with ${req.files.resolution[0].filename}`
+          );
+          deleteFileFromServer(gcResolution.resolution);
+        }
         updateData.resolution = req.files.resolution[0].filename;
-      if (req.files.compliance)
+      }
+      if (req.files.compliance) {
+        if (gcResolution.compliance) {
+          console.log(
+            `Replacing compliance file: ${gcResolution.compliance} with ${req.files.compliance[0].filename}`
+          );
+          deleteFileFromServer(gcResolution.compliance);
+        }
         updateData.compliance = req.files.compliance[0].filename;
-      if (req.files.meeting_notes)
+      }
+      if (req.files.meeting_notes) {
+        if (gcResolution.meeting_notes) {
+          console.log(
+            `Replacing meeting_notes file: ${gcResolution.meeting_notes} with ${req.files.meeting_notes[0].filename}`
+          );
+          deleteFileFromServer(gcResolution.meeting_notes);
+        }
         updateData.meeting_notes = req.files.meeting_notes[0].filename;
+      }
     }
+
+    // Handle existing files (preserve them if no new file uploaded)
+    const fileFields = ["agenda", "resolution", "compliance", "meeting_notes"];
+    fileFields.forEach((field) => {
+      const existingFieldKey = `existing_${field}`;
+      if (req.body[existingFieldKey] && !req.files?.[field]) {
+        // Keep existing file if no new file uploaded
+        updateData[field] = req.body[existingFieldKey];
+      }
+    });
 
     await gcResolution.update(updateData);
 
@@ -226,10 +289,23 @@ exports.deleteGCResolution = async (req, res) => {
         .json({ error: "You can only delete resolutions of your institute" });
     }
 
+    // Delete all associated files before deleting the record
+    const fileFields = ["agenda", "resolution", "compliance", "meeting_notes"];
+    console.log(`Deleting GC Resolution ${id} and associated files`);
+    fileFields.forEach((field) => {
+      if (gcResolution[field]) {
+        console.log(`Deleting ${field} file: ${gcResolution[field]}`);
+        deleteFileFromServer(gcResolution[field]);
+      }
+    });
+
     await gcResolution.destroy();
 
-    res.json({ message: "Resolution deleted successfully" });
+    res.json({
+      message: "Resolution and associated files deleted successfully",
+    });
   } catch (err) {
+    console.error("Error deleting GC resolution:", err);
     res.status(400).json({ error: err.message });
   }
 };
