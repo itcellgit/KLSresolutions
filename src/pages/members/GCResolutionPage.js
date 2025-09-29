@@ -118,6 +118,14 @@ const GCResolutionPage = () => {
     await handlePDFView(tab, filename);
   };
 
+  // Detect iOS/iPad for better PDF handling
+  const isIOS = () => {
+    return (
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+    );
+  };
+
   const [institutes, setInstitutes] = useState([]);
   const [filteredInstitutes, setFilteredInstitutes] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -679,21 +687,21 @@ const GCResolutionPage = () => {
                           {/* Agenda Button */}
                           <button
                             onClick={() => handleTabClick("agenda")}
-                            className={`group block bg-gradient-to-br from-blue-300 via-blue-400 to-blue-600 shadow-xl rounded-2xl p-4 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-blue-300 ${
+                            className={`group block bg-gradient-to-br from-blue-300 via-blue-400 to-blue-600 shadow-xl rounded-2xl p-3 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-blue-300 ${
                               activeTab === "agenda" || viewingPDF === "agenda"
                                 ? "scale-105 shadow-2xl ring-4 ring-blue-300"
                                 : ""
                             }`}
-                            style={{ minHeight: 140 }}
+                            style={{ minHeight: 110 }}
                           >
                             <div className="flex flex-col items-center justify-center h-full">
                               <span
-                                className="mb-3 text-3xl animate-bounce-slow"
+                                className="mb-2 text-2xl animate-bounce-slow"
                                 aria-label="Agenda"
                               >
                                 📋
                               </span>
-                              <h2 className="mb-1 text-lg font-bold text-blue-900 group-hover:text-white text-center transition-colors font-serif">
+                              <h2 className="mb-1 text-base font-bold text-blue-900 group-hover:text-white text-center transition-colors font-serif">
                                 Agenda
                               </h2>
                               <p className="text-xs font-medium text-center text-gray-900 group-hover:text-white drop-shadow-sm">
@@ -705,22 +713,22 @@ const GCResolutionPage = () => {
                           {/* Meeting Notes Button */}
                           <button
                             onClick={() => handleTabClick("meeting-notes")}
-                            className={`group block bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 shadow-xl rounded-2xl p-4 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-yellow-300 ${
+                            className={`group block bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 shadow-xl rounded-2xl p-3 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-yellow-300 ${
                               activeTab === "meeting-notes" ||
                               viewingPDF === "meeting-notes"
                                 ? "scale-105 shadow-2xl ring-4 ring-yellow-300"
                                 : ""
                             }`}
-                            style={{ minHeight: 140 }}
+                            style={{ minHeight: 110 }}
                           >
                             <div className="flex flex-col items-center justify-center h-full">
                               <span
-                                className="mb-3 text-3xl animate-bounce-slow"
+                                className="mb-2 text-2xl animate-bounce-slow"
                                 aria-label="Meeting Notes"
                               >
                                 📝
                               </span>
-                              <h2 className="mb-1 text-lg font-bold text-yellow-900 group-hover:text-white text-center transition-colors font-serif">
+                              <h2 className="mb-1 text-base font-bold text-yellow-900 group-hover:text-white text-center transition-colors font-serif">
                                 Meeting Notes
                               </h2>
                               <p className="text-xs font-medium text-center text-gray-900 group-hover:text-white drop-shadow-sm">
@@ -732,22 +740,22 @@ const GCResolutionPage = () => {
                           {/* Resolution Button */}
                           <button
                             onClick={() => handleTabClick("resolution")}
-                            className={`group block bg-gradient-to-br from-purple-300 via-purple-400 to-purple-600 shadow-xl rounded-2xl p-4 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-purple-300 ${
+                            className={`group block bg-gradient-to-br from-purple-300 via-purple-400 to-purple-600 shadow-xl rounded-2xl p-3 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-purple-300 ${
                               activeTab === "resolution" ||
                               viewingPDF === "resolution"
                                 ? "scale-105 shadow-2xl ring-4 ring-purple-300"
                                 : ""
                             }`}
-                            style={{ minHeight: 140 }}
+                            style={{ minHeight: 110 }}
                           >
                             <div className="flex flex-col items-center justify-center h-full">
                               <span
-                                className="mb-3 text-3xl animate-bounce-slow"
+                                className="mb-2 text-2xl animate-bounce-slow"
                                 aria-label="Resolution"
                               >
                                 ⚖️
                               </span>
-                              <h2 className="mb-1 text-lg font-bold text-purple-900 group-hover:text-white text-center transition-colors font-serif">
+                              <h2 className="mb-1 text-base font-bold text-purple-900 group-hover:text-white text-center transition-colors font-serif">
                                 Resolution
                               </h2>
                               <p className="text-xs font-medium text-center text-gray-900 group-hover:text-white drop-shadow-sm">
@@ -759,22 +767,22 @@ const GCResolutionPage = () => {
                           {/* Compliance Button */}
                           <button
                             onClick={() => handleTabClick("compliance")}
-                            className={`group block bg-gradient-to-br from-green-300 via-green-400 to-green-600 shadow-xl rounded-2xl p-4 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-green-300 ${
+                            className={`group block bg-gradient-to-br from-green-300 via-green-400 to-green-600 shadow-xl rounded-2xl p-3 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-green-300 ${
                               activeTab === "compliance" ||
                               viewingPDF === "compliance"
                                 ? "scale-105 shadow-2xl ring-4 ring-green-300"
                                 : ""
                             }`}
-                            style={{ minHeight: 140 }}
+                            style={{ minHeight: 110 }}
                           >
                             <div className="flex flex-col items-center justify-center h-full">
                               <span
-                                className="mb-3 text-3xl animate-bounce-slow"
+                                className="mb-2 text-2xl animate-bounce-slow"
                                 aria-label="Compliance"
                               >
                                 ✅
                               </span>
-                              <h2 className="mb-1 text-lg font-bold text-green-900 group-hover:text-white text-center transition-colors font-serif">
+                              <h2 className="mb-1 text-base font-bold text-green-900 group-hover:text-white text-center transition-colors font-serif">
                                 Compliance
                               </h2>
                               <p className="text-xs font-medium text-center text-gray-900 group-hover:text-white drop-shadow-sm">
@@ -794,31 +802,80 @@ const GCResolutionPage = () => {
                                   : viewingPDF}{" "}
                                 PDF
                               </h3>
-                              <button
-                                onClick={() => {
-                                  if (pdfUrl) {
-                                    window.URL.revokeObjectURL(pdfUrl);
-                                  }
-                                  setViewingPDF(null);
-                                  setPdfUrl("");
-                                  setActiveTab(null);
-                                }}
-                                className="px-4 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              >
-                                Close PDF
-                              </button>
+                              <div className="flex gap-2">
+                                {isIOS() && (
+                                  <a
+                                    href={pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-4 py-2 text-sm text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  >
+                                    Open in New Tab
+                                  </a>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    if (pdfUrl) {
+                                      window.URL.revokeObjectURL(pdfUrl);
+                                    }
+                                    setViewingPDF(null);
+                                    setPdfUrl("");
+                                    setActiveTab(null);
+                                  }}
+                                  className="px-4 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                  Close PDF
+                                </button>
+                              </div>
                             </div>
-                            <div className="w-full h-96 border border-gray-300 rounded-lg overflow-hidden">
-                              <iframe
-                                src={`${pdfUrl}#toolbar=1&navpanes=1&scrollbar=1`}
-                                className="w-full h-full"
-                                title={`${viewingPDF} PDF`}
-                                style={{
-                                  border: "none",
-                                  minHeight: "600px",
-                                }}
-                              />
-                            </div>
+                            {isIOS() ? (
+                              <div className="w-full h-96 border border-gray-300 rounded-lg overflow-hidden flex items-center justify-center bg-gray-50">
+                                <div className="text-center p-8">
+                                  <div className="text-6xl mb-4">📱</div>
+                                  <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                                    iPad/iPhone PDF Viewer
+                                  </h3>
+                                  <p className="text-gray-600 mb-4">
+                                    For the best PDF viewing experience on
+                                    iPad/iPhone, please use the "Open in New
+                                    Tab" button above.
+                                  </p>
+                                  <a
+                                    href={pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center px-6 py-3 text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  >
+                                    <svg
+                                      className="w-4 h-4 mr-2"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                      />
+                                    </svg>
+                                    Open PDF in New Tab
+                                  </a>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="w-full h-96 border border-gray-300 rounded-lg overflow-hidden">
+                                <iframe
+                                  src={`${pdfUrl}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
+                                  className="w-full h-full"
+                                  title={`${viewingPDF} PDF`}
+                                  style={{
+                                    border: "none",
+                                    minHeight: "600px",
+                                  }}
+                                />
+                              </div>
+                            )}
                           </div>
                         ) : activeTab ? (
                           <div className="mt-8 p-6 bg-gray-50 rounded-xl">
