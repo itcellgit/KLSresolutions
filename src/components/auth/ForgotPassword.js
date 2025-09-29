@@ -41,7 +41,7 @@ const ForgotPassword = () => {
             className="w-20 h-20 mb-4 rounded-full shadow"
           />
           <h1 className="text-3xl md:text-4xl font-extrabold text-indigo-700 mb-2 text-center">
-            Karnataka Law Society
+            Karnatak Law Society
           </h1>
           <p className="text-gray-600 text-center text-base md:text-lg mb-2">
             Enter your email address to receive an OTP for password reset.
@@ -101,7 +101,7 @@ const ForgotPassword = () => {
             </p>
           )} */}
           <div className="text-xs text-gray-500 text-center">
-            &copy; {new Date().getFullYear()} Karnataka Law Society. All rights
+            &copy; {new Date().getFullYear()} Karnatak Law Society. All rights
             reserved.
           </div>
         </div>

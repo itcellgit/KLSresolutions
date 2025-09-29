@@ -1,8 +1,8 @@
 import axios from "axios";
 
-const API_URL = "https://resolutions.klsbelagavi.org/api";
+const API_URL = "http://10.22.0.152:3000/api";
 
-export const getGCResolutions = async (token) => {
+export const getGCResolutions = async (token, tenure_id = null) => {
   try {
     if (!token) {
       console.error("No token provided to getGCResolutions");
@@ -14,7 +14,16 @@ export const getGCResolutions = async (token) => {
       "Content-Type": "application/json",
     };
 
-    const response = await axios.get(`${API_URL}/gc_resolutions`, { headers });
+    // Build query parameters
+    const params = {};
+    if (tenure_id) {
+      params.tenure_id = tenure_id;
+    }
+
+    const response = await axios.get(`${API_URL}/gc_resolutions`, {
+      headers,
+      params,
+    });
 
     return response.data;
   } catch (error) {
@@ -41,7 +50,7 @@ export const createGCResolution = async (data, token) => {
 
     const headers = {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
+      // Don't set Content-Type for FormData - let browser set it with boundary
     };
 
     console.log("Sending data to API:", data); // Log the data being sent
@@ -82,7 +91,7 @@ export const updateGCResolution = async (id, data, token) => {
 
     const headers = {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
+      // Don't set Content-Type for FormData - let browser set it with boundary
     };
 
     const response = await axios.put(`${API_URL}/gc_resolutions/${id}`, data, {

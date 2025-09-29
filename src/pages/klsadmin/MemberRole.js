@@ -410,14 +410,14 @@ const MemberRoleManagementPage = () => {
     return tenureViewModes[tenure] || "member";
   };
 
-  // Helper function to get role priority for "Karnataka Law Society" (Not Assigned) institutes
+  // Helper function to get role priority for "Karnatak Law Society" (Not Assigned) institutes
   const getRolePriorityForKLS = (roleId) => {
     const role = roles.find((r) => r.id === roleId);
     const roleName = role
       ? (role.role_name || role.name || role.title || "").toLowerCase()
       : "";
 
-    // Define role hierarchy for Karnataka Law Society (lower number = higher priority)
+    // Define role hierarchy for Karnatak Law Society (lower number = higher priority)
     if (roleName.includes("president") && !roleName.includes("vice")) {
       return 1; // President
     } else if (roleName.includes("vice") && roleName.includes("president")) {

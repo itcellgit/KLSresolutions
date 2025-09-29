@@ -91,10 +91,6 @@ const BOMResolution = () => {
         resolution.compliance
           .toLowerCase()
           .includes(searchTerm.toLowerCase())) ||
-      (resolution.meeting_notes &&
-        resolution.meeting_notes
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase())) ||
       resolution.bom_date.includes(searchTerm) ||
       resolution.gc_resolution_id.toString().includes(searchTerm) ||
       (gcResolution &&
@@ -297,7 +293,7 @@ const BOMResolution = () => {
                     <div className="relative w-full sm:w-80">
                       <input
                         type="text"
-                        placeholder="Search by agenda, resolution, compliance, meeting notes, or date..."
+                        placeholder="Search by agenda, resolution, compliance, or date..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full py-3 pl-12 pr-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 shadow-sm"
@@ -382,9 +378,6 @@ const BOMResolution = () => {
                         </th>
                         <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase border-b-2 border-gray-200 w-48">
                           Compliance Status
-                        </th>
-                        <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase border-b-2 border-gray-200 w-48">
-                          Meeting Notes
                         </th>
                         <th className="px-6 py-4 text-xs font-bold tracking-wider text-center text-gray-700 uppercase border-b-2 border-gray-200 w-56">
                           Related GC Resolution
@@ -480,23 +473,6 @@ const BOMResolution = () => {
                                 </span>
                               )}
                             </td>
-                            <td className="px-6 py-5 text-sm text-center text-gray-700 w-48 break-words">
-                              {resolution.meeting_notes &&
-                              resolution.meeting_notes.trim() !== "" ? (
-                                <div
-                                  className="max-w-xs truncate"
-                                  title={resolution.meeting_notes}
-                                >
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                    Available
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                  None
-                                </span>
-                              )}
-                            </td>
                             <td className="px-6 py-5 text-sm text-center text-gray-700 w-56 break-words">
                               {resolution.gc_resolution ? (
                                 <div className="max-w-xs">
@@ -505,7 +481,7 @@ const BOMResolution = () => {
                                     title={resolution.gc_resolution.agenda}
                                   >
                                     <div className="font-medium">
-                                      {resolution.gc_resolution.agenda}
+                                      {resolution.gc_resolution.gc_no}
                                     </div>
                                     <div className="text-xs text-gray-500 truncate">
                                       {formatDate(

@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import Header from "../../components/Header";
-import FileLink from "../../components/FileLink";
+import HtmlContent from "../../components/HtmlContent";
 
 // Helper function to map agenda sections to predefined categories
 const mapToSectionCategory = (agendaSection) => {
@@ -730,25 +730,22 @@ const BOMResolutionPage = () => {
                                 </td>
                                 <td className="px-6 py-4 text-sm text-gray-900">
                                   <div className="max-w-xs">
-                                    <FileLink
-                                      filename={resolution.agenda}
-                                      label="View Agenda"
+                                    <HtmlContent
+                                      content={resolution.agenda || "N/A"}
                                     />
                                   </div>
                                 </td>
                                 <td className="px-6 py-4 text-sm text-gray-900">
                                   <div className="max-w-md">
-                                    <FileLink
-                                      filename={resolution.resolution}
-                                      label="View Resolution"
+                                    <HtmlContent
+                                      content={resolution.resolution || "N/A"}
                                     />
                                   </div>
                                 </td>
                                 <td className="px-6 py-4 text-sm text-gray-900">
                                   <div className="max-w-xs">
-                                    <FileLink
-                                      filename={resolution.compliance}
-                                      label="View Compliance"
+                                    <HtmlContent
+                                      content={resolution.compliance || "N/A"}
                                     />
                                   </div>
                                 </td>
@@ -810,7 +807,7 @@ const BOMResolutionPage = () => {
         {/* Footer */}
         {!isLoading && (
           <div className="mt-8 text-sm text-center text-gray-500">
-            <p>Karnataka Law Society © {new Date().getFullYear()}</p>
+            <p>Karnatak Law Society © {new Date().getFullYear()}</p>
             <p className="mt-1">
               Last updated: {new Date().toLocaleDateString()}
             </p>

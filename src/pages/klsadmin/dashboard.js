@@ -22,7 +22,7 @@ const DashboardPage = () => {
             DASHBOARD
           </h1>
           <p className="max-w-2xl mx-auto text-lg text-gray-600">
-            Overview of Karnataka Law Society
+            Overview of Karnatak Law Society
           </p>
         </div>
 

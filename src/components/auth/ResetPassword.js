@@ -77,7 +77,7 @@ const ResetPassword = () => {
             className="w-20 h-20 mb-4 rounded-full shadow"
           />
           <h1 className="mb-2 text-3xl font-extrabold text-center text-indigo-700 md:text-4xl">
-            Karnataka Law Society
+            Karnatak Law Society
           </h1>
           <p className="mb-2 text-base text-center text-gray-600 md:text-lg">
             Enter the OTP sent to your email and set a new password.
@@ -250,7 +250,7 @@ const ResetPassword = () => {
             Back to Login
           </Link>
           <div className="text-xs text-center text-gray-500">
-            &copy; {new Date().getFullYear()} Karnataka Law Society. All rights
+            &copy; {new Date().getFullYear()} Karnatak Law Society. All rights
             reserved.
           </div>
         </div>

@@ -147,7 +147,7 @@ const Login = () => {
             Forgot Password?
           </Link>
           <div className="text-xs text-center text-gray-500">
-            &copy; {new Date().getFullYear()} Karnataka Law Society. All rights
+            &copy; {new Date().getFullYear()} Karnatak Law Society. All rights
             reserved.
           </div>
         </div>

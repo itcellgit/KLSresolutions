@@ -3,8 +3,8 @@ import Header from "../../components/Header";
 
 const cardData = [
   {
-    title: "Annual General Meeting",
-    description: "",
+    title: "AGM",
+    description: "Annual General Meeting decisions and updates.",
     color: "#FFD600",
     // icon: "ðŸŽ¯",
     link: "/member/agm-resolutions",
@@ -12,8 +12,8 @@ const cardData = [
     text: "text-yellow-900",
   },
   {
-    title: "Board Of Management",
-    description: "",
+    title: "BOM",
+    description: "Board of Management resolutions and actions.",
     color: "#43A047",
     // icon: "ðŸ“‘",
     link: "/member/bom-resolutions",
@@ -21,8 +21,8 @@ const cardData = [
     text: "text-green-900",
   },
   {
-    title: "Governing Council",
-    description: "",
+    title: "GC",
+    description: "General Council resolutions and agendas.",
     color: "#3F51B5",
     // icon: "ðŸ—‚ï¸",
     link: "/member/gc-resolutions",

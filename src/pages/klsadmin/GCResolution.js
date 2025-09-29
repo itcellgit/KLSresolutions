@@ -448,6 +448,9 @@ const GCResolutionPage = () => {
                             S.NO
                           </th>
                           <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                            GC-NO
+                          </th>
+                          <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                             Agenda
                           </th>
                           <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
@@ -466,6 +469,9 @@ const GCResolutionPage = () => {
                           <tr key={resolution.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
                               {index + 1}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500 break-words w-32">
+                              {resolution.gc_no}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 break-words max-w-md">
                               {resolution.agenda}

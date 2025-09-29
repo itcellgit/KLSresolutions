@@ -693,7 +693,7 @@ const AGMResolutionPage = () => {
         {/* Footer */}
         {!isLoading && (
           <div className="mt-8 text-sm text-center text-gray-500">
-            <p>Karnataka Law Society © {new Date().getFullYear()}</p>
+            <p>Karnatak Law Society © {new Date().getFullYear()}</p>
             <p className="mt-1">
               Last updated: {new Date().toLocaleDateString()}
             </p>
