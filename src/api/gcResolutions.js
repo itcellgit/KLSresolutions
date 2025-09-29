@@ -57,6 +57,9 @@ export const createGCResolution = async (data, token) => {
 
     const response = await axios.post(`${API_URL}/gc_resolutions`, data, {
       headers,
+      timeout: 300000, // 5 minutes timeout for large file uploads
+      maxContentLength: 52428800, // 50MB
+      maxBodyLength: 52428800, // 50MB
     });
     return response.data;
   } catch (error) {
@@ -74,6 +77,12 @@ export const createGCResolution = async (data, token) => {
     }
 
     // Return error details for better debugging
+    if (error.response?.status === 413) {
+      throw new Error(
+        "File too large. Please ensure your files are under 50MB each."
+      );
+    }
+
     throw new Error(
       error.response?.data?.message ||
         error.response?.data?.error ||
@@ -96,6 +105,9 @@ export const updateGCResolution = async (id, data, token) => {
 
     const response = await axios.put(`${API_URL}/gc_resolutions/${id}`, data, {
       headers,
+      timeout: 300000, // 5 minutes timeout for large file uploads
+      maxContentLength: 52428800, // 50MB
+      maxBodyLength: 52428800, // 50MB
     });
     return response.data;
   } catch (error) {

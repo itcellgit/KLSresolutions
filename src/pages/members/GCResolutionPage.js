@@ -43,6 +43,81 @@ const GCResolutionPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Handle PDF viewing for buttons
+  const handlePDFView = async (type, filename) => {
+    if (filename) {
+      try {
+        const API_URL = "https://resolutions.klsbelagavi.org/api";
+        const response = await fetch(
+          `${API_URL}/gc_resolutions/file/${filename}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          setPdfUrl(url);
+          setViewingPDF(type);
+          setActiveTab(null); // Clear active tab when viewing PDF
+        } else {
+          console.error("Failed to fetch PDF:", response.status);
+          // Fallback to normal tab content
+          setViewingPDF(null);
+          setPdfUrl("");
+          setActiveTab(type);
+        }
+      } catch (error) {
+        console.error("Error fetching PDF:", error);
+        // Fallback to normal tab content
+        setViewingPDF(null);
+        setPdfUrl("");
+        setActiveTab(type);
+      }
+    } else {
+      // No PDF, show normal tab content
+      setViewingPDF(null);
+      setPdfUrl("");
+      setActiveTab(type);
+    }
+  };
+
+  // Enhanced button click handler
+  const handleTabClick = async (tab) => {
+    if (!selectedDate || !groupedByDate[selectedDate]) {
+      setActiveTab(tab);
+      return;
+    }
+
+    const currentData = groupedByDate[selectedDate][0];
+    let filename = null;
+
+    switch (tab) {
+      case "agenda":
+        filename = currentData?.agenda;
+        break;
+      case "resolution":
+        filename = currentData?.resolution;
+        break;
+      case "compliance":
+        filename = currentData?.compliance;
+        break;
+      case "meeting-notes":
+        filename = currentData?.meeting_notes;
+        break;
+      default:
+        setActiveTab(tab);
+        setViewingPDF(null);
+        setPdfUrl("");
+        return;
+    }
+
+    await handlePDFView(tab, filename);
+  };
+
   const [institutes, setInstitutes] = useState([]);
   const [filteredInstitutes, setFilteredInstitutes] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,6 +126,8 @@ const GCResolutionPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
   const [activeTab, setActiveTab] = useState("agenda");
+  const [viewingPDF, setViewingPDF] = useState(null); // Track which PDF is being viewed
+  const [pdfUrl, setPdfUrl] = useState(""); // Track the PDF URL for viewing
 
   const token =
     useSelector((state) => state.auth.token) || localStorage.getItem("token");
@@ -245,6 +322,15 @@ const GCResolutionPage = () => {
 
     return () => clearInterval(intervalId);
   }, []);
+
+  // Cleanup blob URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (pdfUrl) {
+        window.URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [pdfUrl]);
 
   // Predefined sections in the desired order
   const predefinedSections = [
@@ -589,149 +675,156 @@ const GCResolutionPage = () => {
 
                       {/* Dashboard-style Big Box Buttons */}
                       <div className="p-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="grid grid-cols-4 gap-4">
                           {/* Agenda Button */}
                           <button
-                            onClick={() => setActiveTab("agenda")}
-                            className={`group block bg-gradient-to-br from-blue-300 via-blue-400 to-blue-600 shadow-xl rounded-3xl p-8 md:p-10 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-blue-300 ${
-                              activeTab === "agenda"
+                            onClick={() => handleTabClick("agenda")}
+                            className={`group block bg-gradient-to-br from-blue-300 via-blue-400 to-blue-600 shadow-xl rounded-2xl p-4 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-blue-300 ${
+                              activeTab === "agenda" || viewingPDF === "agenda"
                                 ? "scale-105 shadow-2xl ring-4 ring-blue-300"
                                 : ""
                             }`}
-                            style={{ minHeight: 200 }}
+                            style={{ minHeight: 140 }}
                           >
                             <div className="flex flex-col items-center justify-center h-full">
                               <span
-                                className="mb-6 text-6xl md:text-7xl animate-bounce-slow"
+                                className="mb-3 text-3xl animate-bounce-slow"
                                 aria-label="Agenda"
                               >
                                 📋
                               </span>
-                              <h2 className="mb-2 text-2xl md:text-3xl font-bold text-blue-900 group-hover:text-white text-center transition-colors font-serif">
+                              <h2 className="mb-1 text-lg font-bold text-blue-900 group-hover:text-white text-center transition-colors font-serif">
                                 Agenda
                               </h2>
-                              <p className="text-lg font-medium text-center text-gray-900 md:text-xl group-hover:text-white drop-shadow-sm">
-                                View meeting agenda items
+                              <p className="text-xs font-medium text-center text-gray-900 group-hover:text-white drop-shadow-sm">
+                                View agenda items
                               </p>
                             </div>
                           </button>
 
-                          {/* Meeting Notes Button with PDF Download */}
-                          <div
-                            className={`relative group bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 shadow-xl rounded-3xl p-8 md:p-10 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 ${
-                              activeTab === "meeting-notes"
+                          {/* Meeting Notes Button */}
+                          <button
+                            onClick={() => handleTabClick("meeting-notes")}
+                            className={`group block bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 shadow-xl rounded-2xl p-4 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-yellow-300 ${
+                              activeTab === "meeting-notes" ||
+                              viewingPDF === "meeting-notes"
                                 ? "scale-105 shadow-2xl ring-4 ring-yellow-300"
                                 : ""
                             }`}
-                            style={{ minHeight: 200 }}
-                          >
-                            {groupedByDate[selectedDate] &&
-                            groupedByDate[selectedDate][0]?.meeting_notes ? (
-                              <FileDownloadLink
-                                filename={
-                                  groupedByDate[selectedDate][0].meeting_notes
-                                }
-                                label=""
-                                token={token}
-                                className="absolute inset-0 w-full h-full focus:outline-none focus:ring-4 focus:ring-yellow-300 rounded-3xl"
-                              >
-                                <div className="flex flex-col items-center justify-center h-full">
-                                  <span
-                                    className="mb-6 text-6xl md:text-7xl animate-bounce-slow"
-                                    aria-label="Meeting Notes"
-                                  >
-                                    📝
-                                  </span>
-                                  <h2 className="mb-2 text-2xl md:text-3xl font-bold text-yellow-900 group-hover:text-white text-center transition-colors font-serif">
-                                    Meeting Notes
-                                  </h2>
-                                  <p className="text-lg font-medium text-center text-gray-900 md:text-xl group-hover:text-white drop-shadow-sm">
-                                    Click to download PDF
-                                  </p>
-                                </div>
-                              </FileDownloadLink>
-                            ) : (
-                              <button
-                                onClick={() => setActiveTab("meeting-notes")}
-                                className="w-full h-full focus:outline-none focus:ring-4 focus:ring-yellow-300 rounded-3xl"
-                              >
-                                <div className="flex flex-col items-center justify-center h-full">
-                                  <span
-                                    className="mb-6 text-6xl md:text-7xl animate-bounce-slow"
-                                    aria-label="Meeting Notes"
-                                  >
-                                    📝
-                                  </span>
-                                  <h2 className="mb-2 text-2xl md:text-3xl font-bold text-yellow-900 group-hover:text-white text-center transition-colors font-serif">
-                                    Meeting Notes
-                                  </h2>
-                                  <p className="text-lg font-medium text-center text-gray-900 md:text-xl group-hover:text-white drop-shadow-sm">
-                                    View meeting notes and details
-                                  </p>
-                                </div>
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Resolution Button */}
-                          <button
-                            onClick={() => setActiveTab("resolution")}
-                            className={`group block bg-gradient-to-br from-purple-300 via-purple-400 to-purple-600 shadow-xl rounded-3xl p-8 md:p-10 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-purple-300 ${
-                              activeTab === "resolution"
-                                ? "scale-105 shadow-2xl ring-4 ring-purple-300"
-                                : ""
-                            }`}
-                            style={{ minHeight: 200 }}
+                            style={{ minHeight: 140 }}
                           >
                             <div className="flex flex-col items-center justify-center h-full">
                               <span
-                                className="mb-6 text-6xl md:text-7xl animate-bounce-slow"
+                                className="mb-3 text-3xl animate-bounce-slow"
+                                aria-label="Meeting Notes"
+                              >
+                                📝
+                              </span>
+                              <h2 className="mb-1 text-lg font-bold text-yellow-900 group-hover:text-white text-center transition-colors font-serif">
+                                Meeting Notes
+                              </h2>
+                              <p className="text-xs font-medium text-center text-gray-900 group-hover:text-white drop-shadow-sm">
+                                View meeting notes
+                              </p>
+                            </div>
+                          </button>
+
+                          {/* Resolution Button */}
+                          <button
+                            onClick={() => handleTabClick("resolution")}
+                            className={`group block bg-gradient-to-br from-purple-300 via-purple-400 to-purple-600 shadow-xl rounded-2xl p-4 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-purple-300 ${
+                              activeTab === "resolution" ||
+                              viewingPDF === "resolution"
+                                ? "scale-105 shadow-2xl ring-4 ring-purple-300"
+                                : ""
+                            }`}
+                            style={{ minHeight: 140 }}
+                          >
+                            <div className="flex flex-col items-center justify-center h-full">
+                              <span
+                                className="mb-3 text-3xl animate-bounce-slow"
                                 aria-label="Resolution"
                               >
                                 ⚖️
                               </span>
-                              <h2 className="mb-2 text-2xl md:text-3xl font-bold text-purple-900 group-hover:text-white text-center transition-colors font-serif">
+                              <h2 className="mb-1 text-lg font-bold text-purple-900 group-hover:text-white text-center transition-colors font-serif">
                                 Resolution
                               </h2>
-                              <p className="text-lg font-medium text-center text-gray-900 md:text-xl group-hover:text-white drop-shadow-sm">
-                                View meeting resolutions
+                              <p className="text-xs font-medium text-center text-gray-900 group-hover:text-white drop-shadow-sm">
+                                View resolutions
                               </p>
                             </div>
                           </button>
 
                           {/* Compliance Button */}
                           <button
-                            onClick={() => setActiveTab("compliance")}
-                            className={`group block bg-gradient-to-br from-green-300 via-green-400 to-green-600 shadow-xl rounded-3xl p-8 md:p-10 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-green-300 ${
-                              activeTab === "compliance"
+                            onClick={() => handleTabClick("compliance")}
+                            className={`group block bg-gradient-to-br from-green-300 via-green-400 to-green-600 shadow-xl rounded-2xl p-4 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-green-300 ${
+                              activeTab === "compliance" ||
+                              viewingPDF === "compliance"
                                 ? "scale-105 shadow-2xl ring-4 ring-green-300"
                                 : ""
                             }`}
-                            style={{ minHeight: 200 }}
+                            style={{ minHeight: 140 }}
                           >
                             <div className="flex flex-col items-center justify-center h-full">
                               <span
-                                className="mb-6 text-6xl md:text-7xl animate-bounce-slow"
+                                className="mb-3 text-3xl animate-bounce-slow"
                                 aria-label="Compliance"
                               >
                                 ✅
                               </span>
-                              <h2 className="mb-2 text-2xl md:text-3xl font-bold text-green-900 group-hover:text-white text-center transition-colors font-serif">
+                              <h2 className="mb-1 text-lg font-bold text-green-900 group-hover:text-white text-center transition-colors font-serif">
                                 Compliance
                               </h2>
-                              <p className="text-lg font-medium text-center text-gray-900 md:text-xl group-hover:text-white drop-shadow-sm">
-                                View compliance information
+                              <p className="text-xs font-medium text-center text-gray-900 group-hover:text-white drop-shadow-sm">
+                                View compliance info
                               </p>
                             </div>
                           </button>
                         </div>
 
                         {/* Content Display */}
-                        {activeTab && (
+                        {viewingPDF && pdfUrl ? (
+                          <div className="mt-8 p-6 bg-gray-50 rounded-xl">
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="text-lg font-semibold text-gray-800 capitalize">
+                                {viewingPDF === "meeting-notes"
+                                  ? "Meeting Notes"
+                                  : viewingPDF}{" "}
+                                PDF
+                              </h3>
+                              <button
+                                onClick={() => {
+                                  if (pdfUrl) {
+                                    window.URL.revokeObjectURL(pdfUrl);
+                                  }
+                                  setViewingPDF(null);
+                                  setPdfUrl("");
+                                  setActiveTab(null);
+                                }}
+                                className="px-4 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              >
+                                Close PDF
+                              </button>
+                            </div>
+                            <div className="w-full h-96 border border-gray-300 rounded-lg overflow-hidden">
+                              <iframe
+                                src={`${pdfUrl}#toolbar=1&navpanes=1&scrollbar=1`}
+                                className="w-full h-full"
+                                title={`${viewingPDF} PDF`}
+                                style={{
+                                  border: "none",
+                                  minHeight: "600px",
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ) : activeTab ? (
                           <div className="mt-8 p-6 bg-gray-50 rounded-xl">
                             {renderTabContent()}
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   )}
