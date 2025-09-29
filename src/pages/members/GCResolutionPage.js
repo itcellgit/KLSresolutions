@@ -60,9 +60,19 @@ const GCResolutionPage = () => {
         if (response.ok) {
           const blob = await response.blob();
           const url = window.URL.createObjectURL(blob);
-          setPdfUrl(url);
-          setViewingPDF(type);
-          setActiveTab(null); // Clear active tab when viewing PDF
+
+          // Open PDF in new tab for all user agents
+          window.open(url, "_blank");
+
+          // Clean up the URL after a short delay
+          setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+          }, 1000);
+
+          // Don't set viewing state, just show normal tab content
+          setViewingPDF(null);
+          setPdfUrl("");
+          setActiveTab(type);
         } else {
           console.error("Failed to fetch PDF:", response.status);
           // Fallback to normal tab content
@@ -116,14 +126,6 @@ const GCResolutionPage = () => {
     }
 
     await handlePDFView(tab, filename);
-  };
-
-  // Detect iOS/iPad for better PDF handling
-  const isIOS = () => {
-    return (
-      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-    );
   };
 
   const [institutes, setInstitutes] = useState([]);
@@ -331,15 +333,6 @@ const GCResolutionPage = () => {
     return () => clearInterval(intervalId);
   }, []);
 
-  // Cleanup blob URL when component unmounts
-  useEffect(() => {
-    return () => {
-      if (pdfUrl) {
-        window.URL.revokeObjectURL(pdfUrl);
-      }
-    };
-  }, [pdfUrl]);
-
   // Predefined sections in the desired order
   const predefinedSections = [
     "MAIN AGENDA",
@@ -366,7 +359,7 @@ const GCResolutionPage = () => {
         return (
           <div className="space-y-4">
             {items.map((item, index) => (
-              <div key={item.id || index} className="p-4 bg-gray-50 rounded-lg">
+              <div key={item.id || index} className="p-4 rounded-lg bg-gray-50">
                 <h4 className="mb-2 font-semibold text-gray-800">
                   Agenda Item {index + 1}
                 </h4>
@@ -385,7 +378,7 @@ const GCResolutionPage = () => {
         return (
           <div className="space-y-4">
             {items.map((item, index) => (
-              <div key={item.id || index} className="p-4 bg-blue-50 rounded-lg">
+              <div key={item.id || index} className="p-4 rounded-lg bg-blue-50">
                 <h4 className="mb-2 font-semibold text-gray-800">
                   Resolution {index + 1}
                 </h4>
@@ -407,7 +400,7 @@ const GCResolutionPage = () => {
             {items.map((item, index) => (
               <div
                 key={item.id || index}
-                className="p-4 bg-green-50 rounded-lg"
+                className="p-4 rounded-lg bg-green-50"
               >
                 <h4 className="mb-2 font-semibold text-gray-800">
                   Compliance {index + 1}
@@ -426,7 +419,7 @@ const GCResolutionPage = () => {
 
       case "meeting-notes":
         return (
-          <div className="p-6 bg-yellow-50 rounded-lg">
+          <div className="p-6 rounded-lg bg-yellow-50">
             <h4 className="mb-4 text-lg font-semibold text-gray-800">
               Meeting Notes for {formatDate(selectedDate)}
             </h4>
@@ -445,7 +438,7 @@ const GCResolutionPage = () => {
                     filename={items[0].meeting_notes}
                     label="Download Meeting Notes PDF"
                     token={token}
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="inline-flex items-center px-4 py-2 text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700"
                   />
                 </div>
               )}
@@ -595,9 +588,9 @@ const GCResolutionPage = () => {
           {!isLoading && (
             <div className="space-y-8">
               {sortedMonthYearKeys.length > 0 ? (
-                <div className="bg-white border border-gray-200 shadow-lg rounded-xl overflow-hidden">
+                <div className="overflow-hidden bg-white border border-gray-200 shadow-lg rounded-xl">
                   {/* Table Header */}
-                  <div className="bg-gradient-to-r from-indigo-600 to-purple-700 px-6 py-4">
+                  <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-700">
                     <h2 className="text-xl font-bold text-white">
                       Meeting Schedule
                     </h2>
@@ -608,10 +601,10 @@ const GCResolutionPage = () => {
                     <table className="w-full">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 border-r">
+                          <th className="px-6 py-4 text-sm font-semibold text-left text-gray-900 border-r">
                             Month
                           </th>
-                          <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
+                          <th className="px-6 py-4 text-sm font-semibold text-center text-gray-900">
                             Meeting Dates
                           </th>
                         </tr>
@@ -655,14 +648,14 @@ const GCResolutionPage = () => {
                   {/* Selected Date Content */}
                   {selectedDate && (
                     <div className="border-t border-gray-200">
-                      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
+                      <div className="px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-600">
                         <div className="flex items-center justify-between">
                           <h3 className="text-xl font-bold text-white">
                             Meeting Details - {formatDate(selectedDate)}
                           </h3>
                           <button
                             onClick={() => setSelectedDate(null)}
-                            className="text-white hover:text-indigo-200 transition-colors"
+                            className="text-white transition-colors hover:text-indigo-200"
                           >
                             <svg
                               className="w-6 h-6"
@@ -701,12 +694,9 @@ const GCResolutionPage = () => {
                               >
                                 📋
                               </span>
-                              <h2 className="mb-1 text-base font-bold text-blue-900 group-hover:text-white text-center transition-colors font-serif">
+                              <h2 className="mb-1 font-serif text-base font-bold text-center text-blue-900 transition-colors group-hover:text-white">
                                 Agenda
                               </h2>
-                              <p className="text-xs font-medium text-center text-gray-900 group-hover:text-white drop-shadow-sm">
-                                View agenda items
-                              </p>
                             </div>
                           </button>
 
@@ -728,12 +718,9 @@ const GCResolutionPage = () => {
                               >
                                 📝
                               </span>
-                              <h2 className="mb-1 text-base font-bold text-yellow-900 group-hover:text-white text-center transition-colors font-serif">
+                              <h2 className="mb-1 font-serif text-base font-bold text-center text-yellow-900 transition-colors group-hover:text-white">
                                 Meeting Notes
                               </h2>
-                              <p className="text-xs font-medium text-center text-gray-900 group-hover:text-white drop-shadow-sm">
-                                View meeting notes
-                              </p>
                             </div>
                           </button>
 
@@ -755,12 +742,9 @@ const GCResolutionPage = () => {
                               >
                                 ⚖️
                               </span>
-                              <h2 className="mb-1 text-base font-bold text-purple-900 group-hover:text-white text-center transition-colors font-serif">
+                              <h2 className="mb-1 font-serif text-base font-bold text-center text-purple-900 transition-colors group-hover:text-white">
                                 Resolution
                               </h2>
-                              <p className="text-xs font-medium text-center text-gray-900 group-hover:text-white drop-shadow-sm">
-                                View resolutions
-                              </p>
                             </div>
                           </button>
 
@@ -782,106 +766,19 @@ const GCResolutionPage = () => {
                               >
                                 ✅
                               </span>
-                              <h2 className="mb-1 text-base font-bold text-green-900 group-hover:text-white text-center transition-colors font-serif">
+                              <h2 className="mb-1 font-serif text-base font-bold text-center text-green-900 transition-colors group-hover:text-white">
                                 Compliance
                               </h2>
-                              <p className="text-xs font-medium text-center text-gray-900 group-hover:text-white drop-shadow-sm">
-                                View compliance info
-                              </p>
                             </div>
                           </button>
                         </div>
 
                         {/* Content Display */}
-                        {viewingPDF && pdfUrl ? (
-                          <div className="mt-8 p-6 bg-gray-50 rounded-xl">
-                            <div className="flex items-center justify-between mb-4">
-                              <h3 className="text-lg font-semibold text-gray-800 capitalize">
-                                {viewingPDF === "meeting-notes"
-                                  ? "Meeting Notes"
-                                  : viewingPDF}{" "}
-                                PDF
-                              </h3>
-                              <div className="flex gap-2">
-                                {isIOS() && (
-                                  <a
-                                    href={pdfUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="px-4 py-2 text-sm text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  >
-                                    Open in New Tab
-                                  </a>
-                                )}
-                                <button
-                                  onClick={() => {
-                                    if (pdfUrl) {
-                                      window.URL.revokeObjectURL(pdfUrl);
-                                    }
-                                    setViewingPDF(null);
-                                    setPdfUrl("");
-                                    setActiveTab(null);
-                                  }}
-                                  className="px-4 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                  Close PDF
-                                </button>
-                              </div>
-                            </div>
-                            {isIOS() ? (
-                              <div className="w-full h-96 border border-gray-300 rounded-lg overflow-hidden flex items-center justify-center bg-gray-50">
-                                <div className="text-center p-8">
-                                  <div className="text-6xl mb-4">📱</div>
-                                  <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                                    iPad/iPhone PDF Viewer
-                                  </h3>
-                                  <p className="text-gray-600 mb-4">
-                                    For the best PDF viewing experience on
-                                    iPad/iPhone, please use the "Open in New
-                                    Tab" button above.
-                                  </p>
-                                  <a
-                                    href={pdfUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center px-6 py-3 text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  >
-                                    <svg
-                                      className="w-4 h-4 mr-2"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                      />
-                                    </svg>
-                                    Open PDF in New Tab
-                                  </a>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="w-full h-96 border border-gray-300 rounded-lg overflow-hidden">
-                                <iframe
-                                  src={`${pdfUrl}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
-                                  className="w-full h-full"
-                                  title={`${viewingPDF} PDF`}
-                                  style={{
-                                    border: "none",
-                                    minHeight: "600px",
-                                  }}
-                                />
-                              </div>
-                            )}
-                          </div>
-                        ) : activeTab ? (
-                          <div className="mt-8 p-6 bg-gray-50 rounded-xl">
+                        {activeTab && (
+                          <div className="p-6 mt-8 bg-gray-50 rounded-xl">
                             {renderTabContent()}
                           </div>
-                        ) : null}
+                        )}
                       </div>
                     </div>
                   )}
