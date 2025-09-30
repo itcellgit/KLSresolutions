@@ -18,22 +18,22 @@ module.exports = (sequelize, DataTypes) => {
       compliance: {
         type: DataTypes.TEXT,
       },
-      gc_resolution_id: {
-        type: DataTypes.BIGINT,
-      },
+      // gc_resolution_id: {
+      //   type: DataTypes.BIGINT,
+      // },
       bom_date: {
         type: DataTypes.DATEONLY,
         allowNull: false,
       },
-      bom_no: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
-      },
-      agenda_section: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
+      // bom_no: {
+      //   type: DataTypes.STRING,
+      //   allowNull: false,
+      //   unique: true,
+      // },
+      // agenda_section: {
+      //   type: DataTypes.STRING,
+      //   allowNull: true,
+      // },
       tenure_id: {
         type: DataTypes.BIGINT,
         allowNull: true,
