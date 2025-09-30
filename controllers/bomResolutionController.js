@@ -87,41 +87,69 @@ exports.getAllBOMResolutions = async (req, res) => {
 
 // Admin can create BOM agenda
 exports.createBOMResolution = async (req, res) => {
+  console.log("Request body:", req.body);
+  console.log("Request files:", req.files);
+  console.log("User info:", req.user);
   try {
     if (req.user.usertypeid !== 1) {
       return res
         .status(403)
         .json({ error: "Only admin can create BOM agenda" });
     }
-    const {
-      agenda,
-      resolution,
-      compliance,
-      gc_resolution_id,
-      bom_date,
-      agenda_section,
-      tenure_id,
-    } = req.body;
 
-    if (!agenda || !resolution || !gc_resolution_id || !bom_date) {
-      return res.status(400).json({ error: "Missing required fields" });
+    const { bom_date, tenure_id } = req.body;
+
+    // Check required fields
+    if (!bom_date) {
+      return res.status(400).json({ error: "BOM date is required" });
+    }
+
+    // Check if at least agenda and resolution files are uploaded
+    if (!req.files || !req.files.agenda) {
+      return res.status(400).json({ error: "Agenda file is required" });
+    }
+    if (!req.files.resolution) {
+      return res.status(400).json({ error: "Resolution file is required" });
+    }
+
+    // Extract file paths from uploaded files
+    const filePaths = {};
+    if (req.files.agenda) {
+      filePaths.agenda = req.files.agenda[0].filename;
+      console.log("Agenda file saved as:", filePaths.agenda);
+    }
+    if (req.files.resolution) {
+      filePaths.resolution = req.files.resolution[0].filename;
+      console.log("Resolution file saved as:", filePaths.resolution);
+    }
+    if (req.files.compliance) {
+      filePaths.compliance = req.files.compliance[0].filename;
+      console.log("Compliance file saved as:", filePaths.compliance);
     }
 
     // Generate BOM No
     const bom_no = await generateBOMNo(bom_date);
 
     const bomResolution = await BOMResolution.create({
-      agenda,
-      agenda_section,
-      resolution,
-      compliance,
-      gc_resolution_id,
+      agenda: filePaths.agenda || null,
+      resolution: filePaths.resolution || null,
+      compliance: filePaths.compliance || null,
       bom_date,
       bom_no,
       tenure_id,
     });
+
+    console.log("Created BOM Resolution with files:", {
+      id: bomResolution.id,
+      agenda: bomResolution.agenda,
+      resolution: bomResolution.resolution,
+      compliance: bomResolution.compliance,
+      bom_no: bomResolution.bom_no,
+    });
+
     res.status(201).json(bomResolution);
   } catch (err) {
+    console.error("Error creating BOM resolution:", err);
     res.status(400).json({ error: err.message });
   }
 };
@@ -145,8 +173,12 @@ exports.deleteBOMResolution = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 // Admin can update BOM resolution
 exports.updateBOMResolution = async (req, res) => {
+  console.log("Update request body:", req.body);
+  console.log("Update request files:", req.files);
+  console.log("User info:", req.user);
   try {
     if (req.user.usertypeid !== 1) {
       return res
@@ -154,37 +186,56 @@ exports.updateBOMResolution = async (req, res) => {
         .json({ error: "Only admin can update BOM resolution" });
     }
     const { id } = req.params;
-    const {
-      agenda,
-      resolution,
-      compliance,
-      gc_resolution_id,
-      bom_date,
-      agenda_section,
-      tenure_id,
-    } = req.body;
+    const { bom_date, tenure_id } = req.body;
 
     const bomResolution = await BOMResolution.findByPk(id);
     if (!bomResolution) {
       return res.status(404).json({ error: "BOM Resolution not found" });
     }
+
+    // Extract file paths from uploaded files (if any)
+    const filePaths = {};
+    if (req.files) {
+      if (req.files.agenda) {
+        filePaths.agenda = req.files.agenda[0].filename;
+        console.log("Updated agenda file saved as:", filePaths.agenda);
+      }
+      if (req.files.resolution) {
+        filePaths.resolution = req.files.resolution[0].filename;
+        console.log("Updated resolution file saved as:", filePaths.resolution);
+      }
+      if (req.files.compliance) {
+        filePaths.compliance = req.files.compliance[0].filename;
+        console.log("Updated compliance file saved as:", filePaths.compliance);
+      }
+    }
+
     // If bom_date is changed, regenerate bom_no
     let bom_no = bomResolution.bom_no;
     if (bom_date && bom_date !== bomResolution.bom_date) {
       bom_no = await generateBOMNo(bom_date);
     }
+
     await bomResolution.update({
-      agenda: agenda || bomResolution.agenda,
-      agenda_section: agenda_section || bomResolution.agenda_section,
-      resolution: resolution || bomResolution.resolution,
-      compliance: compliance || bomResolution.compliance,
-      gc_resolution_id: gc_resolution_id || bomResolution.gc_resolution_id,
+      agenda: filePaths.agenda || bomResolution.agenda,
+      resolution: filePaths.resolution || bomResolution.resolution,
+      compliance: filePaths.compliance || bomResolution.compliance,
       bom_date: bom_date || bomResolution.bom_date,
       bom_no,
       tenure_id: tenure_id || bomResolution.tenure_id,
     });
+
+    console.log("Updated BOM Resolution with files:", {
+      id: bomResolution.id,
+      agenda: bomResolution.agenda,
+      resolution: bomResolution.resolution,
+      compliance: bomResolution.compliance,
+      bom_no: bomResolution.bom_no,
+    });
+
     res.json(bomResolution);
   } catch (err) {
+    console.error("Error updating BOM resolution:", err);
     res.status(400).json({ error: err.message });
   }
 };

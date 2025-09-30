@@ -9,6 +9,13 @@ const fs = require("fs");
 // Get all GC resolutions (admin sees all, institute admin sees only their own)
 router.get("/", authMiddleware, gcResolutionController.getAllGCResolutions);
 
+// Search PDF content - must be before /:id route
+router.get(
+  "/search-pdf",
+  authMiddleware,
+  gcResolutionController.searchPDFContent
+);
+
 // View/serve file
 router.get("/file/:filename", authMiddleware, (req, res) => {
   try {

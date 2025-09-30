@@ -5,9 +5,12 @@ const {
   Role,
   BOMResolution,
   Institute,
+  ManagementTenure,
 } = require("../models");
+const { Op } = require("sequelize");
 const fs = require("fs");
 const path = require("path");
+const pdf = require("pdf-parse");
 
 // Helper function to delete a file from the server
 const deleteFileFromServer = (filename) => {
@@ -307,5 +310,177 @@ exports.deleteGCResolution = async (req, res) => {
   } catch (err) {
     console.error("Error deleting GC resolution:", err);
     res.status(400).json({ error: err.message });
+  }
+};
+
+// Search PDF content
+exports.searchPDFContent = async (req, res) => {
+  try {
+    const { searchText } = req.query;
+    const { usertypeid, id } = req.user;
+
+    console.log("PDF search request received:", { searchText, usertypeid, id });
+
+    if (!searchText || !searchText.trim()) {
+      console.log("Empty search text, returning empty results");
+      return res.json({ results: [] });
+    }
+
+    let resolutions = [];
+
+    // Get resolutions based on user type
+    if (usertypeid === 1) {
+      // Admin: all resolutions
+      resolutions = await GCResolution.findAll({
+        include: [
+          {
+            model: Institute,
+            attributes: ["id", "name"],
+          },
+        ],
+        order: [["id", "DESC"]],
+      });
+    } else if (usertypeid === 2) {
+      // Institute admin: only their institute's resolutions
+      const member = await Member.findOne({
+        where: { user_id: id },
+        include: [
+          {
+            model: MemberRole,
+            include: [{ model: Role }],
+          },
+        ],
+      });
+
+      if (!member) {
+        return res.status(404).json({ error: "Member not found" });
+      }
+
+      resolutions = await GCResolution.findAll({
+        where: { institute_id: member.institute_id },
+        include: [
+          {
+            model: Institute,
+            attributes: ["id", "name"],
+          },
+        ],
+        order: [["id", "DESC"]],
+      });
+    } else if (usertypeid === 3) {
+      // Member: only resolutions for their role tenure
+      const member = await Member.findOne({
+        where: { user_id: id },
+        include: [
+          {
+            model: MemberRole,
+            include: [{ model: Role }],
+          },
+        ],
+      });
+
+      if (!member) {
+        return res.status(404).json({ error: "Member not found" });
+      }
+
+      // Get all management tenures for this member's role
+      const tenures = await ManagementTenure.findAll({
+        where: {
+          role_id: member.MemberRole?.role_id,
+          start_date: { [Op.lte]: new Date() },
+          end_date: { [Op.gte]: new Date() },
+        },
+      });
+
+      const tenureIds = tenures.map((t) => t.id);
+
+      resolutions = await GCResolution.findAll({
+        where: { tenure_id: tenureIds },
+        include: [
+          {
+            model: Institute,
+            attributes: ["id", "name"],
+          },
+        ],
+        order: [["id", "DESC"]],
+      });
+    }
+
+    console.log("Found resolutions to search:", resolutions.length);
+
+    const searchTextLower = searchText.toLowerCase();
+    const matchingResolutions = [];
+
+    // Search through PDF files
+    for (const resolution of resolutions) {
+      console.log(`Searching resolution ID ${resolution.id} with PDFs:`, {
+        agenda_pdf: resolution.agenda_pdf,
+        resolution_pdf: resolution.resolution_pdf,
+        compliance_pdf: resolution.compliance_pdf,
+      });
+
+      const pdfFields = ["agenda_pdf", "resolution_pdf", "compliance_pdf"];
+      let foundMatch = false;
+
+      for (const field of pdfFields) {
+        if (resolution[field] && !foundMatch) {
+          try {
+            const pdfPath = path.join(
+              __dirname,
+              "../uploads",
+              resolution[field]
+            );
+            console.log(`Checking PDF: ${pdfPath}`);
+
+            if (fs.existsSync(pdfPath)) {
+              console.log(`Reading PDF: ${resolution[field]}`);
+              const dataBuffer = fs.readFileSync(pdfPath);
+              const pdfData = await pdf(dataBuffer);
+              const pdfText = pdfData.text.toLowerCase();
+              console.log(
+                `PDF text length: ${pdfText.length}, searching for: ${searchTextLower}`
+              );
+
+              if (pdfText.includes(searchTextLower)) {
+                console.log(
+                  `MATCH FOUND in ${field} for resolution ${resolution.id}`
+                );
+                matchingResolutions.push({
+                  ...resolution.toJSON(),
+                  matchedField: field,
+                  matchedIn: field.replace("_pdf", "").replace("_", " "),
+                });
+                foundMatch = true;
+                break;
+              } else {
+                console.log(
+                  `No match in ${field} for resolution ${resolution.id}`
+                );
+              }
+            } else {
+              console.log(`PDF file not found: ${pdfPath}`);
+            }
+          } catch (error) {
+            console.error(
+              `Error reading PDF ${resolution[field]}:`,
+              error.message
+            );
+            // Continue to next PDF even if one fails
+          }
+        }
+      }
+    }
+
+    console.log(
+      `Search completed. Found ${matchingResolutions.length} matching resolutions`
+    );
+
+    res.json({
+      results: matchingResolutions,
+      searchText: searchText,
+      totalFound: matchingResolutions.length,
+    });
+  } catch (error) {
+    console.error("Error searching PDF content:", error);
+    res.status(500).json({ error: "Failed to search PDF content" });
   }
 };
