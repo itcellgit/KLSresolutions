@@ -58,7 +58,7 @@ const BOMResolutionsPage = () => {
     e.preventDefault();
 
     try {
-      const maxSize = 25 * 1024 * 1024; // 25MB in bytes
+      const maxSize = 50 * 1024 * 1024; // 50MB in bytes
 
       // Validate file sizes before submission
       const filesToCheck = [
@@ -70,7 +70,7 @@ const BOMResolutionsPage = () => {
       for (const fileObj of filesToCheck) {
         if (fileObj.file && fileObj.file.size > maxSize) {
           alert(
-            `${fileObj.name} file size exceeds 25MB limit. Please select a smaller file.`
+            `${fileObj.name} file size exceeds 50MB limit. Please select a smaller file.`
           );
           return;
         }
@@ -516,9 +516,6 @@ const BOMResolutionsPage = () => {
                         S.NO
                       </th>
                       <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                        BOM No
-                      </th>
-                      <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                         Agenda
                       </th>
                       <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
@@ -541,11 +538,6 @@ const BOMResolutionsPage = () => {
                         <td className="w-4 px-6 py-4 text-sm font-medium text-center text-gray-900">
                           {index + 1}
                         </td>
-
-                        <td className="w-6 px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap">
-                          {resolution.bom_no}
-                        </td>
-
                         <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-120">
                           {resolution.agenda_file ? (
                             <a
@@ -772,7 +764,7 @@ const BOMResolutionsPage = () => {
                         required={!editingId}
                       />
                       <p className="mt-1 text-xs text-gray-500">
-                        Accepted formats: PDF (Max size: 25MB)
+                        Accepted formats: PDF (Max size: 50MB)
                       </p>
                     </div>
 
@@ -793,7 +785,7 @@ const BOMResolutionsPage = () => {
                         required={!editingId}
                       />
                       <p className="mt-1 text-xs text-gray-500">
-                        Accepted formats: PDF (Max size: 25MB)
+                        Accepted formats: PDF (Max size: 50MB)
                       </p>
                     </div>
 
@@ -813,7 +805,7 @@ const BOMResolutionsPage = () => {
                         accept=".pdf,.doc,.docx,.txt"
                       />
                       <p className="mt-1 text-xs text-gray-500">
-                        Accepted formats: PDF (Max size: 25MB)
+                        Accepted formats: PDF (Max size: 50MB)
                       </p>
                     </div>
 

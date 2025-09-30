@@ -192,15 +192,26 @@ const AddGCResolution = () => {
         }
       }
 
+      // Add validation for tenure_id - NOW REQUIRED
+      if (!formData.tenure_id || formData.tenure_id.trim() === "") {
+        setFormError("Management tenure is required");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate GC date
+      if (!formData.gc_date) {
+        setFormError("GC date is required");
+        setIsSubmitting(false);
+        return;
+      }
+
       // Create FormData for file uploads
       const submitData = new FormData();
 
-      // Add regular form fields
-      Object.keys(formData).forEach((key) => {
-        if (formData[key]) {
-          submitData.append(key, formData[key]);
-        }
-      });
+      // Add required fields
+      submitData.append("gc_date", formData.gc_date);
+      submitData.append("tenure_id", formData.tenure_id); // Always add tenure_id since it's required
 
       // Add file fields - for editing, preserve existing files if no new file uploaded
       Object.keys(fileData).forEach((key) => {
@@ -220,8 +231,8 @@ const AddGCResolution = () => {
       } else {
         // Add new resolution
         await createGCResolution(submitData, token);
-        //console.log("Resolution added successfully");
       }
+
       // Reset form and close modal
       setFormData({
         agenda: "",
@@ -240,6 +251,7 @@ const AddGCResolution = () => {
       });
       setIsModalOpen(false);
       setEditingId(null);
+
       // Refresh resolutions list
       const response = await getGCResolutions(token);
       if (response && response.resolutions) {
@@ -693,7 +705,7 @@ const AddGCResolution = () => {
                 </span>
               </nav>
 
-              {/* Download PDF Button */}
+              {/* Download PDF Button
               <button
                 onClick={downloadPDF}
                 className="flex items-center px-4 py-2 text-sm font-medium text-white transition-colors duration-200 bg-indigo-600 rounded-lg hover:bg-indigo-700"
@@ -713,7 +725,7 @@ const AddGCResolution = () => {
                   />
                 </svg>
                 Download PDF
-              </button>
+              </button> */}
             </div>
           </div>
 
@@ -828,7 +840,7 @@ const AddGCResolution = () => {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                          d="M19 11H5m14 0a2 2 0 002 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                         />
                       </svg>
                     </div>
@@ -892,7 +904,7 @@ const AddGCResolution = () => {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 012 2z"
                           />
                         </svg>
                       </div>
@@ -1386,7 +1398,7 @@ const AddGCResolution = () => {
                                 htmlFor="tenure_id"
                                 className="block mb-2 text-sm font-medium text-gray-700"
                               >
-                                Management Tenure
+                                Management Tenure *
                                 {process.env.NODE_ENV === "development" && (
                                   <span className="ml-2 text-xs text-gray-500">
                                     (Debug: {tenures.length} tenures loaded,
@@ -1403,7 +1415,7 @@ const AddGCResolution = () => {
                                 className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                 required
                               >
-                                <option value="">Select tenure</option>
+                                <option value="">Select tenure *</option>
                                 {tenuresLoading ? (
                                   <option disabled>Loading tenures...</option>
                                 ) : tenuresError ? (
