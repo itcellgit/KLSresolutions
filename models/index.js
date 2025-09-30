@@ -29,8 +29,6 @@ User.hasOne(Member, { foreignKey: "userid" });
 Member.belongsTo(User, { foreignKey: "userid" });
 Institute.hasMany(GCResolution, { foreignKey: "institute_id" });
 GCResolution.belongsTo(Institute, { foreignKey: "institute_id" });
-GCResolution.hasMany(BOMResolution, { foreignKey: "gc_resolution_id" });
-BOMResolution.belongsTo(GCResolution, { foreignKey: "gc_resolution_id" });
 Institute.hasMany(User, { foreignKey: "institute_id" });
 User.belongsTo(Institute, { foreignKey: "institute_id" });
 Institute.hasMany(MemberRole, { foreignKey: "institute_id" });

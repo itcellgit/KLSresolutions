@@ -3,7 +3,6 @@ const {
   Member,
   MemberRole,
   Role,
-  BOMResolution,
   Institute,
   ManagementTenure,
 } = require("../models");
@@ -33,7 +32,6 @@ const deleteFileFromServer = (filename) => {
 };
 
 // Get all GC resolutions (admin sees all, institute admin sees only their own)
-//condition addeed
 exports.getAllGCResolutions = async (req, res) => {
   try {
     const { usertypeid, id } = req.user;
@@ -101,7 +99,7 @@ exports.getAllGCResolutions = async (req, res) => {
         }
         resolutions = await GCResolution.findAll({
           where: {
-            institute_id: instituteIds,
+            institute_id: { [Op.in]: instituteIds },
             ...whereClause,
           },
           order: [["id", "DESC"]],
@@ -121,66 +119,199 @@ exports.createGCResolution = async (req, res) => {
   console.log("Request body:", req.body);
   console.log("Request files:", req.files);
   console.log("User info:", req.user);
+
   try {
+    // Check user permissions
     if (req.user.usertypeid !== 2) {
-      return res
-        .status(403)
-        .json({ error: "Only institute admin can add GC resolutions" });
+      return res.status(403).json({
+        error: "Only institute admin can add GC resolutions",
+      });
+    }
+
+    // Check if user has institute_id
+    if (!req.user.institute_id) {
+      return res.status(400).json({
+        error: "User institute information is missing",
+      });
     }
 
     const { gc_date, tenure_id } = req.body;
 
-    // Check required fields
+    // Validate required fields
     if (!gc_date) {
       return res.status(400).json({ error: "GC date is required" });
     }
 
-    // Check if at least agenda file is uploaded
-    if (!req.files || !req.files.agenda) {
+    // Add validation for tenure_id - NOW REQUIRED
+    if (!tenure_id || tenure_id.trim() === "") {
+      return res.status(400).json({ error: "Management tenure is required" });
+    }
+
+    // Validate date format
+    const parsedDate = new Date(gc_date);
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ error: "Invalid date format" });
+    }
+
+    // Validate tenure_id exists in database
+    const tenureExists = await ManagementTenure.findByPk(tenure_id);
+    if (!tenureExists) {
+      return res.status(400).json({ error: "Invalid tenure ID" });
+    }
+
+    // Check if agenda file is uploaded (REQUIRED field in DB)
+    if (!req.files || !req.files.agenda || req.files.agenda.length === 0) {
       return res.status(400).json({ error: "Agenda file is required" });
+    }
+
+    // Validate that agenda file was processed correctly
+    if (!req.files.agenda[0] || !req.files.agenda[0].filename) {
+      return res.status(400).json({ error: "Agenda file upload failed" });
     }
 
     // Extract file paths from uploaded files
     const filePaths = {};
-    if (req.files.agenda) {
-      filePaths.agenda = req.files.agenda[0].filename;
-      console.log("Agenda file saved as:", filePaths.agenda);
-    }
-    if (req.files.resolution) {
-      filePaths.resolution = req.files.resolution[0].filename;
-      console.log("Resolution file saved as:", filePaths.resolution);
-    }
-    if (req.files.compliance) {
-      filePaths.compliance = req.files.compliance[0].filename;
-      console.log("Compliance file saved as:", filePaths.compliance);
-    }
-    if (req.files.meeting_notes) {
-      filePaths.meeting_notes = req.files.meeting_notes[0].filename;
-      console.log("Meeting notes file saved as:", filePaths.meeting_notes);
+
+    try {
+      // Agenda is required - must have a filename
+      if (
+        req.files.agenda &&
+        req.files.agenda[0] &&
+        req.files.agenda[0].filename
+      ) {
+        filePaths.agenda = req.files.agenda[0].filename;
+        console.log("Agenda file saved as:", filePaths.agenda);
+      } else {
+        throw new Error("Agenda file processing failed - no filename");
+      }
+
+      // Optional files
+      if (
+        req.files.resolution &&
+        req.files.resolution[0] &&
+        req.files.resolution[0].filename
+      ) {
+        filePaths.resolution = req.files.resolution[0].filename;
+        console.log("Resolution file saved as:", filePaths.resolution);
+      }
+
+      if (
+        req.files.compliance &&
+        req.files.compliance[0] &&
+        req.files.compliance[0].filename
+      ) {
+        filePaths.compliance = req.files.compliance[0].filename;
+        console.log("Compliance file saved as:", filePaths.compliance);
+      }
+
+      if (
+        req.files.meeting_notes &&
+        req.files.meeting_notes[0] &&
+        req.files.meeting_notes[0].filename
+      ) {
+        filePaths.meeting_notes = req.files.meeting_notes[0].filename;
+        console.log("Meeting notes file saved as:", filePaths.meeting_notes);
+      }
+    } catch (fileError) {
+      console.error("Error processing uploaded files:", fileError);
+      return res.status(400).json({
+        error: "Error processing uploaded files: " + fileError.message,
+      });
     }
 
-    const gcResolution = await GCResolution.create({
-      agenda: filePaths.agenda || null,
-      resolution: filePaths.resolution || null,
-      compliance: filePaths.compliance || null,
-      meeting_notes: filePaths.meeting_notes || null,
-      gc_date,
-      institute_id: req.user.institute_id,
-      tenure_id,
-    });
+    // Create the GC resolution - match exact DB schema
+    const gcResolutionData = {
+      agenda: filePaths.agenda, // Required field - NOT NULL in DB
+      resolution: filePaths.resolution || null, // Optional
+      compliance: filePaths.compliance || null, // Optional
+      meeting_notes: filePaths.meeting_notes || null, // Optional
+      gc_date: parsedDate, // Required field - NOT NULL in DB
+      institute_id: req.user.institute_id, // Required field - NOT NULL in DB
+      tenure_id: parseInt(tenure_id), // Required field - NOW MANDATORY
+    };
 
-    console.log("Created GC Resolution with files:", {
+    console.log("Creating GC Resolution with data:", gcResolutionData);
+
+    // Validate required fields before database operation
+    if (!gcResolutionData.agenda) {
+      throw new Error("Agenda filename is required but missing");
+    }
+    if (!gcResolutionData.gc_date) {
+      throw new Error("GC date is required but missing");
+    }
+    if (!gcResolutionData.institute_id) {
+      throw new Error("Institute ID is required but missing");
+    }
+
+    const gcResolution = await GCResolution.create(gcResolutionData);
+
+    console.log("Successfully created GC Resolution:", {
       id: gcResolution.id,
       agenda: gcResolution.agenda,
       resolution: gcResolution.resolution,
       compliance: gcResolution.compliance,
       meeting_notes: gcResolution.meeting_notes,
+      gc_date: gcResolution.gc_date,
+      institute_id: gcResolution.institute_id,
+      tenure_id: gcResolution.tenure_id,
     });
 
-    res.status(201).json(gcResolution);
+    res.status(201).json({
+      success: true,
+      message: "GC Resolution created successfully",
+      data: gcResolution,
+    });
   } catch (err) {
     console.error("Error creating GC resolution:", err);
-    res.status(400).json({ error: err.message });
+
+    // Clean up uploaded files if database operation failed
+    if (req.files) {
+      Object.values(req.files).forEach((fileArray) => {
+        if (Array.isArray(fileArray)) {
+          fileArray.forEach((file) => {
+            if (file && file.filename) {
+              deleteFileFromServer(file.filename);
+            }
+          });
+        }
+      });
+    }
+
+    // Return specific error messages
+    if (err.name === "SequelizeValidationError") {
+      return res.status(400).json({
+        error:
+          "Validation error: " + err.errors.map((e) => e.message).join(", "),
+      });
+    }
+
+    if (err.name === "SequelizeForeignKeyConstraintError") {
+      return res.status(400).json({
+        error:
+          "Foreign key constraint error. Please check institute_id and tenure_id.",
+      });
+    }
+
+    if (err.name === "SequelizeUniqueConstraintError") {
+      return res.status(400).json({
+        error:
+          "Duplicate entry. A resolution with similar data already exists.",
+      });
+    }
+
+    if (
+      err.name === "SequelizeDatabaseError" &&
+      err.message.includes("null value")
+    ) {
+      return res.status(400).json({
+        error:
+          "Required field missing. Please ensure all required fields are provided.",
+      });
+    }
+
+    res.status(500).json({
+      error: "Failed to save resolution. Please try again.",
+    });
   }
 };
 
@@ -204,11 +335,37 @@ exports.updateGCResolution = async (req, res) => {
         .status(403)
         .json({ error: "You can only update resolutions of your institute" });
     }
+    // Admin can update any resolution, members cannot update
+    if (req.user.usertypeid !== 1 && req.user.usertypeid !== 2) {
+      return res
+        .status(403)
+        .json({ error: "Unauthorized to update resolutions" });
+    }
+
+    // Validate date format if provided
+    let parsedDate = gcResolution.gc_date;
+    if (gc_date) {
+      parsedDate = new Date(gc_date);
+      if (isNaN(parsedDate.getTime())) {
+        return res.status(400).json({ error: "Invalid date format" });
+      }
+    }
+
+    // Validate tenure_id if provided
+    if (tenure_id && tenure_id.trim() !== "") {
+      const tenureExists = await ManagementTenure.findByPk(tenure_id);
+      if (!tenureExists) {
+        return res.status(400).json({ error: "Invalid tenure ID" });
+      }
+    }
 
     // Prepare update data with existing values as defaults
     const updateData = {
-      gc_date: gc_date || gcResolution.gc_date,
-      tenure_id: tenure_id || gcResolution.tenure_id,
+      gc_date: parsedDate,
+      tenure_id:
+        tenure_id && tenure_id.trim() !== ""
+          ? parseInt(tenure_id)
+          : gcResolution.tenure_id,
     };
 
     // Handle file updates
@@ -268,7 +425,21 @@ exports.updateGCResolution = async (req, res) => {
     res.json(gcResolution);
   } catch (err) {
     console.error("Error updating GC resolution:", err);
-    res.status(400).json({ error: err.message });
+
+    // Clean up uploaded files if database operation failed
+    if (req.files) {
+      Object.values(req.files).forEach((fileArray) => {
+        if (Array.isArray(fileArray)) {
+          fileArray.forEach((file) => {
+            if (file && file.filename) {
+              deleteFileFromServer(file.filename);
+            }
+          });
+        }
+      });
+    }
+
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -342,22 +513,8 @@ exports.searchPDFContent = async (req, res) => {
       });
     } else if (usertypeid === 2) {
       // Institute admin: only their institute's resolutions
-      const member = await Member.findOne({
-        where: { user_id: id },
-        include: [
-          {
-            model: MemberRole,
-            include: [{ model: Role }],
-          },
-        ],
-      });
-
-      if (!member) {
-        return res.status(404).json({ error: "Member not found" });
-      }
-
       resolutions = await GCResolution.findAll({
-        where: { institute_id: member.institute_id },
+        where: { institute_id: req.user.institute_id },
         include: [
           {
             model: Institute,
@@ -367,42 +524,64 @@ exports.searchPDFContent = async (req, res) => {
         order: [["id", "DESC"]],
       });
     } else if (usertypeid === 3) {
-      // Member: only resolutions for their role tenure
-      const member = await Member.findOne({
-        where: { user_id: id },
-        include: [
-          {
-            model: MemberRole,
-            include: [{ model: Role }],
-          },
-        ],
-      });
-
+      // Member: check if President or Vice President, else restrict to their institutes
+      const member = await Member.findOne({ where: { userid: id } });
       if (!member) {
         return res.status(404).json({ error: "Member not found" });
       }
 
-      // Get all management tenures for this member's role
-      const tenures = await ManagementTenure.findAll({
-        where: {
-          role_id: member.MemberRole?.role_id,
-          start_date: { [Op.lte]: new Date() },
-          end_date: { [Op.gte]: new Date() },
-        },
+      // Fetch active member roles with institute_id and include role
+      const memberRoles = await MemberRole.findAll({
+        where: { member_id: member.id, status: "active" },
+        include: [{ model: Role, as: "role" }],
       });
 
-      const tenureIds = tenures.map((t) => t.id);
+      // Check if any role is President or Vice President
+      const hasSpecialRole = memberRoles.some(
+        (mr) =>
+          mr.role &&
+          (mr.role.role_name === "President" ||
+            mr.role.role_name === "Vice President")
+      );
 
-      resolutions = await GCResolution.findAll({
-        where: { tenure_id: tenureIds },
-        include: [
-          {
-            model: Institute,
-            attributes: ["id", "name"],
-          },
-        ],
-        order: [["id", "DESC"]],
-      });
+      if (hasSpecialRole) {
+        // President or Vice President: view all resolutions
+        resolutions = await GCResolution.findAll({
+          include: [
+            {
+              model: Institute,
+              attributes: ["id", "name"],
+            },
+          ],
+          order: [["id", "DESC"]],
+        });
+      } else {
+        // Regular member: only their institutes
+        const instituteIds = [
+          ...new Set(
+            memberRoles
+              .map((mr) => mr.institute_id)
+              .filter((institute_id) => institute_id != null)
+          ),
+        ];
+
+        if (instituteIds.length === 0) {
+          return res
+            .status(400)
+            .json({ error: "Member does not belong to any institute" });
+        }
+
+        resolutions = await GCResolution.findAll({
+          where: { institute_id: { [Op.in]: instituteIds } },
+          include: [
+            {
+              model: Institute,
+              attributes: ["id", "name"],
+            },
+          ],
+          order: [["id", "DESC"]],
+        });
+      }
     }
 
     console.log("Found resolutions to search:", resolutions.length);
@@ -410,15 +589,16 @@ exports.searchPDFContent = async (req, res) => {
     const searchTextLower = searchText.toLowerCase();
     const matchingResolutions = [];
 
-    // Search through PDF files
+    // Search through PDF files - using correct field names from schema
     for (const resolution of resolutions) {
-      console.log(`Searching resolution ID ${resolution.id} with PDFs:`, {
-        agenda_pdf: resolution.agenda_pdf,
-        resolution_pdf: resolution.resolution_pdf,
-        compliance_pdf: resolution.compliance_pdf,
+      console.log(`Searching resolution ID ${resolution.id} with files:`, {
+        agenda: resolution.agenda,
+        resolution: resolution.resolution,
+        compliance: resolution.compliance,
+        meeting_notes: resolution.meeting_notes,
       });
 
-      const pdfFields = ["agenda_pdf", "resolution_pdf", "compliance_pdf"];
+      const pdfFields = ["agenda", "resolution", "compliance", "meeting_notes"];
       let foundMatch = false;
 
       for (const field of pdfFields) {
@@ -447,7 +627,7 @@ exports.searchPDFContent = async (req, res) => {
                 matchingResolutions.push({
                   ...resolution.toJSON(),
                   matchedField: field,
-                  matchedIn: field.replace("_pdf", "").replace("_", " "),
+                  matchedIn: field.replace("_", " "),
                 });
                 foundMatch = true;
                 break;

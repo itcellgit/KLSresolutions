@@ -1,41 +1,20 @@
-const { BOMResolution, GCResolution, ManagementTenure } = require("../models");
+const { BOMResolution, ManagementTenure } = require("../models");
+const path = require("path");
+const fs = require("fs");
+const pdf = require("pdf-parse");
 
-// Dedicated method to generate BOM No
-async function generateBOMNo(bom_date) {
-  // Find all BOM resolutions for this date
-  const sameDateResolutions = await BOMResolution.findAll({
-    where: { bom_date },
-    order: [["id", "ASC"]],
-  });
-
-  // Meeting number: If there are previous meetings on this date, use their meeting number, else increment
-  let meetingNo = 1;
-  if (sameDateResolutions.length > 0) {
-    // Extract meeting number from first resolution's bom_no
-    const firstResolution = sameDateResolutions[0];
-    const match =
-      firstResolution.bom_no && firstResolution.bom_no.match(/^bom_(\d+)_\d+$/);
-    meetingNo = match ? parseInt(match[1], 10) : 1;
-  } else {
-    // Find max meeting number so far
-    const allResolutions = await BOMResolution.findAll({
-      order: [["id", "ASC"]],
-    });
-    const meetingNos = allResolutions
-      .map((r) => {
-        const m = r.bom_no && r.bom_no.match(/^bom_(\d+)_\d+$/);
-        return m ? parseInt(m[1], 10) : null;
-      })
-      .filter((n) => n !== null);
-    meetingNo = meetingNos.length > 0 ? Math.max(...meetingNos) + 1 : 1;
+const deleteFileFromServer = (filename) => {
+  if (!filename) return;
+  const filePath = path.join(__dirname, "../uploads", filename);
+  if (fs.existsSync(filePath)) {
+    try {
+      fs.unlinkSync(filePath);
+      console.log("Deleted file:", filePath);
+    } catch (err) {
+      console.error("Error deleting file:", filePath, err);
+    }
   }
-
-  // Agenda point number (series): next in sequence for this date
-  const seriesNo = sameDateResolutions.length + 1;
-
-  // Format: bom_meetingNo_seriesNo
-  return `bom_${meetingNo}_${seriesNo}`;
-}
+};
 
 // Admin can see all BOM resolutions, prepare BOM agenda
 exports.getAllBOMResolutions = async (req, res) => {
@@ -46,7 +25,6 @@ exports.getAllBOMResolutions = async (req, res) => {
       // Admin and all members get all BOM resolutions, ordered by id DESC (latest first)
       resolutions = await BOMResolution.findAll({
         include: [
-          GCResolution,
           {
             model: ManagementTenure,
             as: "managementTenure",
@@ -55,20 +33,9 @@ exports.getAllBOMResolutions = async (req, res) => {
         order: [["id", "DESC"]],
       });
     } else if (usertypeid === 2) {
-      // Institute admin: fetch BOM resolutions related to GC resolutions of their institute
-      const instituteId = req.user.institute_id;
-      // Find all GC resolutions for this institute
-      const gcResolutions = await GCResolution.findAll({
-        where: { institute_id: instituteId },
-        attributes: ["id"],
-      });
-      const gcResolutionIds = gcResolutions.map((gc) => gc.id);
-
-      // Fetch BOM resolutions where gc_resolution_id is in the above list
+      // Institute admin: For now, show all BOM resolutions
       resolutions = await BOMResolution.findAll({
-        where: { gc_resolution_id: gcResolutionIds },
         include: [
-          GCResolution,
           {
             model: ManagementTenure,
             as: "managementTenure",
@@ -105,49 +72,59 @@ exports.createBOMResolution = async (req, res) => {
     }
 
     // Check if at least agenda and resolution files are uploaded
-    if (!req.files || !req.files.agenda) {
+    if (!req.files || !req.files.agenda || req.files.agenda.length === 0) {
       return res.status(400).json({ error: "Agenda file is required" });
     }
-    if (!req.files.resolution) {
+    if (!req.files.resolution || req.files.resolution.length === 0) {
       return res.status(400).json({ error: "Resolution file is required" });
     }
 
-    // Extract file paths from uploaded files
+    // Extract file paths from uploaded files with error handling
     const filePaths = {};
-    if (req.files.agenda) {
-      filePaths.agenda = req.files.agenda[0].filename;
-      console.log("Agenda file saved as:", filePaths.agenda);
+    try {
+      if (req.files.agenda && req.files.agenda[0]) {
+        filePaths.agenda = req.files.agenda[0].filename;
+        console.log("Agenda file saved as:", filePaths.agenda);
+      }
+      if (req.files.resolution && req.files.resolution[0]) {
+        filePaths.resolution = req.files.resolution[0].filename;
+        console.log("Resolution file saved as:", filePaths.resolution);
+      }
+      if (req.files.compliance && req.files.compliance[0]) {
+        filePaths.compliance = req.files.compliance[0].filename;
+        console.log("Compliance file saved as:", filePaths.compliance);
+      }
+    } catch (fileError) {
+      console.error("Error processing uploaded files:", fileError);
+      return res.status(400).json({ error: "Error processing uploaded files" });
     }
-    if (req.files.resolution) {
-      filePaths.resolution = req.files.resolution[0].filename;
-      console.log("Resolution file saved as:", filePaths.resolution);
-    }
-    if (req.files.compliance) {
-      filePaths.compliance = req.files.compliance[0].filename;
-      console.log("Compliance file saved as:", filePaths.compliance);
-    }
-
-    // Generate BOM No
-    const bom_no = await generateBOMNo(bom_date);
 
     const bomResolution = await BOMResolution.create({
       agenda: filePaths.agenda || null,
       resolution: filePaths.resolution || null,
       compliance: filePaths.compliance || null,
       bom_date,
-      bom_no,
       tenure_id,
     });
 
-    console.log("Created BOM Resolution with files:", {
-      id: bomResolution.id,
-      agenda: bomResolution.agenda,
-      resolution: bomResolution.resolution,
-      compliance: bomResolution.compliance,
-      bom_no: bomResolution.bom_no,
+    // Fetch the created record with associations for response
+    const createdRecord = await BOMResolution.findByPk(bomResolution.id, {
+      include: [
+        {
+          model: ManagementTenure,
+          as: "managementTenure",
+        },
+      ],
     });
 
-    res.status(201).json(bomResolution);
+    console.log("Created BOM Resolution with files:", {
+      id: createdRecord.id,
+      agenda: createdRecord.agenda,
+      resolution: createdRecord.resolution,
+      compliance: createdRecord.compliance,
+    });
+
+    res.status(201).json(createdRecord);
   } catch (err) {
     console.error("Error creating BOM resolution:", err);
     res.status(400).json({ error: err.message });
@@ -167,9 +144,30 @@ exports.deleteBOMResolution = async (req, res) => {
     if (!bomResolution) {
       return res.status(404).json({ error: "BOM Resolution not found" });
     }
+
+    // Delete associated files from server before deleting the record
+    if (bomResolution.agenda) {
+      deleteFileFromServer(bomResolution.agenda);
+    }
+    if (bomResolution.resolution) {
+      deleteFileFromServer(bomResolution.resolution);
+    }
+    if (bomResolution.compliance) {
+      deleteFileFromServer(bomResolution.compliance);
+    }
+
     await bomResolution.destroy();
+
+    console.log("Deleted BOM Resolution and associated files:", {
+      id: bomResolution.id,
+      agenda: bomResolution.agenda,
+      resolution: bomResolution.resolution,
+      compliance: bomResolution.compliance,
+    });
+
     res.json({ message: "BOM Resolution deleted successfully" });
   } catch (err) {
+    console.error("Error deleting BOM resolution:", err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -193,49 +191,131 @@ exports.updateBOMResolution = async (req, res) => {
       return res.status(404).json({ error: "BOM Resolution not found" });
     }
 
+    // Store old file names for deletion if replaced
+    const oldFiles = {
+      agenda: bomResolution.agenda,
+      resolution: bomResolution.resolution,
+      compliance: bomResolution.compliance,
+    };
+
     // Extract file paths from uploaded files (if any)
     const filePaths = {};
     if (req.files) {
       if (req.files.agenda) {
         filePaths.agenda = req.files.agenda[0].filename;
         console.log("Updated agenda file saved as:", filePaths.agenda);
+        // Delete old agenda file if it exists
+        if (oldFiles.agenda) {
+          deleteFileFromServer(oldFiles.agenda);
+        }
       }
       if (req.files.resolution) {
         filePaths.resolution = req.files.resolution[0].filename;
         console.log("Updated resolution file saved as:", filePaths.resolution);
+        // Delete old resolution file if it exists
+        if (oldFiles.resolution) {
+          deleteFileFromServer(oldFiles.resolution);
+        }
       }
       if (req.files.compliance) {
         filePaths.compliance = req.files.compliance[0].filename;
         console.log("Updated compliance file saved as:", filePaths.compliance);
+        // Delete old compliance file if it exists
+        if (oldFiles.compliance) {
+          deleteFileFromServer(oldFiles.compliance);
+        }
       }
     }
 
-    // If bom_date is changed, regenerate bom_no
-    let bom_no = bomResolution.bom_no;
-    if (bom_date && bom_date !== bomResolution.bom_date) {
-      bom_no = await generateBOMNo(bom_date);
-    }
-
-    await bomResolution.update({
+    // Update the record
+    const updatedBomResolution = await bomResolution.update({
       agenda: filePaths.agenda || bomResolution.agenda,
       resolution: filePaths.resolution || bomResolution.resolution,
       compliance: filePaths.compliance || bomResolution.compliance,
       bom_date: bom_date || bomResolution.bom_date,
-      bom_no,
       tenure_id: tenure_id || bomResolution.tenure_id,
     });
 
-    console.log("Updated BOM Resolution with files:", {
-      id: bomResolution.id,
-      agenda: bomResolution.agenda,
-      resolution: bomResolution.resolution,
-      compliance: bomResolution.compliance,
-      bom_no: bomResolution.bom_no,
+    // Fetch the updated record with associations for response
+    const updatedRecord = await BOMResolution.findByPk(id, {
+      include: [
+        {
+          model: ManagementTenure,
+          as: "managementTenure",
+        },
+      ],
     });
 
-    res.json(bomResolution);
+    console.log("Updated BOM Resolution with files:", {
+      id: updatedRecord.id,
+      agenda: updatedRecord.agenda,
+      resolution: updatedRecord.resolution,
+      compliance: updatedRecord.compliance,
+    });
+
+    res.json(updatedRecord);
   } catch (err) {
     console.error("Error updating BOM resolution:", err);
     res.status(400).json({ error: err.message });
+  }
+};
+
+// Search PDF content
+exports.searchPDFContent = async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query) {
+      return res.status(400).json({ error: "Search query is required" });
+    }
+
+    // Get all BOM resolutions
+    const resolutions = await BOMResolution.findAll({
+      include: [
+        {
+          model: ManagementTenure,
+          as: "managementTenure",
+        },
+      ],
+    });
+
+    const searchResults = [];
+
+    for (const resolution of resolutions) {
+      const files = [
+        { type: "agenda", filename: resolution.agenda },
+        { type: "resolution", filename: resolution.resolution },
+        { type: "compliance", filename: resolution.compliance },
+      ].filter((f) => f.filename);
+
+      for (const file of files) {
+        const filePath = path.join(__dirname, "../uploads", file.filename);
+        if (
+          fs.existsSync(filePath) &&
+          path.extname(file.filename).toLowerCase() === ".pdf"
+        ) {
+          try {
+            const dataBuffer = fs.readFileSync(filePath);
+            const pdfData = await pdf(dataBuffer);
+
+            if (pdfData.text.toLowerCase().includes(query.toLowerCase())) {
+              searchResults.push({
+                resolution_id: resolution.id,
+                file_type: file.type,
+                filename: file.filename,
+                bom_date: resolution.bom_date,
+                managementTenure: resolution.managementTenure,
+              });
+            }
+          } catch (pdfError) {
+            console.error(`Error reading PDF ${file.filename}:`, pdfError);
+          }
+        }
+      }
+    }
+
+    res.json(searchResults);
+  } catch (err) {
+    console.error("Error searching PDFs:", err);
+    res.status(500).json({ error: err.message });
   }
 };

@@ -10,7 +10,9 @@ app.use((req, res, next) => {
 });
 
 // Add this line before your routes!
-app.use(express.json());
+// Increase JSON payload limit to handle large requests (50MB)
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(
   cors({
     origin: "*",
@@ -45,6 +47,22 @@ app.use("/api/statistics", statisticsRoutes);
 // Error logging middleware (should be after all routes)
 app.use((err, req, res, next) => {
   console.error(`[API ERROR] ${req.method} ${req.originalUrl}:`, err);
+
+  // Handle specific error types
+  if (err.type === "entity.too.large") {
+    return res.status(413).json({
+      error: "Request entity too large. Maximum file size is 50MB.",
+      code: "PAYLOAD_TOO_LARGE",
+    });
+  }
+
+  if (err.code === "LIMIT_FILE_SIZE") {
+    return res.status(413).json({
+      error: "File too large. Maximum file size is 50MB.",
+      code: "FILE_TOO_LARGE",
+    });
+  }
+
   res
     .status(err.status || 500)
     .json({ error: err.message || "Internal Server Error" });

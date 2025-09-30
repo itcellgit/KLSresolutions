@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const gcResolutionController = require("../controllers/gcResolutionController");
 const authMiddleware = require("../middlewares/auth");
-const uploadGCFiles = require("../middlewares/fileUpload");
+const { uploadGCFiles } = require("../middlewares/fileUpload");
 const path = require("path");
 const fs = require("fs");
 

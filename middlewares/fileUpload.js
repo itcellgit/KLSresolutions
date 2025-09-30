@@ -63,4 +63,16 @@ const uploadGCFiles = upload.fields([
   { name: "meeting_notes", maxCount: 1 },
 ]);
 
-module.exports = uploadGCFiles;
+// Middleware for handling BOM file fields
+const uploadBOMFiles = upload.fields([
+  { name: "agenda", maxCount: 1 },
+  { name: "resolution", maxCount: 1 },
+  { name: "compliance", maxCount: 1 },
+]);
+
+//module.exports = uploadGCFiles;
+
+module.exports = {
+  uploadGCFiles,
+  uploadBOMFiles: uploadGCFiles, // Same middleware, different name
+};
