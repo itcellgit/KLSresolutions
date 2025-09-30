@@ -18,9 +18,6 @@ module.exports = (sequelize, DataTypes) => {
       compliance: {
         type: DataTypes.TEXT,
       },
-      // gc_resolution_id: {
-      //   type: DataTypes.BIGINT,
-      // },
       bom_date: {
         type: DataTypes.DATEONLY,
         allowNull: false,
