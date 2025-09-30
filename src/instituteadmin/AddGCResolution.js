@@ -193,7 +193,7 @@ const AddGCResolution = () => {
       }
 
       // Add validation for tenure_id - NOW REQUIRED
-      if (!formData.tenure_id || formData.tenure_id.trim() === "") {
+      if (!formData.tenure_id || String(formData.tenure_id).trim() === "") {
         setFormError("Management tenure is required");
         setIsSubmitting(false);
         return;
@@ -226,11 +226,16 @@ const AddGCResolution = () => {
 
       if (editingId) {
         // Update existing resolution
-        await updateGCResolution(editingId, submitData, token);
-        console.log("Resolution updated successfully");
+        console.log("Attempting to update resolution ID:", editingId);
+        console.log("Update data being sent:", submitData);
+        const result = await updateGCResolution(editingId, submitData, token);
+        console.log("Resolution updated successfully:", result);
       } else {
         // Add new resolution
-        await createGCResolution(submitData, token);
+        console.log("Attempting to create new resolution");
+        console.log("Create data being sent:", submitData);
+        const result = await createGCResolution(submitData, token);
+        console.log("Resolution created successfully:", result);
       }
 
       // Reset form and close modal
@@ -259,7 +264,10 @@ const AddGCResolution = () => {
       }
     } catch (err) {
       console.error("Error saving resolution:", err);
-      setFormError("Failed to save resolution. Please try again.");
+      const errorMessage =
+        err.message || "Failed to save resolution. Please try again.";
+      console.error("Error details:", errorMessage);
+      setFormError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -300,7 +308,7 @@ const AddGCResolution = () => {
       meeting_notes: resolution.meeting_notes || "",
       gc_date: resolution.gc_date,
       institute_id: resolution.institute_id,
-      tenure_id: resolution.tenure_id || "",
+      tenure_id: String(resolution.tenure_id || ""),
     });
     // Clear file selection for editing (show current files, but no new files selected)
     setFileData({

@@ -95,13 +95,15 @@ export const updateGCResolution = async (id, data, token) => {
   try {
     if (!token) {
       console.error("No token provided to updateGCResolution");
-      return null;
+      throw new Error("No authentication token provided");
     }
 
     const headers = {
       Authorization: `Bearer ${token}`,
       // Don't set Content-Type for FormData - let browser set it with boundary
     };
+
+    console.log("Updating GC Resolution with ID:", id, "Data:", data); // Add logging
 
     const response = await axios.put(`${API_URL}/gc_resolutions/${id}`, data, {
       headers,
@@ -112,7 +114,30 @@ export const updateGCResolution = async (id, data, token) => {
     return response.data;
   } catch (error) {
     console.error("Failed to update GC Resolution:", error);
-    return null;
+
+    // Enhanced error logging
+    if (error.response) {
+      console.error("Error response data:", error.response.data);
+      console.error("Error response status:", error.response.status);
+      console.error("Error response headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("Error request:", error.request);
+    } else {
+      console.error("Error message:", error.message);
+    }
+
+    // Return error details for better debugging
+    if (error.response?.status === 413) {
+      throw new Error(
+        "File too large. Please ensure your files are under 50MB each."
+      );
+    }
+
+    throw new Error(
+      error.response?.data?.message ||
+        error.response?.data?.error ||
+        `HTTP ${error.response?.status}: ${error.message}`
+    );
   }
 };
 

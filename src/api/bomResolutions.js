@@ -37,7 +37,7 @@ export const createBOMResolution = async (data, token) => {
     }
     const headers = {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
+      // Remove Content-Type for FormData - let browser set multipart/form-data
     };
     const response = await axios.post(`${API_URL}/bom_resolutions`, data, {
       headers,
@@ -99,7 +99,7 @@ export const updateBOMResolution = async (id, data, token) => {
     }
     const headers = {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
+      // Remove Content-Type for FormData - let browser set multipart/form-data
     };
     console.log(`Updating BOM Resolution with ID: ${id}`, data);
     const response = await axios.put(`${API_URL}/bom_resolutions/${id}`, data, {
@@ -120,5 +120,18 @@ export const updateBOMResolution = async (id, data, token) => {
       console.error("Error message:", error.message);
     }
     return null;
+  }
+};
+
+// Search PDF content
+export const searchPDFContent = async (query) => {
+  try {
+    const response = await axios.get(
+      `${API_URL}/bom_resolutions/search-pdf?query=${encodeURIComponent(query)}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to search PDF content:", error);
+    return [];
   }
 };
