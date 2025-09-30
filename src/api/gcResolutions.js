@@ -137,3 +137,31 @@ export const deleteGCResolution = async (id, token) => {
     return null;
   }
 };
+
+export const searchPDFContent = async (searchText, token) => {
+  try {
+    if (!token) {
+      console.error("No token provided to searchPDFContent");
+      return null;
+    }
+
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+
+    const response = await axios.get(`${API_URL}/gc_resolutions/search-pdf`, {
+      headers,
+      params: { searchText },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Failed to search PDF content:", error);
+    if (error.response) {
+      console.error("Error response data:", error.response.data);
+      console.error("Error response status:", error.response.status);
+    }
+    return null;
+  }
+};

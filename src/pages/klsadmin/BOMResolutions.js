@@ -2,12 +2,11 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import HtmlContent from "../../components/HtmlContent";
-import { getGCResolutions } from "../../api/gcResolutions";
 import {
   getBOMResolutions,
   createBOMResolution,
   deleteBOMResolution,
-  updateBOMResolution, // <-- Import the update API
+  updateBOMResolution,
 } from "../../api/bomResolutions";
 import { getAllManagementTenures } from "../../api/managementTenures";
 
@@ -16,12 +15,10 @@ const BOMResolutionsPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   // State for form inputs
   const [formData, setFormData] = useState({
-    agenda: "",
-    resolution: "",
-    compliance: "",
+    agenda: null,
+    resolution: null,
+    compliance: null,
     bom_date: "",
-    gc_resolution_id: "",
-    agenda_section: "",
     tenure_id: "",
   });
   // State for editing
@@ -33,19 +30,8 @@ const BOMResolutionsPage = () => {
   const [selectedTenure, setSelectedTenure] = useState("");
   // State for resolutions (will be populated from backend)
   const [resolutions, setResolutions] = useState([]);
-  // State for GC resolutions (for dropdown)
-  const [gcResolutions, setGcResolutions] = useState([]);
-  const [selectedGCResolution, setSelectedGCResolution] = useState(null);
-  const [isGCModalOpen, setIsGCModalOpen] = useState(false);
   // State for management tenures (for dropdown)
   const [managementTenures, setManagementTenures] = useState([]);
-  // State for accordion sections - only one section can be open at a time
-  const [openSections, setOpenSections] = useState({
-    "MAIN AGENDA": false,
-    "PURCHASE EXPENSES": false,
-    "STAFF MATTERS": false,
-    "OTHER MATTERS": false,
-  });
   // Get token from Redux store
   const token = useSelector((state) => state.auth.token);
 
@@ -58,25 +44,66 @@ const BOMResolutionsPage = () => {
     }));
   };
 
+  // Handle file upload
+  const handleFileUpload = (e, fieldName) => {
+    const file = e.target.files[0];
+    setFormData((prev) => ({
+      ...prev,
+      [fieldName]: file,
+    }));
+  };
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
+      const maxSize = 25 * 1024 * 1024; // 25MB in bytes
+
+      // Validate file sizes before submission
+      const filesToCheck = [
+        { file: formData.agenda, name: "Agenda" },
+        { file: formData.resolution, name: "Resolution" },
+        { file: formData.compliance, name: "Compliance" },
+      ];
+
+      for (const fileObj of filesToCheck) {
+        if (fileObj.file && fileObj.file.size > maxSize) {
+          alert(
+            `${fileObj.name} file size exceeds 25MB limit. Please select a smaller file.`
+          );
+          return;
+        }
+      }
+
+      // Create FormData for file upload
+      const submitData = new FormData();
+      submitData.append("bom_date", formData.bom_date);
+      submitData.append("tenure_id", formData.tenure_id);
+
+      if (formData.agenda) {
+        submitData.append("agenda", formData.agenda);
+      }
+      if (formData.resolution) {
+        submitData.append("resolution", formData.resolution);
+      }
+      if (formData.compliance) {
+        submitData.append("compliance", formData.compliance);
+      }
+
       if (editingId) {
         // Edit mode: call update API
-        await updateBOMResolution(editingId, formData, token);
+        await updateBOMResolution(editingId, submitData, token);
       } else {
         // Add mode: call create API
-        await createBOMResolution(formData, token);
+        await createBOMResolution(submitData, token);
       }
       setIsModalOpen(false);
       setFormData({
-        agenda: "",
-        resolution: "",
-        compliance: "",
+        agenda: null,
+        resolution: null,
+        compliance: null,
         bom_date: "",
-        gc_resolution_id: "",
-        agenda_section: "",
         tenure_id: "",
       });
       setEditingId(null);
@@ -92,17 +119,15 @@ const BOMResolutionsPage = () => {
     }
   };
 
-  // Handle edit button click (placeholder)
+  // Handle edit button click
   const handleEdit = (resolution) => {
     setIsModalOpen(true);
     setEditingId(resolution.id);
     setFormData({
-      agenda: resolution.agenda || "",
-      resolution: resolution.resolution || "",
-      compliance: resolution.compliance || "",
+      agenda: null, // Files will need to be re-uploaded
+      resolution: null,
+      compliance: null,
       bom_date: resolution.bom_date || "",
-      gc_resolution_id: resolution.gc_resolution_id || "",
-      agenda_section: resolution.agenda_section || "",
       tenure_id: resolution.tenure_id || "",
     });
   };
@@ -142,42 +167,15 @@ const BOMResolutionsPage = () => {
   useEffect(() => {
     if (!isModalOpen) {
       setFormData({
-        agenda: "",
-        resolution: "",
-        compliance: "",
+        agenda: null,
+        resolution: null,
+        compliance: null,
         bom_date: "",
-        gc_resolution_id: "",
-        agenda_section: "",
         tenure_id: "",
       });
       setEditingId(null);
     }
   }, [isModalOpen]);
-
-  // Fetch GC resolutions for dropdown with error handling
-  useEffect(() => {
-    const fetchGCResolutions = async () => {
-      try {
-        if (!token) {
-          console.error("No authentication token found");
-          return;
-        }
-        const data = await getGCResolutions(token);
-        console.log("GC Resolutions data:", data); // Debug log
-        // Check if data has a resolutions property that is an array
-        if (data && data.resolutions && Array.isArray(data.resolutions)) {
-          setGcResolutions(data.resolutions);
-        } else {
-          console.error("GC Resolutions data is not in expected format:", data);
-          setGcResolutions([]);
-        }
-      } catch (error) {
-        console.error("Error fetching GC Resolutions:", error);
-        setGcResolutions([]);
-      }
-    };
-    fetchGCResolutions();
-  }, [token]); // Added token as dependency
 
   // Fetch BOM resolutions with error handling
   useEffect(() => {
@@ -188,8 +186,7 @@ const BOMResolutionsPage = () => {
           return;
         }
         const data = await getBOMResolutions(token);
-        console.log("BOM Resolutions data:", data); // Debug log
-        // Ensure data is an array before setting state
+        console.log("BOM Resolutions data:", data);
         if (Array.isArray(data)) {
           setResolutions(data);
         } else {
@@ -202,7 +199,7 @@ const BOMResolutionsPage = () => {
       }
     };
     fetchBOMResolutions();
-  }, [token]); // Added token as dependency
+  }, [token]);
 
   // Fetch management tenures for dropdown
   useEffect(() => {
@@ -213,8 +210,7 @@ const BOMResolutionsPage = () => {
           return;
         }
         const data = await getAllManagementTenures(token);
-        console.log("Management Tenures data:", data); // Debug log
-        // Check if data has a tenures property that is an array
+        console.log("Management Tenures data:", data);
         if (data && data.tenures && Array.isArray(data.tenures)) {
           setManagementTenures(data.tenures);
         } else if (Array.isArray(data)) {
@@ -232,32 +228,24 @@ const BOMResolutionsPage = () => {
       }
     };
     fetchManagementTenures();
-  }, [token]); // Added token as dependency
+  }, [token]);
 
   // Filter resolutions based on search term, date, and tenure
   const filteredResolutions = resolutions.filter((resolution) => {
-    // First check if gc_resolution exists directly on the resolution object
-    const gcResolution =
-      resolution.gc_resolution ||
-      gcResolutions.find((gc) => gc.id === resolution.gc_resolution_id);
-
     // Search term filter
     const matchesSearch =
       !searchTerm ||
-      resolution.agenda.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      resolution.resolution.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (resolution.agenda &&
+        resolution.agenda.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (resolution.resolution &&
+        resolution.resolution
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())) ||
       (resolution.compliance &&
         resolution.compliance
           .toLowerCase()
           .includes(searchTerm.toLowerCase())) ||
-      resolution.bom_date.includes(searchTerm) ||
-      resolution.gc_resolution_id.toString().includes(searchTerm) ||
-      (resolution.agenda_section &&
-        resolution.agenda_section
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase())) ||
-      (gcResolution &&
-        gcResolution.agenda.toLowerCase().includes(searchTerm.toLowerCase()));
+      resolution.bom_date.includes(searchTerm);
 
     // Date filter
     const matchesDate = !selectedDate || resolution.bom_date === selectedDate;
@@ -270,43 +258,11 @@ const BOMResolutionsPage = () => {
     return matchesSearch && matchesDate && matchesTenure;
   });
 
-  // Group resolutions by agenda section
-  const groupedResolutions = filteredResolutions.reduce((acc, resolution) => {
-    const section = resolution.agenda_section || "OTHER MATTERS";
-    if (!acc[section]) {
-      acc[section] = [];
-    }
-    acc[section].push(resolution);
-    return acc;
-  }, {});
-
-  // Handle accordion toggle
-  const toggleSection = (section) => {
-    setOpenSections((prev) => ({
-      ...Object.keys(prev).reduce((acc, key) => ({ ...acc, [key]: false }), {}),
-      [section]: !prev[section],
-    }));
-  };
-
   // Helper function to format date
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const options = { year: "numeric", month: "short", day: "numeric" };
     return new Date(dateString).toLocaleDateString(undefined, options);
-  };
-
-  // Helper function to get GC resolution details
-  const getGCResolutionDetails = (gcId) => {
-    console.log("GC Resolution ID:", gcId);
-    const gcResolution = gcResolutions.find((gc) => gc.id === gcId);
-    return gcResolution
-      ? `ID: ${gcResolution.id} - ${gcResolution.agenda.substring(0, 30)}...`
-      : "Unknown";
-  };
-
-  const handleGCResolutionClick = (gcResolution) => {
-    setSelectedGCResolution(gcResolution);
-    setIsGCModalOpen(true);
   };
 
   return (
@@ -523,9 +479,9 @@ const BOMResolutionsPage = () => {
           </div>
         </div>
 
-        {/* Resolutions Accordion */}
-        <div className="mb-10 space-y-6">
-          {Object.keys(groupedResolutions).length === 0 ? (
+        {/* Resolutions Table */}
+        <div className="mb-10">
+          {filteredResolutions.length === 0 ? (
             <div className="p-12 bg-white shadow-lg rounded-xl">
               <div className="flex flex-col items-center justify-center">
                 <svg
@@ -551,188 +507,152 @@ const BOMResolutionsPage = () => {
               </div>
             </div>
           ) : (
-            Object.entries(groupedResolutions).map(
-              ([section, sectionResolutions]) => (
-                <div
-                  key={section}
-                  className="overflow-hidden bg-white shadow-lg rounded-xl"
-                >
-                  {/* Accordion Header */}
-                  <button
-                    onClick={() => toggleSection(section)}
-                    className="flex items-center justify-between w-full px-6 py-4 text-left bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <div className="flex items-center">
-                      <h3 className="text-xl font-bold text-gray-900">
-                        {section}
-                      </h3>
-                      <span className="px-3 py-1 ml-3 text-sm text-indigo-800 bg-indigo-100 rounded-full">
-                        {sectionResolutions.length}
-                      </span>
-                    </div>
-                    <svg
-                      className={`w-5 h-5 text-gray-500 transform transition-transform ${
-                        openSections[section] ? "rotate-180" : ""
-                      }`}
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </button>
+            <div className="overflow-hidden bg-white shadow-lg rounded-xl">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        S.NO
+                      </th>
+                      <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        BOM No
+                      </th>
+                      <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        Agenda
+                      </th>
+                      <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        Resolution
+                      </th>
+                      <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        Compliance
+                      </th>
+                      <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        BOM Date
+                      </th>
+                      <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredResolutions.map((resolution, index) => (
+                      <tr key={resolution.id}>
+                        <td className="w-4 px-6 py-4 text-sm font-medium text-center text-gray-900">
+                          {index + 1}
+                        </td>
 
-                  {/* Accordion Content */}
-                  {openSections[section] && (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                              S.NO
-                            </th>
-                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                              BOM No
-                            </th>
-                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                              Agenda
-                            </th>
-                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                              Resolution
-                            </th>
-                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                              Compliance
-                            </th>
-                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                              GC Resolution
-                            </th>
-                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                              BOM Date
-                            </th>
-                            <th className="px-6 py-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {sectionResolutions.map((resolution, index) => (
-                            <tr key={resolution.id}>
-                              <td className="w-4 px-6 py-4 text-sm font-medium text-center text-gray-900">
-                                {index + 1}
-                              </td>
+                        <td className="w-6 px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap">
+                          {resolution.bom_no}
+                        </td>
 
-                              <td className="w-6 px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap">
-                                {resolution.bom_no}
-                              </td>
+                        <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-120">
+                          {resolution.agenda_file ? (
+                            <a
+                              href={resolution.agenda_file}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-indigo-600 underline hover:text-indigo-800"
+                            >
+                              View Agenda File
+                            </a>
+                          ) : (
+                            <HtmlContent
+                              content={resolution.agenda}
+                              maxLength={200}
+                            />
+                          )}
+                        </td>
 
-                              <td className="w-24 px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap">
-                                {resolution.agenda_section || "N/A"}
-                              </td>
+                        <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-120">
+                          {resolution.resolution_file ? (
+                            <a
+                              href={resolution.resolution_file}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-indigo-600 underline hover:text-indigo-800"
+                            >
+                              View Resolution File
+                            </a>
+                          ) : (
+                            <HtmlContent
+                              content={resolution.resolution}
+                              maxLength={250}
+                            />
+                          )}
+                        </td>
 
-                              <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-120">
-                                <HtmlContent
-                                  content={resolution.agenda}
-                                  maxLength={200}
-                                />
-                              </td>
+                        <td className="w-12 px-6 py-4 text-sm text-justify text-gray-500 break-words">
+                          {resolution.compliance_file ? (
+                            <a
+                              href={resolution.compliance_file}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-indigo-600 underline hover:text-indigo-800"
+                            >
+                              View Compliance File
+                            </a>
+                          ) : (
+                            <HtmlContent
+                              content={resolution.compliance}
+                              maxLength={200}
+                            />
+                          )}
+                        </td>
 
-                              <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-120">
-                                <HtmlContent
-                                  content={resolution.resolution}
-                                  maxLength={250}
-                                />
-                              </td>
+                        <td className="w-6 px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap">
+                          {formatDate(resolution.bom_date)}
+                        </td>
 
-                              <td className="w-12 px-6 py-4 text-sm text-justify text-gray-500 break-words">
-                                <HtmlContent
-                                  content={resolution.compliance}
-                                  maxLength={200}
-                                />
-                              </td>
+                        <td className="w-6 px-6 py-4 text-sm font-medium text-center whitespace-nowrap">
+                          <button
+                            onClick={() => handleEdit(resolution)}
+                            className="mr-3 text-indigo-600 hover:text-indigo-900"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="w-4 h-4 mr-1"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                            Edit
+                          </button>
 
-                              <td className="w-24 px-6 py-4 text-sm text-justify text-gray-500 break-words">
-                                {resolution.gc_resolution ? (
-                                  <button
-                                    type="button"
-                                    className="text-indigo-600 underline hover:text-indigo-900"
-                                    onClick={() =>
-                                      handleGCResolutionClick(
-                                        resolution.gc_resolution
-                                      )
-                                    }
-                                    title={resolution.gc_resolution.agenda}
-                                  >
-                                    {resolution.gc_resolution.gc_no}-
-                                    {resolution.gc_resolution.agenda}-Dated{" "}
-                                    {formatDate(
-                                      resolution.gc_resolution.gc_date
-                                    )}
-                                  </button>
-                                ) : (
-                                  "Unknown"
-                                )}
-                              </td>
-
-                              <td className="w-6 px-6 py-4 text-sm text-center text-gray-500 whitespace-nowrap">
-                                {formatDate(resolution.bom_date)}
-                              </td>
-
-                              <td className="w-6 px-6 py-4 text-sm font-medium text-center whitespace-nowrap">
-                                <button
-                                  onClick={() => handleEdit(resolution)}
-                                  className="mr-3 text-indigo-600 hover:text-indigo-900"
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="w-4 h-4 mr-1"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                    />
-                                  </svg>
-                                  Edit
-                                </button>
-
-                                <button
-                                  onClick={() => handleDelete(resolution.id)}
-                                  className="text-red-600 hover:text-red-900"
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="w-4 h-4 mr-1"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                    />
-                                  </svg>
-                                  Delete
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )
-            )
+                          <button
+                            onClick={() => handleDelete(resolution.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="w-4 h-4 mr-1"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </div>
 
@@ -788,69 +708,6 @@ const BOMResolutionsPage = () => {
                     <div className="grid grid-cols-1 gap-4 mb-4 sm:grid-cols-2">
                       <div>
                         <label
-                          htmlFor="agenda_section"
-                          className="block mb-2 text-sm font-medium text-gray-700"
-                        >
-                          Agenda Section
-                        </label>
-                        <select
-                          id="agenda_section"
-                          name="agenda_section"
-                          value={formData.agenda_section}
-                          onChange={handleInputChange}
-                          className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                          required
-                        >
-                          <option value="">Select Agenda Section</option>
-                          <option value="MAIN AGENDA">MAIN AGENDA</option>
-                          <option value="PURCHASE EXPENSES">
-                            PURCHASE EXPENSES
-                          </option>
-                          <option value="STAFF MATTERS">STAFF MATTERS</option>
-                          <option value="OTHER MATTERS">OTHER MATTERS</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label
-                          htmlFor="gc_resolution_id"
-                          className="block mb-2 text-sm font-medium text-gray-700"
-                        >
-                          GC Resolution
-                        </label>
-                        <select
-                          id="gc_resolution_id"
-                          name="gc_resolution_id"
-                          value={formData.gc_resolution_id}
-                          onChange={handleInputChange}
-                          className="block w-full py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        >
-                          <option value="">Select a GC Resolution</option>
-                          {gcResolutions.length > 0 ? (
-                            gcResolutions.map((gcResolution) => {
-                              // Check if this GC Resolution is already used in BOM resolutions
-                              const isUsed = resolutions.some(
-                                (bom) =>
-                                  bom.gc_resolution_id === gcResolution.id
-                              );
-                              return (
-                                <option
-                                  key={gcResolution.id}
-                                  value={gcResolution.id}
-                                  disabled={isUsed}
-                                >
-                                  {gcResolution.gc_no} - {gcResolution.agenda} -
-                                  Dated {formatDate(gcResolution.gc_date)}
-                                  {isUsed ? " (Already Added)" : ""}
-                                </option>
-                              );
-                            })
-                          ) : (
-                            <option disabled>Loading GC Resolutions...</option>
-                          )}
-                        </select>
-                      </div>
-                      <div>
-                        <label
                           htmlFor="bom_date"
                           className="block mb-2 text-sm font-medium text-gray-700"
                         >
@@ -896,54 +753,70 @@ const BOMResolutionsPage = () => {
                         </select>
                       </div>
                     </div>
+
+                    {/* File Upload Fields */}
                     <div className="mb-4">
                       <label
                         htmlFor="agenda"
                         className="block mb-2 text-sm font-medium text-gray-700"
                       >
-                        Agenda
+                        Agenda File *
                       </label>
-                      <textarea
-                        value={formData.agenda}
-                        onChange={handleInputChange}
+                      <input
+                        type="file"
+                        id="agenda"
                         name="agenda"
-                        placeholder="Enter agenda details"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-vertical"
-                        style={{ height: "150px" }}
+                        onChange={(e) => handleFileUpload(e, "agenda")}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        accept=".pdf,.doc,.docx,.txt"
+                        required={!editingId}
                       />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Accepted formats: PDF (Max size: 25MB)
+                      </p>
                     </div>
+
                     <div className="mb-4">
                       <label
                         htmlFor="resolution"
                         className="block mb-2 text-sm font-medium text-gray-700"
                       >
-                        Resolution
+                        Resolution File *
                       </label>
-                      <textarea
-                        value={formData.resolution}
-                        onChange={handleInputChange}
+                      <input
+                        type="file"
+                        id="resolution"
                         name="resolution"
-                        placeholder="Enter resolution details"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-vertical"
-                        style={{ height: "200px" }}
+                        onChange={(e) => handleFileUpload(e, "resolution")}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        accept=".pdf,.doc,.docx,.txt"
+                        required={!editingId}
                       />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Accepted formats: PDF (Max size: 25MB)
+                      </p>
                     </div>
+
                     <div className="mb-4">
                       <label
                         htmlFor="compliance"
                         className="block mb-2 text-sm font-medium text-gray-700"
                       >
-                        Compliance (Optional)
+                        Compliance File (Optional)
                       </label>
-                      <textarea
-                        value={formData.compliance}
-                        onChange={handleInputChange}
+                      <input
+                        type="file"
+                        id="compliance"
                         name="compliance"
-                        placeholder="Enter compliance details"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-vertical"
-                        style={{ height: "150px" }}
+                        onChange={(e) => handleFileUpload(e, "compliance")}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        accept=".pdf,.doc,.docx,.txt"
                       />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Accepted formats: PDF (Max size: 25MB)
+                      </p>
                     </div>
+
                     <div className="flex justify-end pt-6 mt-6 space-x-4 border-t border-gray-200">
                       <button
                         type="button"
@@ -960,94 +833,6 @@ const BOMResolutionsPage = () => {
                       </button>
                     </div>
                   </form>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* GC Resolution Modal */}
-        {isGCModalOpen && selectedGCResolution && (
-          <div
-            className="fixed inset-0 z-50 overflow-y-auto"
-            aria-labelledby="gc-modal-title"
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-              <div
-                className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-                aria-hidden="true"
-                onClick={() => setIsGCModalOpen(false)}
-              ></div>
-              <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600">
-                  <div className="flex items-center justify-between">
-                    <h3
-                      className="text-lg font-medium leading-6 text-white"
-                      id="gc-modal-title"
-                    >
-                      GC Resolution Details
-                    </h3>
-                    <button
-                      type="button"
-                      className="text-white hover:text-gray-200 focus:outline-none"
-                      onClick={() => setIsGCModalOpen(false)}
-                    >
-                      <svg
-                        className="w-6 h-6"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-                <div className="px-6 py-5 bg-white">
-                  <div className="mb-4">
-                    <div className="block mb-4 text-sm font-medium text-gray-700">
-                      <strong>ID:</strong> {selectedGCResolution.id}
-                    </div>
-                    <div className="block mb-4 text-sm font-medium text-gray-700">
-                      <strong>Agenda:</strong>
-                      <div className="mt-2 text-gray-600">
-                        <HtmlContent
-                          content={selectedGCResolution.agenda}
-                          maxLength={1000}
-                        />
-                      </div>
-                    </div>
-                    <div className="block mb-4 text-sm font-medium text-gray-700">
-                      <strong>Resolution:</strong>
-                      <div className="mt-2 text-gray-600">
-                        <HtmlContent
-                          content={selectedGCResolution.resolution}
-                          maxLength={1000}
-                        />
-                      </div>
-                    </div>
-                    <div className="block mb-4 text-sm font-medium text-gray-700">
-                      <strong>Compliance:</strong>
-                      <div className="mt-2 text-gray-600">
-                        <HtmlContent
-                          content={selectedGCResolution.compliance}
-                          maxLength={1000}
-                        />
-                      </div>
-                    </div>
-                    <div className="block mb-2 text-sm font-medium text-gray-700">
-                      <strong>Date:</strong>{" "}
-                      {formatDate(selectedGCResolution.gc_date)}
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>

@@ -931,7 +931,7 @@ const AddGCResolution = () => {
                           <option value="">All Tenures</option>
                           {tenures.map((tenure) => (
                             <option key={tenure.id} value={tenure.id}>
-                              {tenure.tenure_period}
+                              {tenure.tenure}
                             </option>
                           ))}
                         </select>

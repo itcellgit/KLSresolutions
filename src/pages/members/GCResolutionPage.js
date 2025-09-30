@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { getGCResolutions } from "../../api/gcResolutions";
+import { getGCResolutions, searchPDFContent } from "../../api/gcResolutions";
 import { getInstitutes } from "../../api/institutes";
 import { getAllManagementTenures } from "../../api/managementTenures";
 import { useSelector } from "react-redux";
@@ -129,6 +129,9 @@ const GCResolutionPage = () => {
   const [institutes, setInstitutes] = useState([]);
   const [filteredInstitutes, setFilteredInstitutes] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [pdfSearchTerm, setPdfSearchTerm] = useState(""); // New state for PDF search
+  const [searchResults, setSearchResults] = useState([]); // Store PDF search results
+  const [isSearching, setIsSearching] = useState(false); // Loading state for search
   const [selectedInstitute, setSelectedInstitute] = useState("");
   const [apiError, setApiError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -260,8 +263,52 @@ const GCResolutionPage = () => {
     return matchesSearch && matchesInstitute && matchesTenure;
   });
 
-  // Group by date first
-  const groupedByDate = filteredData.reduce((acc, item) => {
+  // PDF Search functionality
+  const performPdfSearch = async (searchText) => {
+    if (!searchText.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      // Call the backend API to search actual PDF content
+      console.log("Searching for:", searchText);
+      const response = await searchPDFContent(searchText, token);
+      console.log("Search response:", response);
+
+      if (response && response.results) {
+        // The backend already filters by user permissions and tenure constraints
+        console.log("Search results found:", response.results.length);
+        setSearchResults(response.results);
+      } else {
+        console.log("No results in response");
+        setSearchResults([]);
+      }
+    } catch (error) {
+      console.error("Error performing PDF search:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (pdfSearchTerm) {
+        performPdfSearch(pdfSearchTerm);
+      } else {
+        setSearchResults([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [pdfSearchTerm, gcResolutions, tenures]);
+
+  // Group by date first - use search results if PDF search is active
+  const dataToGroup = pdfSearchTerm.trim() ? searchResults : filteredData;
+  const groupedByDate = dataToGroup.reduce((acc, item) => {
     const dateKey = item.gc_date || "N/A";
     if (!acc[dateKey]) acc[dateKey] = [];
     acc[dateKey].push(item);
@@ -555,6 +602,87 @@ const GCResolutionPage = () => {
           )}
 
           {!isLoading && (
+            <div className="p-4 mb-6 border border-blue-200 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">
+              <h3 className="flex items-center mb-3 text-lg font-semibold text-blue-900">
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                Search Across All Resolution PDFs
+              </h3>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <svg
+                    className="w-5 h-5 text-blue-400"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search text across all resolution PDFs (across institutes and tenures)..."
+                  className="block w-full py-3 pl-10 pr-12 transition bg-white border border-blue-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={pdfSearchTerm}
+                  onChange={(e) => setPdfSearchTerm(e.target.value)}
+                />
+                {pdfSearchTerm && !isSearching && (
+                  <button
+                    onClick={() => setPdfSearchTerm("")}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                    title="Clear search"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                )}
+                {isSearching && (
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <div className="w-4 h-4 border-2 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+                  </div>
+                )}
+              </div>
+              {pdfSearchTerm && (
+                <div className="mt-2 text-sm text-blue-700">
+                  {isSearching ? (
+                    "Searching across PDFs..."
+                  ) : (
+                    <>
+                      Found{" "}
+                      <span className="font-bold">{searchResults.length}</span>{" "}
+                      dates with matching content
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {!isLoading && (
             <div className="p-6 mb-8 bg-white border border-gray-200 shadow-md rounded-xl">
               <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                 <div className="relative flex-1 max-w-4xl">
@@ -599,7 +727,9 @@ const GCResolutionPage = () => {
                   {/* Table Header */}
                   <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-700">
                     <h2 className="text-xl font-bold text-white">
-                      Meeting Schedule
+                      {pdfSearchTerm.trim()
+                        ? `Search Results (${searchResults.length} meetings found)`
+                        : "Meeting Schedule"}
                     </h2>
                   </div>
 
@@ -892,6 +1022,8 @@ const GCResolutionPage = () => {
                   <h3 className="mt-4 text-xl font-medium text-gray-700">
                     {apiError
                       ? "Data unavailable"
+                      : pdfSearchTerm.trim()
+                      ? `No meetings found matching "${pdfSearchTerm}"`
                       : "No Resolutions Found For Selected Tenure"}
                   </h3>
                 </div>
