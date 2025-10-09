@@ -39,8 +39,6 @@ GCResolution.belongsTo(ManagementTenure, { foreignKey: "tenure_id" });
 ManagementTenure.hasMany(GCResolution, { foreignKey: "tenure_id" });
 BOMResolution.belongsTo(ManagementTenure, { foreignKey: "tenure_id" });
 ManagementTenure.hasMany(BOMResolution, { foreignKey: "tenure_id" });
-AGM.belongsTo(ManagementTenure, { foreignKey: "tenure_id" });
-ManagementTenure.hasMany(AGM, { foreignKey: "tenure_id" });
 
 // Call associate methods if present (for model-defined associations)
 const models = {

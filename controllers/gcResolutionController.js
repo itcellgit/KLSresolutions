@@ -32,88 +32,179 @@ const deleteFileFromServer = (filename) => {
 };
 
 // Get all GC resolutions (admin sees all, institute admin sees only their own)
+// exports.getAllGCResolutions = async (req, res) => {
+//   try {
+//     const { usertypeid, id } = req.user;
+//     const { tenure_id } = req.query; // Add tenure filtering from query params
+//     let resolutions = [];
+
+//     // Build where clause for tenure filtering
+//     const whereClause = {};
+//     if (tenure_id) {
+//       whereClause.tenure_id = tenure_id;
+//     }
+
+//     if (usertypeid === 1) {
+//       // Admin: all resolutions, latest first
+//       resolutions = await GCResolution.findAll({
+//         where: whereClause,
+//         order: [["id", "DESC"]],
+//       });
+//     } else if (usertypeid === 2) {
+//       // Institute admin: only their institute's resolutions, latest first
+//       resolutions = await GCResolution.findAll({
+//         where: {
+//           institute_id: req.user.institute_id,
+//           ...whereClause,
+//         },
+//         order: [["id", "DESC"]],
+//       });
+//     } else if (usertypeid === 3) {
+//       // Member: check if President or Vice President, else restrict to their institutes
+//       const member = await Member.findOne({ where: { userid: id } });
+//       if (!member) {
+//         return res.status(404).json({ error: "Member not found" });
+//       }
+//       // Fetch active member roles with institute_id and include role
+//       const memberRoles = await MemberRole.findAll({
+//         where: { member_id: member.id, status: "active" },
+//         include: [{ model: Role, as: "role" }],
+//       });
+//       // Check if any role is President or Vice President
+//       const hasSpecialRole = memberRoles.some(
+//         (mr) =>
+//           mr.role &&
+//           (mr.role.role_name === "President" ||
+//             mr.role.role_name === "Vice President")
+//       );
+//       if (hasSpecialRole) {
+//         // President or Vice President: view all resolutions
+//         resolutions = await GCResolution.findAll({
+//           where: whereClause,
+//           order: [["id", "DESC"]],
+//         });
+//       } else {
+//         // Regular member: only their institutes
+//         const instituteIds = [
+//           ...new Set(
+//             memberRoles
+//               .map((mr) => mr.institute_id)
+//               .filter((institute_id) => institute_id != null)
+//           ),
+//         ];
+//         if (instituteIds.length === 0) {
+//           return res
+//             .status(400)
+//             .json({ error: "Member does not belong to any institute" });
+//         }
+//         resolutions = await GCResolution.findAll({
+//           where: {
+//             institute_id: { [Op.in]: instituteIds },
+//             ...whereClause,
+//           },
+//           order: [["id", "DESC"]],
+//         });
+//       }
+//     }
+
+//     return res.json({ resolutions });
+//   } catch (err) {
+//     console.error("Error in getAllGCResolutions:", err);
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+// ...existing code...
 exports.getAllGCResolutions = async (req, res) => {
   try {
     const { usertypeid, id } = req.user;
-    const { tenure_id } = req.query; // Add tenure filtering from query params
-    let resolutions = [];
-
-    // Build where clause for tenure filtering
+    const { tenure_id } = req.query;
     const whereClause = {};
-    if (tenure_id) {
-      whereClause.tenure_id = tenure_id;
-    }
+    if (tenure_id) whereClause.tenure_id = tenure_id;
 
+    // Admin
     if (usertypeid === 1) {
-      // Admin: all resolutions, latest first
-      resolutions = await GCResolution.findAll({
+      const resolutions = await GCResolution.findAll({
         where: whereClause,
         order: [["id", "DESC"]],
       });
-    } else if (usertypeid === 2) {
-      // Institute admin: only their institute's resolutions, latest first
-      resolutions = await GCResolution.findAll({
-        where: {
-          institute_id: req.user.institute_id,
-          ...whereClause,
-        },
+      return res.json({ resolutions });
+    }
+
+    // Institute admin
+    if (usertypeid === 2) {
+      const resolutions = await GCResolution.findAll({
+        where: { institute_id: req.user.institute_id, ...whereClause },
         order: [["id", "DESC"]],
       });
-    } else if (usertypeid === 3) {
-      // Member: check if President or Vice President, else restrict to their institutes
+      return res.json({ resolutions });
+    }
+
+    // Member
+    if (usertypeid === 3) {
       const member = await Member.findOne({ where: { userid: id } });
-      if (!member) {
-        return res.status(404).json({ error: "Member not found" });
-      }
-      // Fetch active member roles with institute_id and include role
+      if (!member) return res.status(404).json({ error: "Member not found" });
+
       const memberRoles = await MemberRole.findAll({
         where: { member_id: member.id, status: "active" },
         include: [{ model: Role, as: "role" }],
       });
-      // Check if any role is President or Vice President
+
       const hasSpecialRole = memberRoles.some(
         (mr) =>
           mr.role &&
           (mr.role.role_name === "President" ||
             mr.role.role_name === "Vice President")
       );
+
       if (hasSpecialRole) {
-        // President or Vice President: view all resolutions
-        resolutions = await GCResolution.findAll({
+        const resolutions = await GCResolution.findAll({
           where: whereClause,
           order: [["id", "DESC"]],
         });
-      } else {
-        // Regular member: only their institutes
-        const instituteIds = [
-          ...new Set(
-            memberRoles
-              .map((mr) => mr.institute_id)
-              .filter((institute_id) => institute_id != null)
-          ),
-        ];
-        if (instituteIds.length === 0) {
-          return res
-            .status(400)
-            .json({ error: "Member does not belong to any institute" });
-        }
-        resolutions = await GCResolution.findAll({
-          where: {
-            institute_id: { [Op.in]: instituteIds },
-            ...whereClause,
-          },
-          order: [["id", "DESC"]],
-        });
+        return res.json({ resolutions });
       }
+
+      // regular member -> get institute ids they belong to
+      const instituteIds = [
+        ...new Set(
+          memberRoles
+            .map((mr) => mr.institute_id)
+            .filter((institute_id) => institute_id != null)
+        ),
+      ];
+
+      if (instituteIds.length === 0) {
+        return res.status(200).json({ resolutions: [], institutes: [] });
+      }
+
+      // Fetch institute records (even if no resolutions)
+      const institutes = await Institute.findAll({
+        where: { id: { [Op.in]: instituteIds } },
+        attributes: ["id", "name"],
+      });
+
+      // Fetch resolutions for those institutes (may be empty)
+      const resolutions = await GCResolution.findAll({
+        where: { institute_id: { [Op.in]: instituteIds }, ...whereClause },
+        order: [["id", "DESC"]],
+      });
+
+      const byInstitute = institutes.map((inst) => ({
+        institute: inst,
+        resolutions: resolutions.filter((r) => r.institute_id === inst.id),
+      }));
+
+      return res.json({ resolutions, institutes, byInstitute });
     }
 
-    return res.json({ resolutions });
+    // fallback
+    return res.json({ resolutions: [] });
   } catch (err) {
     console.error("Error in getAllGCResolutions:", err);
     res.status(500).json({ error: err.message });
   }
 };
-
+// ...existing code...
 // Institute admin can add GC resolution
 exports.createGCResolution = async (req, res) => {
   console.log("Request body:", req.body);
