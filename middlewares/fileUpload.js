@@ -70,9 +70,15 @@ const uploadBOMFiles = upload.fields([
   { name: "compliance", maxCount: 1 },
 ]);
 
+const uploadAGMFiles = upload.fields([
+  { name: "agenda", maxCount: 1 },
+  { name: "notes", maxCount: 1 },
+]);
+
 //module.exports = uploadGCFiles;
 
 module.exports = {
   uploadGCFiles,
-  uploadBOMFiles: uploadGCFiles, // Same middleware, different name
+  uploadBOMFiles,
+  uploadAGMFiles,
 };

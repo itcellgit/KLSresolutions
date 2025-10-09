@@ -160,9 +160,9 @@ exports.createGCResolution = async (req, res) => {
     }
 
     // Check if agenda file is uploaded (REQUIRED field in DB)
-    if (!req.files || !req.files.agenda || req.files.agenda.length === 0) {
-      return res.status(400).json({ error: "Agenda file is required" });
-    }
+    // if (!req.files || !req.files.agenda || req.files.agenda.length === 0) {
+    //   return res.status(400).json({ error: "Agenda file is required" });
+    // }
 
     // Validate that agenda file was processed correctly
     if (!req.files.agenda[0] || !req.files.agenda[0].filename) {
@@ -233,9 +233,9 @@ exports.createGCResolution = async (req, res) => {
     console.log("Creating GC Resolution with data:", gcResolutionData);
 
     // Validate required fields before database operation
-    if (!gcResolutionData.agenda) {
-      throw new Error("Agenda filename is required but missing");
-    }
+    // if (!gcResolutionData.agenda) {
+    //   throw new Error("Agenda filename is required but missing");
+    // }
     if (!gcResolutionData.gc_date) {
       throw new Error("GC date is required but missing");
     }

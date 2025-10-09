@@ -72,8 +72,10 @@ app.get("/", (req, res) => {
   res.send("Hello from your Express backend!");
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server is running on http://0.0.0.0:${PORT}`);
+  console.log(`Also accessible at http://localhost:${PORT}`);
+  console.log(`And at http://10.22.0.152:${PORT} (for mobile/external access)`);
 });
 
 module.exports = app;

@@ -54,9 +54,20 @@ exports.getAllBOMResolutions = async (req, res) => {
 
 // Admin can create BOM agenda
 exports.createBOMResolution = async (req, res) => {
+  console.log("=== CREATE BOM RESOLUTION DEBUG ===");
   console.log("Request body:", req.body);
   console.log("Request files:", req.files);
+  console.log(
+    "Request files keys:",
+    req.files ? Object.keys(req.files) : "No files object"
+  );
+  console.log(
+    "Request file entries:",
+    req.files ? JSON.stringify(req.files, null, 2) : "No files"
+  );
   console.log("User info:", req.user);
+  console.log("Content-Type header:", req.get("Content-Type"));
+
   try {
     if (req.user.usertypeid !== 1) {
       return res
@@ -71,40 +82,72 @@ exports.createBOMResolution = async (req, res) => {
       return res.status(400).json({ error: "BOM date is required" });
     }
 
-    // Check if at least agenda and resolution files are uploaded
-    if (!req.files || !req.files.agenda || req.files.agenda.length === 0) {
+    // Enhanced file checking
+    console.log("=== FILE VALIDATION ===");
+    console.log("req.files exists:", !!req.files);
+    console.log("req.files type:", typeof req.files);
+
+    if (!req.files) {
+      console.log("ERROR: No req.files found");
+      return res
+        .status(400)
+        .json({ error: "No files uploaded - req.files is null/undefined" });
+    }
+
+    console.log("Available file fields:", Object.keys(req.files));
+
+    // Check agenda file
+    console.log("Checking agenda file...");
+    console.log("req.files.agenda exists:", !!req.files.agenda);
+    console.log("req.files.agenda:", req.files.agenda);
+
+    if (
+      !req.files.agenda ||
+      !Array.isArray(req.files.agenda) ||
+      req.files.agenda.length === 0
+    ) {
+      console.log("ERROR: Agenda file validation failed");
+      console.log("- req.files.agenda exists:", !!req.files.agenda);
+      console.log("- is array:", Array.isArray(req.files.agenda));
+      console.log(
+        "- length:",
+        req.files.agenda ? req.files.agenda.length : "N/A"
+      );
       return res.status(400).json({ error: "Agenda file is required" });
     }
-    if (!req.files.resolution || req.files.resolution.length === 0) {
+
+    // Check resolution file
+    console.log("Checking resolution file...");
+    console.log("req.files.resolution exists:", !!req.files.resolution);
+    console.log("req.files.resolution:", req.files.resolution);
+
+    if (
+      !req.files.resolution ||
+      !Array.isArray(req.files.resolution) ||
+      req.files.resolution.length === 0
+    ) {
+      console.log("ERROR: Resolution file validation failed");
       return res.status(400).json({ error: "Resolution file is required" });
     }
 
-    // Extract file paths from uploaded files with error handling
-    const filePaths = {};
-    try {
-      if (req.files.agenda && req.files.agenda[0]) {
-        filePaths.agenda = req.files.agenda[0].filename;
-        console.log("Agenda file saved as:", filePaths.agenda);
-      }
-      if (req.files.resolution && req.files.resolution[0]) {
-        filePaths.resolution = req.files.resolution[0].filename;
-        console.log("Resolution file saved as:", filePaths.resolution);
-      }
-      if (req.files.compliance && req.files.compliance[0]) {
-        filePaths.compliance = req.files.compliance[0].filename;
-        console.log("Compliance file saved as:", filePaths.compliance);
-      }
-    } catch (fileError) {
-      console.error("Error processing uploaded files:", fileError);
-      return res.status(400).json({ error: "Error processing uploaded files" });
-    }
+    // Extract file paths from uploaded files
+    const filePaths = {
+      agenda: req.files.agenda[0].filename,
+      resolution: req.files.resolution[0].filename,
+      compliance:
+        req.files.compliance && req.files.compliance[0]
+          ? req.files.compliance[0].filename
+          : null,
+    };
+
+    console.log("File paths extracted:", filePaths);
 
     const bomResolution = await BOMResolution.create({
-      agenda: filePaths.agenda || null,
-      resolution: filePaths.resolution || null,
-      compliance: filePaths.compliance || null,
+      agenda: filePaths.agenda,
+      resolution: filePaths.resolution,
+      compliance: filePaths.compliance,
       bom_date,
-      tenure_id,
+      tenure_id: tenure_id || null,
     });
 
     // Fetch the created record with associations for response
@@ -263,59 +306,111 @@ exports.updateBOMResolution = async (req, res) => {
 // Search PDF content
 exports.searchPDFContent = async (req, res) => {
   try {
-    const { query } = req.query;
-    if (!query) {
-      return res.status(400).json({ error: "Search query is required" });
+    // Handle both parameter names for backward compatibility
+    const { searchText, query } = req.query;
+    const searchQuery = searchText || query;
+    const { usertypeid, id } = req.user;
+
+    console.log("BOM PDF search request received:", {
+      searchText,
+      query,
+      searchQuery,
+      usertypeid,
+      id,
+    });
+
+    if (!searchQuery || !searchQuery.trim()) {
+      console.log("Empty search text, returning empty results");
+      return res.json({ results: [] });
     }
 
-    // Get all BOM resolutions
-    const resolutions = await BOMResolution.findAll({
+    // Get BOM resolutions based on user permissions
+    let resolutions = await BOMResolution.findAll({
       include: [
         {
           model: ManagementTenure,
           as: "managementTenure",
         },
       ],
+      order: [["id", "DESC"]],
     });
 
-    const searchResults = [];
+    console.log("Found BOM resolutions to search:", resolutions.length);
 
+    const searchTextLower = searchQuery.toLowerCase();
+    const matchingResolutions = [];
+
+    // Search through PDF files
     for (const resolution of resolutions) {
-      const files = [
-        { type: "agenda", filename: resolution.agenda },
-        { type: "resolution", filename: resolution.resolution },
-        { type: "compliance", filename: resolution.compliance },
-      ].filter((f) => f.filename);
+      console.log(`Searching BOM resolution ID ${resolution.id} with files:`, {
+        agenda: resolution.agenda,
+        resolution: resolution.resolution,
+        compliance: resolution.compliance,
+      });
 
-      for (const file of files) {
-        const filePath = path.join(__dirname, "../uploads", file.filename);
-        if (
-          fs.existsSync(filePath) &&
-          path.extname(file.filename).toLowerCase() === ".pdf"
-        ) {
+      const pdfFields = ["agenda", "resolution", "compliance"];
+      let foundMatch = false;
+
+      for (const field of pdfFields) {
+        if (resolution[field] && !foundMatch) {
           try {
-            const dataBuffer = fs.readFileSync(filePath);
-            const pdfData = await pdf(dataBuffer);
+            const pdfPath = path.join(
+              __dirname,
+              "../uploads",
+              resolution[field]
+            );
+            console.log(`Checking BOM PDF: ${pdfPath}`);
 
-            if (pdfData.text.toLowerCase().includes(query.toLowerCase())) {
-              searchResults.push({
-                resolution_id: resolution.id,
-                file_type: file.type,
-                filename: file.filename,
-                bom_date: resolution.bom_date,
-                managementTenure: resolution.managementTenure,
-              });
+            if (fs.existsSync(pdfPath)) {
+              console.log(`Reading BOM PDF: ${resolution[field]}`);
+              const dataBuffer = fs.readFileSync(pdfPath);
+              const pdfData = await pdf(dataBuffer);
+              const pdfText = pdfData.text.toLowerCase();
+              console.log(
+                `BOM PDF text length: ${pdfText.length}, searching for: ${searchTextLower}`
+              );
+
+              if (pdfText.includes(searchTextLower)) {
+                console.log(
+                  `MATCH FOUND in ${field} for BOM resolution ${resolution.id}`
+                );
+                matchingResolutions.push({
+                  ...resolution.toJSON(),
+                  matchedField: field,
+                  matchedIn: field.replace("_", " "),
+                });
+                foundMatch = true;
+                break;
+              } else {
+                console.log(
+                  `No match in ${field} for BOM resolution ${resolution.id}`
+                );
+              }
+            } else {
+              console.log(`BOM PDF file not found: ${pdfPath}`);
             }
-          } catch (pdfError) {
-            console.error(`Error reading PDF ${file.filename}:`, pdfError);
+          } catch (error) {
+            console.error(
+              `Error reading BOM PDF ${resolution[field]}:`,
+              error.message
+            );
+            // Continue to next PDF even if one fails
           }
         }
       }
     }
 
-    res.json(searchResults);
-  } catch (err) {
-    console.error("Error searching PDFs:", err);
-    res.status(500).json({ error: err.message });
+    console.log(
+      `BOM Search completed. Found ${matchingResolutions.length} matching resolutions`
+    );
+
+    res.json({
+      results: matchingResolutions,
+      searchText: searchQuery,
+      totalFound: matchingResolutions.length,
+    });
+  } catch (error) {
+    console.error("Error searching BOM PDF content:", error);
+    res.status(500).json({ error: "Failed to search BOM PDF content" });
   }
 };
