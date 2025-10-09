@@ -5,6 +5,7 @@ exports.createAGM = async (req, res) => {
     const agm = await AGM.create(req.body);
     res.status(201).json(agm);
   } catch (error) {
+	
     res.status(400).json({ error: error.message });
   }
 };
