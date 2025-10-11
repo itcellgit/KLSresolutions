@@ -113,7 +113,6 @@ const deleteFileFromServer = (filename) => {
 //     res.status(500).json({ error: err.message });
 //   }
 // };
-// ...existing code...
 exports.getAllGCResolutions = async (req, res) => {
   try {
     const { usertypeid, id } = req.user;
@@ -204,7 +203,7 @@ exports.getAllGCResolutions = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-// ...existing code...
+
 // Institute admin can add GC resolution
 exports.createGCResolution = async (req, res) => {
   console.log("Request body:", req.body);
@@ -753,5 +752,395 @@ exports.searchPDFContent = async (req, res) => {
   } catch (error) {
     console.error("Error searching PDF content:", error);
     res.status(500).json({ error: "Failed to search PDF content" });
+  }
+};
+
+/**
+ * Get GC resolutions for a specific member and tenure
+ * Checks member_roles table for authorization (includes all statuses for that tenure)
+ */
+exports.getGCResolutionsByMemberAndTenure = async (req, res) => {
+  try {
+    const { memberId, tenureId } = req.params;
+
+    console.log(
+      `Fetching GC resolutions for member ${memberId} and tenure ${tenureId}`
+    );
+
+    // Validate input parameters
+    if (!memberId || !tenureId) {
+      return res.status(400).json({
+        success: false,
+        message: "Member ID and Tenure ID are required",
+      });
+    }
+
+    // Step 1: Check if member had roles for the given tenure (any status)
+    // Member should see resolutions for all institutes they were associated with during that tenure
+    const memberRoles = await MemberRole.findAll({
+      where: {
+        member_id: memberId,
+        tenure_id: tenureId,
+        // No status filter - member had access during this tenure regardless of current status
+      },
+      include: [
+        {
+          model: Institute,
+          as: "institute", // Adjust this alias based on your model associations
+          attributes: ["id", "name", "code"],
+        },
+        {
+          model: Role,
+          as: "role",
+          attributes: ["id", "role_name"],
+        },
+      ],
+    });
+
+    console.log(
+      `Found ${memberRoles.length} institute roles for member ${memberId} in tenure ${tenureId} (all statuses)`
+    );
+
+    if (memberRoles.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied: Member had no roles for the specified tenure",
+        data: {
+          member_id: parseInt(memberId),
+          tenure_id: parseInt(tenureId),
+          accessible_institutes: [],
+        },
+      });
+    }
+
+    // Step 2: Get institute IDs where member had access during that tenure
+    const accessibleInstituteIds = memberRoles.map((role) => role.institute_id);
+
+    // Step 3: Fetch GC resolutions for the accessible institutes and tenure
+    const gcResolutions = await GCResolution.findAll({
+      where: {
+        tenure_id: tenureId,
+        institute_id: { [Op.in]: accessibleInstituteIds },
+      },
+      include: [
+        {
+          model: Institute,
+          attributes: ["id", "name", "code"],
+        },
+        {
+          model: ManagementTenure,
+          attributes: ["id", "tenure", "start_date", "end_date"],
+        },
+      ],
+      order: [
+        ["gc_date", "DESC"],
+        ["createdAt", "DESC"],
+      ],
+    });
+
+    console.log(
+      `Found ${gcResolutions.length} GC resolutions for accessible institutes`
+    );
+
+    // Step 4: Group resolutions by institute for better organization
+    const resolutionsByInstitute = {};
+    gcResolutions.forEach((resolution) => {
+      const instituteId = resolution.institute_id;
+      if (!resolutionsByInstitute[instituteId]) {
+        resolutionsByInstitute[instituteId] = {
+          institute: {
+            id: instituteId,
+            name: resolution.Institute.name,
+            code: resolution.Institute.code,
+          },
+          resolutions: [],
+        };
+      }
+      resolutionsByInstitute[instituteId].resolutions.push(resolution);
+    });
+
+    // Step 5: Prepare accessible institutes data with status information
+    const accessibleInstitutes = memberRoles.map((role) => ({
+      id: role.institute_id,
+      name: role.institute?.name || "Unknown Institute",
+      code: role.institute?.code || "N/A",
+      member_role: role.role?.role_name || "Unknown Role",
+      status: role.status || "unknown", // Show the status for reference
+      was_active_during_tenure: true, // They had access during this tenure
+    }));
+
+    // Step 6: Calculate summary statistics
+    const uniqueMeetingDates = [
+      ...new Set(gcResolutions.map((r) => r.gc_date)),
+    ];
+
+    return res.status(200).json({
+      success: true,
+      message: `Found ${gcResolutions.length} GC resolutions for ${memberRoles.length} institutes where member had roles during tenure ${tenureId}`,
+      data: {
+        member_id: parseInt(memberId),
+        tenure_id: parseInt(tenureId),
+        accessible_institutes: accessibleInstitutes,
+        resolutions: gcResolutions,
+        resolutions_by_institute: resolutionsByInstitute,
+        summary: {
+          total_resolutions: gcResolutions.length,
+          total_institutes: memberRoles.length,
+          unique_meeting_dates: uniqueMeetingDates.length,
+          date_range: {
+            first_meeting:
+              gcResolutions.length > 0
+                ? Math.min(...gcResolutions.map((r) => new Date(r.gc_date)))
+                : null,
+            last_meeting:
+              gcResolutions.length > 0
+                ? Math.max(...gcResolutions.map((r) => new Date(r.gc_date)))
+                : null,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Error in getGCResolutionsByMemberAndTenure:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching GC resolutions",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+/**
+ * Get GC resolutions for a specific member, tenure, and institute
+ * Includes authorization check (any status for that tenure)
+ */
+exports.getGCResolutionsByMemberTenureAndInstitute = async (req, res) => {
+  try {
+    const { memberId, tenureId, instituteId } = req.params;
+
+    console.log(
+      `Fetching GC resolutions for member ${memberId}, tenure ${tenureId}, institute ${instituteId}`
+    );
+
+    // Validate input parameters
+    if (!memberId || !tenureId || !instituteId) {
+      return res.status(400).json({
+        success: false,
+        message: "Member ID, Tenure ID, and Institute ID are required",
+      });
+    }
+
+    // Step 1: Verify member had access to this institute during this tenure (any status)
+    const accessCheck = await MemberRole.findOne({
+      where: {
+        member_id: memberId,
+        tenure_id: tenureId,
+        institute_id: instituteId,
+        // No status filter - if they had a role during that tenure, they can see the resolutions
+      },
+      include: [
+        {
+          model: Institute,
+          as: "institute",
+          attributes: ["id", "name", "code", "address"],
+        },
+        {
+          model: Role,
+          as: "role",
+          attributes: ["id", "role_name"],
+        },
+        {
+          model: ManagementTenure,
+          as: "tenure", // Adjust alias based on your associations
+          attributes: ["id", "tenure", "start_date", "end_date"],
+        },
+      ],
+    });
+
+    if (!accessCheck) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Access denied: Member did not have access to this institute during the specified tenure",
+        data: {
+          member_id: parseInt(memberId),
+          tenure_id: parseInt(tenureId),
+          institute_id: parseInt(instituteId),
+        },
+      });
+    }
+
+    // Step 2: Fetch GC resolutions for the specific institute and tenure
+    const gcResolutions = await GCResolution.findAll({
+      where: {
+        tenure_id: tenureId,
+        institute_id: instituteId,
+      },
+      include: [
+        {
+          model: Institute,
+          attributes: ["id", "name", "code"],
+        },
+        {
+          model: ManagementTenure,
+          attributes: ["id", "tenure", "start_date", "end_date"],
+        },
+      ],
+      order: [
+        ["gc_date", "DESC"],
+        ["createdAt", "DESC"],
+      ],
+    });
+
+    // Step 3: Group resolutions by date for better organization
+    const resolutionsByDate = {};
+    gcResolutions.forEach((resolution) => {
+      const dateKey = resolution.gc_date || "no-date";
+      if (!resolutionsByDate[dateKey]) {
+        resolutionsByDate[dateKey] = [];
+      }
+      resolutionsByDate[dateKey].push(resolution);
+    });
+
+    // Step 4: Calculate statistics
+    const statistics = {
+      total_resolutions: gcResolutions.length,
+      unique_meeting_dates: [...new Set(gcResolutions.map((r) => r.gc_date))]
+        .length,
+      resolutions_with_agenda: gcResolutions.filter((r) => r.agenda).length,
+      resolutions_with_resolution: gcResolutions.filter((r) => r.resolution)
+        .length,
+      resolutions_with_compliance: gcResolutions.filter((r) => r.compliance)
+        .length,
+      resolutions_with_notes: gcResolutions.filter((r) => r.meeting_notes)
+        .length,
+      date_range: {
+        first_meeting:
+          gcResolutions.length > 0
+            ? Math.min(...gcResolutions.map((r) => new Date(r.gc_date)))
+            : null,
+        last_meeting:
+          gcResolutions.length > 0
+            ? Math.max(...gcResolutions.map((r) => new Date(r.gc_date)))
+            : null,
+      },
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: `Found ${gcResolutions.length} GC resolutions for the specified criteria`,
+      data: {
+        member_id: parseInt(memberId),
+        tenure_id: parseInt(tenureId),
+        institute_id: parseInt(instituteId),
+        member_role: accessCheck.role?.role_name || "Unknown Role",
+        member_status_during_tenure: accessCheck.status || "unknown",
+        institute: {
+          name: accessCheck.institute?.name || "Unknown Institute",
+          code: accessCheck.institute?.code || "N/A",
+          address: accessCheck.institute?.address || null,
+        },
+        tenure: {
+          name: accessCheck.tenure?.tenure || "Unknown Tenure",
+          start_date: accessCheck.tenure?.start_date || null,
+          end_date: accessCheck.tenure?.end_date || null,
+        },
+        resolutions: gcResolutions,
+        resolutions_by_date: resolutionsByDate,
+        statistics,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Error in getGCResolutionsByMemberTenureAndInstitute:",
+      error
+    );
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching GC resolutions",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+/**
+ * Get member's accessible institutes for a specific tenure
+ * Shows all institutes where member had roles during that tenure (any status)
+ */
+exports.getMemberAccessibleInstitutes = async (req, res) => {
+  try {
+    const { memberId, tenureId } = req.params;
+
+    console.log(
+      `Fetching accessible institutes for member ${memberId} and tenure ${tenureId}`
+    );
+
+    if (!memberId || !tenureId) {
+      return res.status(400).json({
+        success: false,
+        message: "Member ID and Tenure ID are required",
+      });
+    }
+
+    // Get all member roles for the tenure (regardless of current status)
+    const memberRoles = await MemberRole.findAll({
+      where: {
+        member_id: memberId,
+        tenure_id: tenureId,
+        // No status filter - show all institutes they were associated with during that tenure
+      },
+      include: [
+        {
+          model: Institute,
+          as: "institute",
+          attributes: ["id", "name", "code", "address"],
+        },
+        {
+          model: Role,
+          as: "role",
+          attributes: ["id", "role_name"],
+        },
+      ],
+    });
+
+    // Get resolution counts for each accessible institute
+    const accessibleInstitutes = [];
+
+    for (const memberRole of memberRoles) {
+      const resolutionCount = await GCResolution.count({
+        where: {
+          institute_id: memberRole.institute_id,
+          tenure_id: tenureId,
+        },
+      });
+
+      accessibleInstitutes.push({
+        id: memberRole.institute_id,
+        name: memberRole.institute?.name || "Unknown Institute",
+        code: memberRole.institute?.code || "N/A",
+        address: memberRole.institute?.address || null,
+        member_role: memberRole.role?.role_name || "Unknown Role",
+        status_during_tenure: memberRole.status || "unknown",
+        total_resolutions: resolutionCount,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Found ${accessibleInstitutes.length} institutes where member had roles during tenure ${tenureId}`,
+      data: {
+        member_id: parseInt(memberId),
+        tenure_id: parseInt(tenureId),
+        accessible_institutes: accessibleInstitutes,
+        total_institutes: accessibleInstitutes.length,
+      },
+    });
+  } catch (error) {
+    console.error("Error in getMemberAccessibleInstitutes:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching accessible institutes",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 };

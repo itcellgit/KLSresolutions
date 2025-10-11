@@ -6,6 +6,9 @@ const auth = require("../middlewares/auth");
 // Create member (protected)
 router.post("/", auth, memberController.createMember);
 
+// Get current user's member record (protected, any logged-in user)
+router.get("/me", auth, memberController.getMyMember);
+
 // Get all members (protected)
 router.get("/", auth, memberController.getAllMembers);
 

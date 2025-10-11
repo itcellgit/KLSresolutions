@@ -168,6 +168,25 @@ exports.deleteMember = async (req, res) => {
   }
 };
 
+// Return the current authenticated user's member record (if any)
+exports.getMyMember = async (req, res) => {
+  try {
+    const userId = req.user && req.user.id;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+    const member = await Member.findOne({
+      where: { userid: userId },
+      include: User,
+    });
+    if (!member) return res.status(404).json({ error: "Member not found" });
+
+    return res.json(member);
+  } catch (err) {
+    console.error("Error in getMyMember:", err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
 // Assign role to a member for an institute
 exports.assignRole = async (req, res) => {
   try {

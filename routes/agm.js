@@ -11,9 +11,58 @@ router.get("/", authMiddleware, agmController.getAGMs);
 // Optional: search inside uploaded AGM PDFs/text
 router.get("/search-pdf", authMiddleware, agmController.searchPDFContent);
 
-router.get("/file/:filename", authMiddleware, (req, res) => {
+router.get("/file-access/:filename", authMiddleware, (req, res) => {
   try {
     const { filename } = req.params;
+    const filePath = path.join(__dirname, "../uploads", filename);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: "File not found" });
+    }
+
+    // Generate a temporary access token (expires in 1 hour)
+    const jwt = require("jsonwebtoken");
+    const accessToken = jwt.sign(
+      { filename: filename, type: "file_access" },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    // Return the URL with the access token
+    const fileUrl = `/api/agm/file/${filename}?token=${accessToken}`;
+    res.json({ fileUrl: fileUrl });
+  } catch (error) {
+    console.error("Error generating file access URL:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/file/:filename", (req, res) => {
+  try {
+    const { filename } = req.params;
+    const { token } = req.query;
+
+    // Check if we have auth header or token
+    const authHeader = req.headers.authorization;
+    const hasAuth = authHeader && authHeader.startsWith("Bearer ");
+
+    if (!hasAuth && !token) {
+      return res.status(401).json({ error: "Authorization required" });
+    }
+
+    // If token is provided, verify it
+    if (token && !hasAuth) {
+      const jwt = require("jsonwebtoken");
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded.filename !== filename || decoded.type !== "file_access") {
+          return res.status(401).json({ error: "Invalid token" });
+        }
+      } catch (err) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+    }
+
     const filePath = path.join(__dirname, "../uploads", filename);
 
     console.log("AGM file view requested:", filename);
@@ -38,6 +87,10 @@ router.get("/file/:filename", authMiddleware, (req, res) => {
 
     res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
+    res.removeHeader("X-Frame-Options");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET");
+    res.setHeader("Content-Security-Policy", "frame-ancestors *;");
 
     res.sendFile(filePath, (err) => {
       if (err) {
