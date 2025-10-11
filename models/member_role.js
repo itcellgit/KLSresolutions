@@ -111,6 +111,13 @@ module.exports = (sequelize, DataTypes) => {
       targetKey: "id",
     });
 
+    // Associate MemberRole with Institute so include: { model: Institute, as: 'institute' } works
+    MemberRole.belongsTo(models.Institute, {
+      foreignKey: "institute_id",
+      targetKey: "id",
+      as: "institute",
+    });
+
     MemberRole.belongsTo(models.ManagementTenure, {
       foreignKey: "tenure_id",
       targetKey: "id",

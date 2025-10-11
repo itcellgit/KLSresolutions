@@ -1103,26 +1103,51 @@ exports.getMemberAccessibleInstitutes = async (req, res) => {
       ],
     });
 
+    console.log(`Member roles fetched: count=${memberRoles.length}`);
+    // log a short snapshot to help debug unexpected shapes
+    console.log(
+      "Member roles sample:",
+      memberRoles
+        .slice(0, 5)
+        .map((mr) => ({
+          member_id: mr.member_id,
+          institute_id: mr.institute_id,
+          role: mr.role?.role_name,
+          institute: mr.institute?.name,
+        }))
+    );
+
     // Get resolution counts for each accessible institute
     const accessibleInstitutes = [];
 
     for (const memberRole of memberRoles) {
-      const resolutionCount = await GCResolution.count({
-        where: {
-          institute_id: memberRole.institute_id,
-          tenure_id: tenureId,
-        },
-      });
+      try {
+        const resolutionCount = await GCResolution.count({
+          where: {
+            institute_id: memberRole.institute_id,
+            tenure_id: tenureId,
+          },
+        });
 
-      accessibleInstitutes.push({
-        id: memberRole.institute_id,
-        name: memberRole.institute?.name || "Unknown Institute",
-        code: memberRole.institute?.code || "N/A",
-        address: memberRole.institute?.address || null,
-        member_role: memberRole.role?.role_name || "Unknown Role",
-        status_during_tenure: memberRole.status || "unknown",
-        total_resolutions: resolutionCount,
-      });
+        accessibleInstitutes.push({
+          id: memberRole.institute_id,
+          name: memberRole.institute?.name || "Unknown Institute",
+          code: memberRole.institute?.code || "N/A",
+          address: memberRole.institute?.address || null,
+          member_role: memberRole.role?.role_name || "Unknown Role",
+          status_during_tenure: memberRole.status || "unknown",
+          total_resolutions: resolutionCount,
+        });
+      } catch (innerErr) {
+        console.error("Error processing memberRole", {
+          memberRole: {
+            member_id: memberRole.member_id,
+            institute_id: memberRole.institute_id,
+          },
+          error: innerErr,
+        });
+        // continue with other roles rather than failing everything
+      }
     }
 
     return res.status(200).json({
