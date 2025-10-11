@@ -16,6 +16,31 @@ router.get(
   gcResolutionController.searchPDFContent
 );
 
+// --- Member-based routes: allow members to fetch resolutions they have access to ---
+// Get GC resolutions for a specific member and tenure
+// GET /api/gc_resolutions/member/:memberId/tenure/:tenureId
+router.get(
+  "/member/:memberId/tenure/:tenureId",
+  authMiddleware,
+  gcResolutionController.getGCResolutionsByMemberAndTenure
+);
+
+// Get GC resolutions for a specific member, tenure and institute
+// GET /api/gc_resolutions/member/:memberId/tenure/:tenureId/institute/:instituteId
+router.get(
+  "/member/:memberId/tenure/:tenureId/institute/:instituteId",
+  authMiddleware,
+  gcResolutionController.getGCResolutionsByMemberTenureAndInstitute
+);
+
+// Get the list of institutes a member had roles in for a tenure
+// GET /api/gc_resolutions/member/:memberId/tenure/:tenureId/institutes
+router.get(
+  "/member/:memberId/tenure/:tenureId/institutes",
+  authMiddleware,
+  gcResolutionController.getMemberAccessibleInstitutes
+);
+
 // Respond to preflight for file requests to help previews (OPTIONS)
 router.options("/file/:filename", (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
