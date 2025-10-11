@@ -1,4 +1,3 @@
-// pages/MemberRoleManagementPage.js
 import React, { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -6,6 +5,7 @@ import { getMembers } from "../api/members";
 import { getRoles } from "../api/roles";
 import { getInstitutes } from "../api/institutes";
 import { getAllMemberRoles } from "../api/memberRole";
+import { getAllManagementTenures } from "../api/managementTenures";
 import Header from "../components/Header";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -16,6 +16,7 @@ const Members = () => {
   const [members, setMembers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [institutes, setInstitutes] = useState([]);
+  const [managementTenures, setManagementTenures] = useState([]);
   // State for member roles
   const [memberRoles, setMemberRoles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -25,6 +26,7 @@ const Members = () => {
     members: null,
     roles: null,
     institutes: null,
+    managementTenures: null,
   });
   // Add state for table loading
   const [tableLoading, setTableLoading] = useState(false);
@@ -33,6 +35,9 @@ const Members = () => {
   const [itemsPerPage] = useState(5);
   // Add state to track if data is fully loaded
   const [dataLoaded, setDataLoaded] = useState(false);
+  // Add state for tenure filter
+  const [selectedTenureId, setSelectedTenureId] = useState("");
+  const [currentTenure, setCurrentTenure] = useState(null);
 
   // Get token and user info from Redux
   const token =
@@ -78,6 +83,39 @@ const Members = () => {
     return institute.name || institute.institute_name || "Unknown";
   };
 
+  // Helper function to get tenure name by id
+  const getTenureName = (tenureId) => {
+    const tenure = managementTenures.find((t) => t.id === tenureId);
+    if (!tenure) return "Not Assigned";
+    return tenure.tenure || "Unknown";
+  };
+
+  // Function to find current tenure (latest active tenure)
+  const findCurrentTenure = (tenures) => {
+    if (!Array.isArray(tenures) || tenures.length === 0) return null;
+
+    const currentDate = new Date();
+
+    // First, try to find an active tenure that covers current date
+    const activeTenure = tenures.find((tenure) => {
+      if (tenure.start_date && tenure.end_date) {
+        const startDate = new Date(tenure.start_date);
+        const endDate = new Date(tenure.end_date);
+        return currentDate >= startDate && currentDate <= endDate;
+      }
+      return false;
+    });
+
+    if (activeTenure) return activeTenure;
+
+    // If no active tenure found, return the most recent one
+    return tenures.sort((a, b) => {
+      const dateA = new Date(a.start_date || a.created_at || 0);
+      const dateB = new Date(b.start_date || b.created_at || 0);
+      return dateB - dateA;
+    })[0];
+  };
+
   // Debug: Check if token is available
   useEffect(() => {
     if (!token) {
@@ -92,6 +130,17 @@ const Members = () => {
     }
   }, [token]);
 
+  // Set current tenure as default when management tenures are loaded
+  useEffect(() => {
+    if (managementTenures.length > 0 && !selectedTenureId) {
+      const current = findCurrentTenure(managementTenures);
+      if (current) {
+        setCurrentTenure(current);
+        setSelectedTenureId(current.id.toString());
+      }
+    }
+  }, [managementTenures, selectedTenureId]);
+
   // Combined function to fetch all data
   const fetchAllData = async () => {
     if (!token) {
@@ -103,47 +152,69 @@ const Members = () => {
     setTableLoading(true);
     setDataLoaded(false);
     setError(null);
-    setApiErrors({ members: null, roles: null, institutes: null });
+    setApiErrors({
+      members: null,
+      roles: null,
+      institutes: null,
+      managementTenures: null,
+    });
 
     try {
       // Fetch all data in parallel
-      const [membersData, rolesData, institutesData, memberRolesData] =
-        await Promise.all([
-          getMembers(token).catch((err) => {
-            console.error("Error fetching members:", err);
-            setApiErrors((prev) => ({
-              ...prev,
-              members: err.message || "Failed to load members",
-            }));
-            return [];
-          }),
-          getRoles(token).catch((err) => {
-            console.error("Error fetching roles:", err);
-            setApiErrors((prev) => ({
-              ...prev,
-              roles: err.message || "Failed to load roles",
-            }));
-            return [];
-          }),
-          getInstitutes(token).catch((err) => {
-            console.error("Error fetching institutes:", err);
-            setApiErrors((prev) => ({
-              ...prev,
-              institutes: err.message || "Failed to load institutes",
-            }));
-            return [];
-          }),
-          getAllMemberRoles(token).catch((err) => {
-            console.error("Error fetching member roles:", err);
-            setError(err.message || "Failed to load member roles");
-            return [];
-          }),
-        ]);
+      const [
+        membersData,
+        rolesData,
+        institutesData,
+        memberRolesData,
+        managementTenuresData,
+      ] = await Promise.all([
+        getMembers(token).catch((err) => {
+          console.error("Error fetching members:", err);
+          setApiErrors((prev) => ({
+            ...prev,
+            members: err.message || "Failed to load members",
+          }));
+          return [];
+        }),
+        getRoles(token).catch((err) => {
+          console.error("Error fetching roles:", err);
+          setApiErrors((prev) => ({
+            ...prev,
+            roles: err.message || "Failed to load roles",
+          }));
+          return [];
+        }),
+        getInstitutes(token).catch((err) => {
+          console.error("Error fetching institutes:", err);
+          setApiErrors((prev) => ({
+            ...prev,
+            institutes: err.message || "Failed to load institutes",
+          }));
+          return [];
+        }),
+        getAllMemberRoles(token).catch((err) => {
+          console.error("Error fetching member roles:", err);
+          setError(err.message || "Failed to load member roles");
+          return [];
+        }),
+        getAllManagementTenures(token).catch((err) => {
+          console.error("Error fetching management tenures:", err);
+          setApiErrors((prev) => ({
+            ...prev,
+            managementTenures:
+              err.message || "Failed to load management tenures",
+          }));
+          return [];
+        }),
+      ]);
 
       // Set all data
       setMembers(Array.isArray(membersData) ? membersData : []);
       setRoles(Array.isArray(rolesData) ? rolesData : []);
       setInstitutes(Array.isArray(institutesData) ? institutesData : []);
+      setManagementTenures(
+        Array.isArray(managementTenuresData) ? managementTenuresData : []
+      );
 
       // Filter member roles based on user type
       let filteredMemberRoles = memberRolesData;
@@ -160,6 +231,7 @@ const Members = () => {
       // Log data for debugging
       console.log("Members data:", membersData);
       console.log("Member roles data:", filteredMemberRoles);
+      console.log("Management tenures data:", managementTenuresData);
     } catch (err) {
       console.error("Unexpected error in fetchAllData:", err);
       setError("An unexpected error occurred while loading data.");
@@ -170,12 +242,22 @@ const Members = () => {
     }
   };
 
-  // Filter member roles based on search term
+  // Filter member roles based on search term and selected tenure
   const filteredMemberRoles = memberRoles.filter((memberRole) => {
     const member = members.find((m) => m.id === memberRole.member_id);
     const role = roles.find((r) => r.id === memberRole.role_id);
     const institute = institutes.find((i) => i.id === memberRole.institute_id);
-    return (
+    const tenureName = getTenureName(memberRole.tenure_id);
+
+    // Filter by tenure if selected
+    const matchesTenure =
+      !selectedTenureId ||
+      selectedTenureId === "all" ||
+      memberRole.tenure_id?.toString() === selectedTenureId;
+
+    // Filter by search term
+    const matchesSearch =
+      !searchTerm ||
       getMemberName(memberRole.member_id)
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
@@ -186,8 +268,9 @@ const Members = () => {
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
       memberRole.level.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      memberRole.tenure.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+      tenureName.toLowerCase().includes(searchTerm.toLowerCase());
+
+    return matchesTenure && matchesSearch;
   });
 
   // Pagination logic
@@ -209,6 +292,12 @@ const Members = () => {
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1); // Reset to first page when searching
+  };
+
+  // Handle tenure filter change
+  const handleTenureChange = (e) => {
+    setSelectedTenureId(e.target.value);
+    setCurrentPage(1); // Reset to first page when filtering
   };
 
   return (
@@ -318,7 +407,7 @@ const Members = () => {
                         Total Member Roles
                       </p>
                       <p className="mt-1 text-3xl font-bold text-gray-900">
-                        {memberRoles.length}
+                        {filteredMemberRoles.length}
                       </p>
                     </div>
                   </div>
@@ -348,8 +437,9 @@ const Members = () => {
                       </p>
                       <p className="mt-1 text-3xl font-bold text-gray-900">
                         {
-                          memberRoles.filter((role) => role.level === "GC")
-                            .length
+                          filteredMemberRoles.filter(
+                            (role) => role.level === "GC"
+                          ).length
                         }
                       </p>
                     </div>
@@ -380,8 +470,9 @@ const Members = () => {
                       </p>
                       <p className="mt-1 text-3xl font-bold text-gray-900">
                         {
-                          memberRoles.filter((role) => role.level === "BOM")
-                            .length
+                          filteredMemberRoles.filter(
+                            (role) => role.level === "BOM"
+                          ).length
                         }
                       </p>
                     </div>
@@ -389,7 +480,7 @@ const Members = () => {
                 </div>
               </div>
 
-              {/* Enhanced Search Bar */}
+              {/* Enhanced Search Bar and Filters */}
               <div className="p-6 mb-8 bg-white border border-gray-200 shadow-lg rounded-2xl">
                 <div className="flex flex-col items-start justify-between gap-6 lg:flex-row">
                   <div className="flex flex-col items-start w-full gap-4 sm:flex-row lg:w-auto">
@@ -417,44 +508,34 @@ const Members = () => {
                       </svg>
                     </div>
 
-                    {/* Search Results Info */}
-                    {searchTerm && (
-                      <div className="flex items-center px-4 py-2 text-sm text-indigo-700 border border-indigo-200 rounded-lg bg-indigo-50">
-                        <svg
-                          className="w-4 h-4 mr-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"
-                          />
-                        </svg>
-                        {filteredMemberRoles.length} result
-                        {filteredMemberRoles.length !== 1 ? "s" : ""} found
-                        <button
-                          onClick={() => setSearchTerm("")}
-                          className="ml-2 text-indigo-500 hover:text-indigo-700"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    )}
+                    {/* Tenure Filter Dropdown */}
+                    <div className="relative w-full sm:w-64">
+                      <select
+                        value={selectedTenureId}
+                        onChange={handleTenureChange}
+                        className="w-full py-3 pl-4 pr-10 transition-all duration-200 border border-gray-300 shadow-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white appearance-none"
+                      >
+                        <option value="">All Tenures</option>
+                        {managementTenures.map((tenure) => (
+                          <option key={tenure.id} value={tenure.id.toString()}>
+                            {tenure.tenure}
+                          </option>
+                        ))}
+                      </select>
+                      <svg
+                        className="absolute w-5 h-5 text-gray-400 pointer-events-none right-3 top-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -552,15 +633,15 @@ const Members = () => {
                                 </svg>
                               </div>
                               <h3 className="mb-2 text-xl font-semibold text-gray-900">
-                                {searchTerm
+                                {searchTerm || selectedTenureId
                                   ? "No matching member roles found"
                                   : user?.usertypeid === 2
                                   ? "No member roles found for your institute"
                                   : "No member roles found"}
                               </h3>
                               <p className="max-w-md mb-6 text-center text-gray-600">
-                                {searchTerm
-                                  ? `No member roles match your search "${searchTerm}". Try adjusting your search terms.`
+                                {searchTerm || selectedTenureId
+                                  ? `No member roles match your current filters. Try adjusting your search terms or tenure selection.`
                                   : "There are no member roles available at this time."}
                               </p>
                             </div>
@@ -598,7 +679,7 @@ const Members = () => {
                               {getInstituteName(memberRole.institute_id)}
                             </td>
                             <td className="w-40 px-6 py-5 text-sm text-gray-700 whitespace-nowrap">
-                              {memberRole.tenure}
+                              {getTenureName(memberRole.tenure_id)}
                             </td>
                           </tr>
                         ))

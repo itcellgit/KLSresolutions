@@ -1,7 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
-import { getGCResolutions, searchPDFContent } from "../../api/gcResolutions";
+import {
+  getGCResolutions,
+  searchPDFContent,
+  getMemberAccessibleInstitutes,
+} from "../../api/gcResolutions";
 import { getInstitutes } from "../../api/institutes";
 import { getAllManagementTenures } from "../../api/managementTenures";
+import { getMembers, getMyMember } from "../../api/members";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/Header";
@@ -170,6 +175,9 @@ const GCResolutionPage = () => {
 
   const [institutes, setInstitutes] = useState([]);
   const [filteredInstitutes, setFilteredInstitutes] = useState([]);
+  const [memberAllowedInstitutes, setMemberAllowedInstitutes] = useState([]);
+  const user = useSelector((state) => state.auth.user);
+  const authRoles = useSelector((state) => state.auth.roles) || [];
   const [pdfSearchTerm, setPdfSearchTerm] = useState(""); // New state for PDF search
   const [searchResults, setSearchResults] = useState([]); // Store PDF search results
   const [isSearching, setIsSearching] = useState(false); // Loading state for search
@@ -217,6 +225,49 @@ const GCResolutionPage = () => {
     }
   };
 
+  // Compute memberAllowedInstitutes from authRoles (login payload) and selectedTenure
+  useEffect(() => {
+    const computeAllowed = () => {
+      if (!user || user.usertypeid !== 3) {
+        setMemberAllowedInstitutes([]);
+        return;
+      }
+
+      if (!selectedTenure) {
+        setMemberAllowedInstitutes([]);
+        return;
+      }
+
+      // Determine the tenure label if we have tenures list
+      const selectedTenureObj = (tenures || []).find(
+        (t) => String(t.id) === String(selectedTenure)
+      );
+      const selectedTenureLabel = selectedTenureObj
+        ? String(selectedTenureObj.tenure)
+        : null;
+
+      const allowed = new Set();
+      authRoles.forEach((r) => {
+        if (!r) return;
+        if (r.tenure_id && String(r.tenure_id) === String(selectedTenure)) {
+          if (r.institute_id) allowed.add(r.institute_id);
+          return;
+        }
+        if (
+          selectedTenureLabel &&
+          r.tenure &&
+          String(r.tenure) === selectedTenureLabel
+        ) {
+          if (r.institute_id) allowed.add(r.institute_id);
+        }
+      });
+
+      setMemberAllowedInstitutes(Array.from(allowed));
+    };
+
+    computeAllowed();
+  }, [user, authRoles, selectedTenure, tenures]);
+
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -235,10 +286,68 @@ const GCResolutionPage = () => {
         const filtered = institutesData.filter((inst) =>
           allowedInstituteIds.includes(inst.id)
         );
-        setFilteredInstitutes(filtered);
+        // If we have authRoles (from login payload) and a selectedTenure,
+        // use that to further restrict institutes to those where member had a role
+        // during the selected tenure. authRoles entries come from the login response
+        // and include tenure info as `tenure` (string) and may include institute_id.
+        const computeFiltered = () => {
+          if (!selectedTenure) return filtered;
+
+          // Determine selected tenure label (tenure name) if available
+          const selectedTenureObj = (tenures || []).find(
+            (t) => String(t.id) === String(selectedTenure)
+          );
+          const selectedTenureLabel = selectedTenureObj
+            ? String(selectedTenureObj.tenure)
+            : null;
+
+          // authRoles may have tenure names or ids; collect matching institute ids
+          const roleInstituteIds = new Set();
+          authRoles.forEach((r) => {
+            if (!r) return;
+            // match by tenure_id
+            if (r.tenure_id && String(r.tenure_id) === String(selectedTenure)) {
+              if (r.institute_id) roleInstituteIds.add(r.institute_id);
+              return;
+            }
+            // match by tenure name/label
+            if (
+              selectedTenureLabel &&
+              r.tenure &&
+              String(r.tenure) === selectedTenureLabel
+            ) {
+              if (r.institute_id) roleInstituteIds.add(r.institute_id);
+            }
+          });
+
+          // If the logged-in user is a member (usertypeid === 3) and we have
+          // authRoles data, apply strict filtering based on them. For admins or
+          // institute admins, fall back to the base filtered list so they can
+          // still view all institutes with resolutions.
+          if (
+            user &&
+            user.usertypeid === 3 &&
+            authRoles &&
+            authRoles.length > 0
+          ) {
+            return filtered.filter((inst) => roleInstituteIds.has(inst.id));
+          }
+
+          // Non-member user or no auth role info: fall back to filtered
+          return filtered;
+        };
+
+        const computed = computeFiltered();
+        setFilteredInstitutes(computed);
 
         if (filtered.length > 0) {
-          setSelectedInstitute(String(filtered[0].id));
+          // ensure currently selected institute is valid for the computed list
+          setSelectedInstitute((prev) => {
+            const prevId = String(prev || "");
+            const validIds = computed.map((i) => String(i.id));
+            if (validIds.includes(prevId)) return prevId;
+            return String(computed[0].id);
+          });
         }
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -269,10 +378,182 @@ const GCResolutionPage = () => {
     return institute ? institute.name : "N/A";
   };
 
-  const filteredData = gcResolutions.filter((item) => {
-    const matchesInstitute =
-      String(item.institute_id) === String(selectedInstitute);
+  // Recompute filteredInstitutes when tenure, institutes, resolutions, or authRoles change
+  useEffect(() => {
+    if (!institutes || institutes.length === 0) {
+      setFilteredInstitutes([]);
+      return;
+    }
 
+    const allowedInstituteIds = [
+      ...new Set(
+        gcResolutions.map((item) => item.institute_id).filter(Boolean)
+      ),
+    ];
+
+    const baseFiltered = institutes.filter((inst) =>
+      allowedInstituteIds.includes(inst.id)
+    );
+
+    if (!selectedTenure) {
+      setFilteredInstitutes(baseFiltered);
+      // if currently selected not in list, set to first
+      setSelectedInstitute((prev) => {
+        const prevId = String(prev || "");
+        const validIds = baseFiltered.map((i) => String(i.id));
+        if (validIds.includes(prevId)) return prevId;
+        return baseFiltered.length > 0 ? String(baseFiltered[0].id) : "";
+      });
+      return;
+    }
+
+    // If the current user is a member, prefer authoritative backend data
+    // (getMemberAccessibleInstitutes) to determine which institutes they had
+    // roles in during the selected tenure. This avoids relying on login
+    // payload shape and handles edge cases.
+    const computeWithBackend = async () => {
+      // If not a member or no tenure selected, just return baseFiltered
+      if (!user || user.usertypeid !== 3 || !selectedTenure) {
+        return baseFiltered;
+      }
+
+      try {
+        // Find the member record for current user using /members/me
+        let memberRecord = null;
+        try {
+          const myMember = await getMyMember(token);
+          // myMember may be an object or wrapped in data
+          memberRecord = myMember?.data || myMember || null;
+        } catch (err) {
+          // If getMyMember returns 403/404, we'll fallback to authRoles-based filtering
+          console.warn(
+            "getMyMember failed or not available, falling back to authRoles",
+            err
+          );
+        }
+
+        if (!memberRecord) {
+          // Fall back to authRoles-based filtering if we don't have a member record
+          const selectedTenureObj = (tenures || []).find(
+            (t) => String(t.id) === String(selectedTenure)
+          );
+          const selectedTenureLabel = selectedTenureObj
+            ? String(selectedTenureObj.tenure)
+            : null;
+          const roleInstituteIds = new Set();
+          authRoles.forEach((r) => {
+            if (!r) return;
+            if (r.tenure_id && String(r.tenure_id) === String(selectedTenure)) {
+              if (r.institute_id) roleInstituteIds.add(r.institute_id);
+            } else if (
+              selectedTenureLabel &&
+              r.tenure &&
+              String(r.tenure) === selectedTenureLabel
+            ) {
+              if (r.institute_id) roleInstituteIds.add(r.institute_id);
+            }
+          });
+          if (authRoles && authRoles.length > 0) {
+            return baseFiltered.filter((inst) => roleInstituteIds.has(inst.id));
+          }
+          return baseFiltered;
+        }
+
+        // Use backend to get accessible institutes for this member and tenure
+        console.log(
+          "Found member record",
+          memberRecord,
+          "fetching accessible institutes..."
+        );
+        const resp = await getMemberAccessibleInstitutes(
+          memberRecord.id,
+          selectedTenure,
+          token
+        );
+        console.log("getMemberAccessibleInstitutes response:", resp);
+        const accessible =
+          resp?.accessible_institutes ||
+          resp?.accessibleInstitutes ||
+          resp ||
+          [];
+        const accessibleIds = new Set(
+          (accessible || []).map((i) => String(i.id))
+        );
+
+        console.log(
+          "Accessible institute ids for member:",
+          Array.from(accessibleIds)
+        );
+
+        return baseFiltered.filter((inst) =>
+          accessibleIds.has(String(inst.id))
+        );
+      } catch (err) {
+        console.error(
+          "Error computing accessible institutes from backend:",
+          err
+        );
+        // On error, fall back to authRoles-based filtering or baseFiltered
+        const selectedTenureObj = (tenures || []).find(
+          (t) => String(t.id) === String(selectedTenure)
+        );
+        const selectedTenureLabel = selectedTenureObj
+          ? String(selectedTenureObj.tenure)
+          : null;
+        const roleInstituteIds = new Set();
+        authRoles.forEach((r) => {
+          if (!r) return;
+          if (r.tenure_id && String(r.tenure_id) === String(selectedTenure)) {
+            if (r.institute_id) roleInstituteIds.add(r.institute_id);
+          } else if (
+            selectedTenureLabel &&
+            r.tenure &&
+            String(r.tenure) === selectedTenureLabel
+          ) {
+            if (r.institute_id) roleInstituteIds.add(r.institute_id);
+          }
+        });
+        if (
+          user &&
+          user.usertypeid === 3 &&
+          authRoles &&
+          authRoles.length > 0
+        ) {
+          return baseFiltered.filter((inst) => roleInstituteIds.has(inst.id));
+        }
+        return baseFiltered;
+      }
+    };
+
+    // computeWithBackend returns a promise; await and use result
+    let computed = baseFiltered;
+    // If a tenure is selected and the user is a member, compute via backend
+    if (user && user.usertypeid === 3 && selectedTenure) {
+      (async () => {
+        const result = await computeWithBackend();
+        setFilteredInstitutes(result);
+        setSelectedInstitute((prev) => {
+          const prevId = String(prev || "");
+          const validIds = (result || []).map((i) => String(i.id));
+          if (validIds.includes(prevId)) return prevId;
+          return result.length > 0 ? String(result[0].id) : "";
+        });
+      })();
+      return;
+    }
+
+    setFilteredInstitutes(computed);
+    setSelectedInstitute((prev) => {
+      const prevId = String(prev || "");
+      const validIds = computed.map((i) => String(i.id));
+      if (validIds.includes(prevId)) return prevId;
+      return computed.length > 0 ? String(computed[0].id) : "";
+    });
+  }, [selectedTenure, institutes, gcResolutions, authRoles]);
+
+  // Filter resolutions by selected institute, tenure and member access
+  const filteredData = gcResolutions.filter((item) => {
+    // Tenure match
     let matchesTenure = true;
     if (selectedTenure) {
       if (item.tenure_id) {
@@ -282,7 +563,26 @@ const GCResolutionPage = () => {
       }
     }
 
-    return matchesInstitute && matchesTenure;
+    const isMember = user && user.usertypeid === 3;
+
+    // If a specific institute is selected by the UI, enforce it.
+    if (selectedInstitute) {
+      if (String(item.institute_id) !== String(selectedInstitute)) return false;
+      return matchesTenure;
+    }
+
+    // If no institute is selected and user is a member, allow any institute
+    // that exists in filteredInstitutes (which was computed to reflect the
+    // member's accessible institutes for the selected tenure).
+    if (isMember) {
+      const allowedIds = new Set(
+        (filteredInstitutes || []).map((i) => String(i.id))
+      );
+      return matchesTenure && allowedIds.has(String(item.institute_id));
+    }
+
+    // Non-member & no institute selected: just honor tenure
+    return matchesTenure;
   });
 
   // PDF Search functionality - Client-side search through text fields
@@ -323,7 +623,25 @@ const GCResolutionPage = () => {
   }, [pdfSearchTerm, gcResolutions, tenures]);
 
   // Group by date first - use search results if PDF search is active
-  const dataToGroup = pdfSearchTerm.trim() ? searchResults : filteredData;
+  let dataToGroup = pdfSearchTerm.trim() ? searchResults : filteredData;
+
+  // If current user is a member, filter the dataToGroup by the computed
+  // filteredInstitutes (authoritative per selected tenure and member access)
+  const isMember = user && user.usertypeid === 3;
+  if (isMember) {
+    const allowedSet = new Set(
+      (filteredInstitutes || []).map((i) => String(i.id))
+    );
+    dataToGroup = dataToGroup.filter((item) => {
+      // ensure tenure matches selectedTenure when present
+      if (selectedTenure && item.tenure_id) {
+        if (String(item.tenure_id) !== String(selectedTenure)) return false;
+      } else if (selectedTenure && !item.tenure_id) {
+        return false;
+      }
+      return allowedSet.has(String(item.institute_id));
+    });
+  }
   const groupedByDate = dataToGroup.reduce((acc, item) => {
     const dateKey = item.gc_date || "N/A";
     if (!acc[dateKey]) acc[dateKey] = [];
@@ -569,24 +887,27 @@ const GCResolutionPage = () => {
         </div>
 
         <div className="mx-auto max-w-7xl">
-          {!isLoading && filteredInstitutes.length > 0 && (
+          {!isLoading && (
             <div className="mb-6">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap gap-2">
-                  {filteredInstitutes.map((inst) => (
-                    <button
-                      key={inst.id}
-                      className={`px-4 py-2 rounded-lg font-medium border transition-colors ${
-                        selectedInstitute === String(inst.id)
-                          ? "bg-indigo-600 text-white border-indigo-600"
-                          : "bg-white text-indigo-700 border-gray-300 hover:bg-indigo-50"
-                      }`}
-                      onClick={() => setSelectedInstitute(String(inst.id))}
-                    >
-                      {inst.code}
-                    </button>
-                  ))}
-                </div>
+                {/* Show institute buttons only when we have institutes AND no tenure is selected */}
+                {filteredInstitutes.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {filteredInstitutes.map((inst) => (
+                      <button
+                        key={inst.id}
+                        className={`px-4 py-2 rounded-lg font-medium border transition-colors ${
+                          selectedInstitute === String(inst.id)
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "bg-white text-indigo-700 border-gray-300 hover:bg-indigo-50"
+                        }`}
+                        onClick={() => setSelectedInstitute(String(inst.id))}
+                      >
+                        {inst.code}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 <div className="ml-4">
                   <label

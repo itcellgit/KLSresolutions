@@ -14,6 +14,19 @@ export const getMembers = async (token) => {
   }
 };
 
+export const getMyMember = async (token) => {
+  try {
+    const response = await axios.get(`${API_URL}/members/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    console.log("getMyMember response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching my member record:", error);
+    throw error;
+  }
+};
+
 export const getMemberById = async (id, token) => {
   const response = await axios.get(`${API_URL}/members/${id}`, {
     headers: { Authorization: `Bearer ${token}` },

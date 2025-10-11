@@ -123,15 +123,41 @@ export const updateBOMResolution = async (id, data, token) => {
   }
 };
 
-// Search PDF content
-export const searchPDFContent = async (query) => {
+// In your bomResolutions.js API file
+export const searchPDFContent = async (searchText, token) => {
+  if (!token) {
+    console.log("No token provided to searchPDFContent");
+    throw new Error("Authentication token is required");
+  }
+
   try {
-    const response = await axios.get(
-      `${API_URL}/bom_resolutions/search-pdf?query=${encodeURIComponent(query)}`
+    console.log("Making BOM PDF search request:", searchText);
+
+    // Try with 'query' parameter if 'searchText' doesn't work
+    const response = await fetch(
+      `${API_URL}/bom_resolutions/search-pdf?query=${encodeURIComponent(
+        searchText
+      )}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
-    return response.data;
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("BOM Search API error response:", errorText);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("BOM Search API response:", data);
+    return data;
   } catch (error) {
-    console.error("Failed to search PDF content:", error);
-    return [];
+    console.error("Search BOM PDF content error:", error);
+    throw error;
   }
 };

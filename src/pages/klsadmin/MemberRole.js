@@ -626,19 +626,43 @@ const MemberRoleManagementPage = () => {
 
     return memberRoles.filter((memberRole) => {
       try {
-        // Safely extract member information
-        const member = memberRole.Member || {};
-        const role = memberRole.Role || {};
-        const institute = memberRole.Institute || {};
-        const managementTenure = memberRole.managementTenure || {};
+        // Prefer nested objects from API response if present
+        const nestedMember = memberRole.Member || null;
+        const nestedRole = memberRole.Role || null;
+        const nestedInstitute = memberRole.Institute || null;
+        const nestedTenure = memberRole.managementTenure || null;
+
+        // Fallback lookups from dropdown data arrays
+        const lookupMember =
+          nestedMember ||
+          members.find((m) => m.id === memberRole.member_id) ||
+          {};
+        const lookupRole =
+          nestedRole || roles.find((r) => r.id === memberRole.role_id) || {};
+        const lookupInstitute =
+          nestedInstitute ||
+          institutes.find((i) => i.id === memberRole.institute_id) ||
+          {};
+        const lookupTenure =
+          nestedTenure ||
+          managementTenures.find((t) => t.id === memberRole.tenure_id) ||
+          {};
 
         // Build searchable strings safely
         const memberName =
-          member.name || member.full_name || member.email || "Unknown";
-        const roleName = role.role_name || role.name || role.title || "Unknown";
+          lookupMember.name ||
+          lookupMember.full_name ||
+          lookupMember.email ||
+          "Unknown";
+        const roleName =
+          lookupRole.role_name ||
+          lookupRole.name ||
+          lookupRole.title ||
+          "Unknown";
         const instituteName =
-          institute.name || institute.institute_name || "KLS Board";
-        const tenureName = managementTenure.tenure || "No Tenure";
+          lookupInstitute.name || lookupInstitute.institute_name || "KLS Board";
+        const tenureName =
+          lookupTenure.tenure || lookupTenure.name || "No Tenure";
         const level = memberRole.level || "";
 
         // Create searchable text
@@ -658,7 +682,7 @@ const MemberRoleManagementPage = () => {
         return false;
       }
     });
-  }, [memberRoles, searchTerm, members, roles, institutes]); // Added dependencies
+  }, [memberRoles, searchTerm, members, roles, institutes, managementTenures]); // Added dependencies
 
   // Fix the grouping logic
   const groupedByTenure = useMemo(() => {

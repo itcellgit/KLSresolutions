@@ -458,6 +458,29 @@ const AddGCResolution = () => {
     setCurrentPage(1);
   }, [searchTerm, selectedDate, selectedTenure]);
 
+  // ===== Pagination: calculate pages, clamp current page when data changes =====
+  const totalPages = Math.ceil(filteredResolutions.length / itemsPerPage);
+  const paginatedResolutions = filteredResolutions.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  const startIndex = (currentPage - 1) * itemsPerPage;
+
+  useEffect(() => {
+    // If filters or data reduce total pages, clamp currentPage into range
+    const newTotal = Math.max(
+      1,
+      Math.ceil(filteredResolutions.length / itemsPerPage)
+    );
+    if (currentPage > newTotal) {
+      setCurrentPage(newTotal);
+    }
+    // If no results ensure page is 1
+    if (filteredResolutions.length === 0 && currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [filteredResolutions, itemsPerPage, currentPage]);
+
   // Helper function to get institute name by id
   const getInstituteName = (instituteId) => {
     const institute = institutes.find((i) => i.id === instituteId);
@@ -1170,10 +1193,10 @@ const AddGCResolution = () => {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredResolutions.map((resolution, index) => (
+                        {paginatedResolutions.map((resolution, index) => (
                           <tr key={resolution.id}>
                             <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
-                              {index + 1}
+                              {startIndex + index + 1}
                             </td>
 
                             <td className="px-6 py-4 text-sm text-justify text-gray-500 break-words w-72">
@@ -1507,9 +1530,6 @@ const AddGCResolution = () => {
                               onChange={handleFileChange}
                               accept=".pdf,.doc,.docx,.txt"
                               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                              required={
-                                !editingId || (editingId && !formData.agenda)
-                              }
                             />
                             <p className="mt-2 text-xs text-gray-500">
                               Upload agenda document (PDF, DOC, DOCX, TXT)

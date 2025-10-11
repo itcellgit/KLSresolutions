@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
 
       // Verify token and fetch user
       axios
-        .get("http://localhost:5000/api/auth/user")
+        .get("http://localhost:3000/api/auth/user")
         .then((res) => {
           setUser(res.data);
           setIsAuthenticated(true);
@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
   // Login with email + password
   const login = async (email, password) => {
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/login", {
+      const res = await axios.post("http://localhost:3000/api/auth/login", {
         email,
         password,
       });
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
   // Register with email + password
   const register = async (email, password) => {
     try {
-      await axios.post("http://localhost:5000/api/auth/register", {
+      await axios.post("http://localhost:3000/api/auth/register", {
         email,
         password,
       });

@@ -206,11 +206,11 @@ const BOMResolutionsPage = () => {
 
       // For new entries, validate required files
       if (!editingId) {
-        if (!formData.agenda || !(formData.agenda instanceof File)) {
-          console.log("Agenda validation failed:", formData.agenda);
-          alert("Agenda file is required");
-          return;
-        }
+        // if (!formData.agenda || !(formData.agenda instanceof File)) {
+        //   console.log("Agenda validation failed:", formData.agenda);
+        //   alert("Agenda file is required");
+        //   return;
+        // }
         if (!formData.resolution || !(formData.resolution instanceof File)) {
           console.log("Resolution validation failed:", formData.resolution);
           alert("Resolution file is required");
@@ -1231,7 +1231,6 @@ const BOMResolutionsPage = () => {
                         onChange={(e) => handleFileUpload(e, "agenda")}
                         className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         accept=".pdf,.doc,.docx,.txt"
-                        required={!editingId}
                       />
                       <p className="mt-1 text-xs text-gray-500">
                         Accepted formats: PDF, DOC, DOCX, TXT (Max size: 50MB)
