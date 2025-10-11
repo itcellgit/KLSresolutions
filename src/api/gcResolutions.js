@@ -40,9 +40,22 @@ export const createGCResolution = async (formData, token) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      // Try to parse JSON error body, otherwise read as text for debugging
+      let errorBody;
+      try {
+        errorBody = await response.json();
+      } catch (e) {
+        try {
+          errorBody = await response.text();
+        } catch (e2) {
+          errorBody = `Status ${response.status}`;
+        }
+      }
+      console.error("API error response:", response.status, errorBody);
       throw new Error(
-        errorData.message || `HTTP error! status: ${response.status}`
+        (errorBody && errorBody.message) ||
+          JSON.stringify(errorBody) ||
+          `HTTP error! status: ${response.status}`
       );
     }
 
