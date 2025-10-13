@@ -1062,6 +1062,12 @@ const MemberRoleManagementPage = () => {
                                 >
                                   Institute
                                 </th>
+                                {/* <th
+                                  scope="col"
+                                  className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                >
+                                  Status
+                                </th> */}
                                 <th
                                   scope="col"
                                   className="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase"
@@ -1080,7 +1086,7 @@ const MemberRoleManagementPage = () => {
                                       className="bg-blue-50"
                                     >
                                       <td
-                                        colSpan="5"
+                                        colSpan="6"
                                         className="px-6 py-3 text-sm font-semibold text-blue-800"
                                       >
                                         <div className="flex items-center justify-between">
@@ -1150,6 +1156,31 @@ const MemberRoleManagementPage = () => {
                                     <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                                       {getInstituteName(row.institute_id)}
                                     </td>
+                                    {/* <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                      {(() => {
+                                        const status = (
+                                          row.status || "active"
+                                        ).toLowerCase();
+                                        const mapping = {
+                                          active: "bg-green-100 text-green-800",
+                                          inactive: "bg-gray-100 text-gray-800",
+                                          suspended:
+                                            "bg-yellow-100 text-yellow-800",
+                                          revoked: "bg-red-100 text-red-800",
+                                        };
+                                        const classes =
+                                          mapping[status] ||
+                                          "bg-gray-100 text-gray-800";
+                                        return (
+                                          <span
+                                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${classes}`}
+                                          >
+                                            {status.charAt(0).toUpperCase() +
+                                              status.slice(1)}
+                                          </span>
+                                        );
+                                      })()}
+                                    </td> */}
                                     <td className="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
                                       <button
                                         onClick={() => handleEdit(row)}
