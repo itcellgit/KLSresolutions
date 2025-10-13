@@ -32,87 +32,6 @@ const deleteFileFromServer = (filename) => {
 };
 
 // Get all GC resolutions (admin sees all, institute admin sees only their own)
-// exports.getAllGCResolutions = async (req, res) => {
-//   try {
-//     const { usertypeid, id } = req.user;
-//     const { tenure_id } = req.query; // Add tenure filtering from query params
-//     let resolutions = [];
-
-//     // Build where clause for tenure filtering
-//     const whereClause = {};
-//     if (tenure_id) {
-//       whereClause.tenure_id = tenure_id;
-//     }
-
-//     if (usertypeid === 1) {
-//       // Admin: all resolutions, latest first
-//       resolutions = await GCResolution.findAll({
-//         where: whereClause,
-//         order: [["id", "DESC"]],
-//       });
-//     } else if (usertypeid === 2) {
-//       // Institute admin: only their institute's resolutions, latest first
-//       resolutions = await GCResolution.findAll({
-//         where: {
-//           institute_id: req.user.institute_id,
-//           ...whereClause,
-//         },
-//         order: [["id", "DESC"]],
-//       });
-//     } else if (usertypeid === 3) {
-//       // Member: check if President or Vice President, else restrict to their institutes
-//       const member = await Member.findOne({ where: { userid: id } });
-//       if (!member) {
-//         return res.status(404).json({ error: "Member not found" });
-//       }
-//       // Fetch active member roles with institute_id and include role
-//       const memberRoles = await MemberRole.findAll({
-//         where: { member_id: member.id, status: "active" },
-//         include: [{ model: Role, as: "role" }],
-//       });
-//       // Check if any role is President or Vice President
-//       const hasSpecialRole = memberRoles.some(
-//         (mr) =>
-//           mr.role &&
-//           (mr.role.role_name === "President" ||
-//             mr.role.role_name === "Vice President")
-//       );
-//       if (hasSpecialRole) {
-//         // President or Vice President: view all resolutions
-//         resolutions = await GCResolution.findAll({
-//           where: whereClause,
-//           order: [["id", "DESC"]],
-//         });
-//       } else {
-//         // Regular member: only their institutes
-//         const instituteIds = [
-//           ...new Set(
-//             memberRoles
-//               .map((mr) => mr.institute_id)
-//               .filter((institute_id) => institute_id != null)
-//           ),
-//         ];
-//         if (instituteIds.length === 0) {
-//           return res
-//             .status(400)
-//             .json({ error: "Member does not belong to any institute" });
-//         }
-//         resolutions = await GCResolution.findAll({
-//           where: {
-//             institute_id: { [Op.in]: instituteIds },
-//             ...whereClause,
-//           },
-//           order: [["id", "DESC"]],
-//         });
-//       }
-//     }
-
-//     return res.json({ resolutions });
-//   } catch (err) {
-//     console.error("Error in getAllGCResolutions:", err);
-//     res.status(500).json({ error: err.message });
-//   }
-// };
 exports.getAllGCResolutions = async (req, res) => {
   try {
     const { usertypeid, id } = req.user;
@@ -144,7 +63,7 @@ exports.getAllGCResolutions = async (req, res) => {
       if (!member) return res.status(404).json({ error: "Member not found" });
 
       const memberRoles = await MemberRole.findAll({
-        where: { member_id: member.id, status: "active" },
+        //where: { member_id: member.id, status: "active" },
         include: [{ model: Role, as: "role" }],
       });
 
@@ -620,19 +539,24 @@ exports.searchPDFContent = async (req, res) => {
         return res.status(404).json({ error: "Member not found" });
       }
 
-      // Fetch active member roles with institute_id and include role
+      // Fetch member roles (ignore status) with institute_id and include role
       const memberRoles = await MemberRole.findAll({
-        where: { member_id: member.id, status: "active" },
+        where: { member_id: member.id },
         include: [{ model: Role, as: "role" }],
       });
 
       // Check if any role is President or Vice President
-      const hasSpecialRole = memberRoles.some(
-        (mr) =>
-          mr.role &&
-          (mr.role.role_name === "President" ||
-            mr.role.role_name === "Vice President")
-      );
+      const hasSpecialRole = memberRoles.some((mr) => {
+        if (!mr.role) return false;
+        const rn = String(mr.role.role_name).toLowerCase();
+        return (
+          rn === "president" ||
+          rn === "vice president" ||
+          rn === "chairman" ||
+          rn === "secretary" ||
+          rn === "member"
+        );
+      });
 
       if (hasSpecialRole) {
         // President or Vice President: view all resolutions
@@ -1107,14 +1031,12 @@ exports.getMemberAccessibleInstitutes = async (req, res) => {
     // log a short snapshot to help debug unexpected shapes
     console.log(
       "Member roles sample:",
-      memberRoles
-        .slice(0, 5)
-        .map((mr) => ({
-          member_id: mr.member_id,
-          institute_id: mr.institute_id,
-          role: mr.role?.role_name,
-          institute: mr.institute?.name,
-        }))
+      memberRoles.slice(0, 5).map((mr) => ({
+        member_id: mr.member_id,
+        institute_id: mr.institute_id,
+        role: mr.role?.role_name,
+        institute: mr.institute?.name,
+      }))
     );
 
     // Get resolution counts for each accessible institute

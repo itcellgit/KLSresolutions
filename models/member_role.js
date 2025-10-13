@@ -104,6 +104,7 @@ module.exports = (sequelize, DataTypes) => {
     MemberRole.belongsTo(models.Role, {
       foreignKey: "role_id",
       targetKey: "id",
+      as: "role",
     });
 
     MemberRole.belongsTo(models.Member, {
@@ -121,7 +122,7 @@ module.exports = (sequelize, DataTypes) => {
     MemberRole.belongsTo(models.ManagementTenure, {
       foreignKey: "tenure_id",
       targetKey: "id",
-      as: "managementTenure", // Alias for the association
+      as: "tenure",
     });
   };
 
