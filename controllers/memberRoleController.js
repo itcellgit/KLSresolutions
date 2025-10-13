@@ -25,6 +25,7 @@ exports.getAllMemberRoles = async (req, res) => {
         },
         {
           model: Role,
+          as: "role",
         },
         {
           model: ManagementTenure,
@@ -51,6 +52,7 @@ exports.getMemberRoleById = async (req, res) => {
         },
         {
           model: Role,
+          as: "role",
         },
       ],
     });
