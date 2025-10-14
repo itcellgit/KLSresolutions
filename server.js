@@ -15,11 +15,34 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(
   cors({
-    origin: "*",
+    // Allow any origin for development; restrict in production if needed
+    origin: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Authorization"],
+    credentials: true,
   })
 );
+
+// Ensure preflight requests are handled and return appropriate headers
+app.options("*", (req, res) => {
+  res.header("Access-Control-Allow-Origin", req.header("Origin") || "*");
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"
+  );
+  res.header(
+    "Access-Control-Allow-Headers",
+    req.header("Access-Control-Request-Headers") ||
+      "Content-Type, Authorization"
+  );
+  res.header("Access-Control-Expose-Headers", "Authorization");
+  // Let the browser know how long to cache the preflight response
+  res.header("Access-Control-Max-Age", "86400");
+  // Vary header for proxies
+  res.header("Vary", "Origin");
+  return res.sendStatus(204);
+});
 
 const userRoutes = require("./routes/users");
 const instituteRoutes = require("./routes/institute");

@@ -45,7 +45,10 @@ Member.hasMany(MemberRole, { foreignKey: "member_id" });
 MemberRole.belongsTo(Member, { foreignKey: "member_id", as: "member" });
 // Ensure Institute association alias matches model file
 Institute.hasMany(MemberRole, { foreignKey: "institute_id" });
-MemberRole.belongsTo(Institute, { foreignKey: "institute_id", as: "institute" });
+MemberRole.belongsTo(Institute, {
+  foreignKey: "institute_id",
+  as: "institute",
+});
 // Simple many-to-one relationships (no through table needed)
 GCResolution.belongsTo(ManagementTenure, { foreignKey: "tenure_id" });
 ManagementTenure.hasMany(GCResolution, { foreignKey: "tenure_id" });
