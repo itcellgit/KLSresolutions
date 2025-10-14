@@ -2,7 +2,7 @@
   "name": "resolutions_admin",
   "version": "0.1.0",
   "private": true,
-  "proxy": "https://resolutions.klsbelagavi.org",
+  "proxy": "http://localhost:3000",
   "dependencies": {
     "@react-native-picker/picker": "^2.11.2",
     "@reduxjs/toolkit": "^2.9.0",

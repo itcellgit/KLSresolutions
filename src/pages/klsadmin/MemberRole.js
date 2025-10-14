@@ -626,43 +626,36 @@ const MemberRoleManagementPage = () => {
 
     return memberRoles.filter((memberRole) => {
       try {
-        // Prefer nested objects from API response if present
-        const nestedMember = memberRole.Member || null;
-        const nestedRole = memberRole.Role || null;
-        const nestedInstitute = memberRole.Institute || null;
-        const nestedTenure = memberRole.managementTenure || null;
+        // Safely extract member information
+        const member = memberRole.Member || {};
+        const role = memberRole.Role || {};
+        const institute = memberRole.Institute || {};
+        const managementTenure = memberRole.managementTenure || {};
 
-        // Fallback lookups from dropdown data arrays
-        const lookupMember =
-          nestedMember ||
-          members.find((m) => m.id === memberRole.member_id) ||
-          {};
-        const lookupRole =
-          nestedRole || roles.find((r) => r.id === memberRole.role_id) || {};
-        const lookupInstitute =
-          nestedInstitute ||
-          institutes.find((i) => i.id === memberRole.institute_id) ||
-          {};
-        const lookupTenure =
-          nestedTenure ||
-          managementTenures.find((t) => t.id === memberRole.tenure_id) ||
-          {};
-
-        // Build searchable strings safely
+        // Build searchable strings safely. If the joined managementTenure isn't
+        // present, fall back to any `tenure` field on memberRole or use the
+        // numeric `tenure_id` so the UI has something to display.
         const memberName =
-          lookupMember.name ||
-          lookupMember.full_name ||
-          lookupMember.email ||
-          "Unknown";
-        const roleName =
-          lookupRole.role_name ||
-          lookupRole.name ||
-          lookupRole.title ||
-          "Unknown";
+          member.name || member.full_name || member.email || "Unknown";
+        const roleName = role.role_name || role.name || role.title || "Unknown";
         const instituteName =
-          lookupInstitute.name || lookupInstitute.institute_name || "KLS Board";
+          institute.name || institute.institute_name || "KLS Board";
+        // Try joined object first; if missing, lookup by tenure_id from fetched list
+        const tenureFromList =
+          managementTenures && managementTenures.length
+            ? managementTenures.find(
+                (t) => String(t.id) === String(memberRole.tenure_id)
+              )
+            : null;
+
         const tenureName =
-          lookupTenure.tenure || lookupTenure.name || "No Tenure";
+          managementTenure.tenure ||
+          memberRole.tenure ||
+          (tenureFromList
+            ? tenureFromList.tenure
+            : memberRole.tenure_id
+            ? String(memberRole.tenure_id)
+            : "No Tenure");
         const level = memberRole.level || "";
 
         // Create searchable text
@@ -694,9 +687,23 @@ const MemberRoleManagementPage = () => {
 
     filteredAndSearched.forEach((memberRole) => {
       try {
-        // Safely get tenure information
+        // Safely get tenure information for grouping. Use managementTenure.tenure
+        // if available, otherwise fall back to memberRole.tenure or tenure_id.
         const managementTenure = memberRole.managementTenure || {};
-        const tenureKey = managementTenure.tenure || "No Tenure";
+        const tenureFromList =
+          managementTenures && managementTenures.length
+            ? managementTenures.find(
+                (t) => String(t.id) === String(memberRole.tenure_id)
+              )
+            : null;
+        const tenureKey =
+          managementTenure.tenure ||
+          memberRole.tenure ||
+          (tenureFromList
+            ? tenureFromList.tenure
+            : memberRole.tenure_id
+            ? String(memberRole.tenure_id)
+            : "No Tenure");
 
         if (!grouped[tenureKey]) {
           grouped[tenureKey] = [];
@@ -708,7 +715,7 @@ const MemberRoleManagementPage = () => {
     });
 
     return grouped;
-  }, [filteredAndSearched]);
+  }, [filteredAndSearched, managementTenures]);
 
   return (
     <div className="min-h-screen px-4 py-12 bg-gradient-to-br from-gray-50 to-gray-100 sm:px-6 lg:px-8">
@@ -1064,6 +1071,12 @@ const MemberRoleManagementPage = () => {
                                 </th>
                                 <th
                                   scope="col"
+                                  className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase"
+                                >
+                                  Status
+                                </th>
+                                <th
+                                  scope="col"
                                   className="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase"
                                 >
                                   Actions
@@ -1080,7 +1093,7 @@ const MemberRoleManagementPage = () => {
                                       className="bg-blue-50"
                                     >
                                       <td
-                                        colSpan="5"
+                                        colSpan="6"
                                         className="px-6 py-3 text-sm font-semibold text-blue-800"
                                       >
                                         <div className="flex items-center justify-between">
@@ -1149,6 +1162,18 @@ const MemberRoleManagementPage = () => {
                                     </td>
                                     <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                                       {getInstituteName(row.institute_id)}
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                      <span
+                                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                          (row.status || "").toLowerCase() ===
+                                          "active"
+                                            ? "bg-green-100 text-green-800"
+                                            : "bg-gray-100 text-gray-800"
+                                        }`}
+                                      >
+                                        {row.status ? row.status : "-"}
+                                      </span>
                                     </td>
                                     <td className="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
                                       <button
