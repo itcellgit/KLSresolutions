@@ -32,23 +32,8 @@ GCResolution.belongsTo(Institute, { foreignKey: "institute_id" });
 Institute.hasMany(User, { foreignKey: "institute_id" });
 User.belongsTo(Institute, { foreignKey: "institute_id" });
 Institute.hasMany(MemberRole, { foreignKey: "institute_id" });
-// Keep MemberRole <-> ManagementTenure and MemberRole <-> Role associations
-// consistent with aliases defined in models/member_role.js
-MemberRole.belongsTo(ManagementTenure, {
-  foreignKey: "tenure_id",
-  as: "tenure",
-});
+MemberRole.belongsTo(ManagementTenure, { foreignKey: "tenure_id" });
 ManagementTenure.hasMany(MemberRole, { foreignKey: "tenure_id" });
-Role.hasMany(MemberRole, { foreignKey: "role_id" });
-MemberRole.belongsTo(Role, { foreignKey: "role_id", as: "role" });
-Member.hasMany(MemberRole, { foreignKey: "member_id" });
-MemberRole.belongsTo(Member, { foreignKey: "member_id", as: "member" });
-// Ensure Institute association alias matches model file
-Institute.hasMany(MemberRole, { foreignKey: "institute_id" });
-MemberRole.belongsTo(Institute, {
-  foreignKey: "institute_id",
-  as: "institute",
-});
 // Simple many-to-one relationships (no through table needed)
 GCResolution.belongsTo(ManagementTenure, { foreignKey: "tenure_id" });
 ManagementTenure.hasMany(GCResolution, { foreignKey: "tenure_id" });
