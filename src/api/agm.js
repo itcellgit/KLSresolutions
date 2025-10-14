@@ -1,6 +1,5 @@
 import axios from "axios";
-const API_URL = "https://resolutions.klsbelagavi.org/api"; // "http://10.22.0.152:3000/api";
-
+const API_URL = "https://resolutions.klsbelagavi.org/api";
 export const getAGMs = async (token) => {
   try {
     if (!token) {

@@ -173,8 +173,7 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          {/* Quick Actions */}
+        {/* <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           <div className="p-6 bg-white shadow-xl rounded-xl">
             <h2 className="mb-6 text-xl font-bold text-gray-800">
               Quick Actions
@@ -337,7 +336,6 @@ const DashboardPage = () => {
             </div>
           </div>
 
-          {/* Recent Resolutions */}
           <div className="p-6 bg-white shadow-xl rounded-xl">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-800">
@@ -392,7 +390,6 @@ const DashboardPage = () => {
                   ))}
                 </tbody>
               </table>
-              {/* Pagination Controls */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-end gap-2 mt-4">
                   <button
@@ -417,6 +414,175 @@ const DashboardPage = () => {
                 </div>
               )}
             </div>
+          </div>
+        </div> */}
+
+        <div className="w-full p-6 bg-white shadow-xl rounded-xl">
+          <h2 className="mb-6 text-xl font-bold text-gray-800">
+            Quick Actions
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
+            {/* 1️⃣ Manage Institutes */}
+            <Link
+              to="/klsadmin/institutes"
+              className="flex flex-col items-center justify-center p-6 text-center transition-all duration-300 rounded-lg bg-indigo-50 hover:bg-indigo-100 hover:shadow-lg"
+            >
+              <div className="p-3 mb-3 bg-indigo-100 rounded-full">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-8 h-8 text-indigo-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                  />
+                </svg>
+              </div>
+              <h3 className="font-medium text-gray-900">Manage Institutes</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Add, edit, or remove institutes
+              </p>
+            </Link>
+
+            {/* 2️⃣ Manage Members */}
+            <Link
+              to="/klsadmin/members"
+              className="flex flex-col items-center justify-center p-6 text-center transition-all duration-300 rounded-lg bg-green-50 hover:bg-green-100 hover:shadow-lg"
+            >
+              <div className="p-3 mb-3 bg-green-100 rounded-full">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-8 h-8 text-green-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
+                </svg>
+              </div>
+              <h3 className="font-medium text-gray-900">Manage Members</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Add, edit, or remove members
+              </p>
+            </Link>
+
+            {/* 3️⃣ GC Resolutions */}
+            <Link
+              to="/klsadmin/gcresolution"
+              className="flex flex-col items-center justify-center p-6 text-center transition-all duration-300 rounded-lg bg-yellow-50 hover:bg-yellow-100 hover:shadow-lg"
+            >
+              <div className="p-3 mb-3 bg-yellow-100 rounded-full">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-8 h-8 text-yellow-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <h3 className="font-medium text-gray-900">GC Resolutions</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Manage Governing Council resolutions
+              </p>
+            </Link>
+
+            {/* 4️⃣ BOM Resolutions */}
+            <Link
+              to="/klsadmin/bomresolutions"
+              className="flex flex-col items-center justify-center p-6 text-center transition-all duration-300 rounded-lg bg-red-50 hover:bg-red-100 hover:shadow-lg"
+            >
+              <div className="p-3 mb-3 bg-red-100 rounded-full">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-8 h-8 text-red-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <h3 className="font-medium text-gray-900">BOM Resolutions</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Manage Board of Management resolutions
+              </p>
+            </Link>
+
+            {/* 5️⃣ AGM */}
+            <Link
+              to="/klsadmin/agm"
+              className="flex flex-col items-center justify-center p-6 text-center transition-all duration-300 rounded-lg bg-blue-50 hover:bg-blue-100 hover:shadow-lg"
+            >
+              <div className="p-3 mb-3 bg-blue-100 rounded-full">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-8 h-8 text-blue-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm0 2c-2.67 0-8 1.337-8 4v2a1 1 0 001 1h14a1 1 0 001-1v-2c0-2.663-5.33-4-8-4z"
+                  />
+                </svg>
+              </div>
+              <h3 className="font-medium text-gray-900">AGM</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Manage Annual General Meetings
+              </p>
+            </Link>
+
+            {/* 6️⃣ Member Role */}
+            <Link
+              to="/klsadmin/memberrole"
+              className="flex flex-col items-center justify-center p-6 text-center transition-all duration-300 rounded-lg bg-purple-50 hover:bg-purple-100 hover:shadow-lg"
+            >
+              <div className="p-3 mb-3 bg-purple-100 rounded-full">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-8 h-8 text-purple-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zm2 13a6 6 0 00-12 0"
+                  />
+                </svg>
+              </div>
+              <h3 className="font-medium text-gray-900">Member Role</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Assign or manage member roles
+              </p>
+            </Link>
           </div>
         </div>
       </div>
