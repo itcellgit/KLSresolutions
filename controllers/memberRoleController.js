@@ -29,7 +29,6 @@ exports.getAllMemberRoles = async (req, res) => {
         },
         {
           model: ManagementTenure,
-          as: "managementTenure",
         },
       ],
       order: [["id", "DESC"]],
