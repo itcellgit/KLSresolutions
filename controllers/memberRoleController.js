@@ -22,6 +22,7 @@ exports.getAllMemberRoles = async (req, res) => {
       include: [
         {
           model: Member,
+          as: "member",
         },
         {
           model: Role,
@@ -29,7 +30,7 @@ exports.getAllMemberRoles = async (req, res) => {
         },
         {
           model: ManagementTenure,
-          as: "managementTenure",
+          as: "tenure",
         },
       ],
       order: [["id", "DESC"]],
@@ -49,6 +50,7 @@ exports.getMemberRoleById = async (req, res) => {
       include: [
         {
           model: Member,
+          as: "member",
         },
         {
           model: Role,
