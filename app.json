@@ -24,6 +24,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "metro": {
+      "port": 8081
+    },
+    "plugins": [
+      "expo-asset"
+    ]
   }
 }
