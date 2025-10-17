@@ -739,7 +739,7 @@ const BOMResolutionsPage = () => {
               </svg>
             </div>
 
-            {/* Tenure Filter Dropdown */}
+            {/* Tenure Filter Dropdown  */}
             <div className="relative w-full sm:w-64">
               <select
                 value={selectedTenure}

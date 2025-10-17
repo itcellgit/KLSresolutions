@@ -229,69 +229,124 @@ const GCResolutionPage = () => {
         const institutesData = await getInstitutes(token);
         setInstitutes(institutesData);
 
-        // Collect institute ids from resolutions
-        const resolutionInstituteIds = new Set(
-          resolutions.map((item) => item.institute_id).filter(Boolean)
-        );
-
-        // Collect institute ids from member roles (so institutes where member had roles show up even if there are no resolutions)
-        // If a tenure is selected, only include roles that belong to that tenure. Roles in Redux contain `tenure` (tenure name).
+        // Get selected tenure name for filtering
         const selectedTenureName =
           selectedTenure && tenures
             ? tenures.find((t) => String(t.id) === String(selectedTenure))
                 ?.tenure
             : null;
 
-        const roleInstituteIds = new Set(
-          (roles || [])
-            .filter((r) => {
-              if (!selectedTenure) return true; // include all tenures when none selected
-              // role.tenure may be a tenure name (string). Compare against selectedTenureName if available.
-              if (selectedTenureName && r.tenure) {
-                return String(r.tenure) === String(selectedTenureName);
-              }
-              // If role has tenure_id and selectedTenure is set, compare numeric ids if available
-              if (r.tenure_id && selectedTenure) {
-                return String(r.tenure_id) === String(selectedTenure);
-              }
-              return false;
-            })
-            .map((r) => r.institute_id)
-            .filter((id) => id !== null && id !== undefined)
-        );
+        // Check if user is President or Vice President in the selected tenure
+        const isPresidentOrVP = (roles || []).some((r) => {
+          // Check if role belongs to selected tenure
+          if (!selectedTenure) return false;
 
-        // Union of both sets
-        const allowedInstituteIdsSet = new Set([
-          ...Array.from(resolutionInstituteIds),
-          ...Array.from(roleInstituteIds),
-        ]);
-        const allowedInstituteIds = Array.from(allowedInstituteIdsSet);
+          let belongsToTenure = false;
+          if (selectedTenureName && r.tenure) {
+            belongsToTenure = String(r.tenure) === String(selectedTenureName);
+          } else if (r.tenure_id && selectedTenure) {
+            belongsToTenure = String(r.tenure_id) === String(selectedTenure);
+          }
 
-        // Filter institutes that exist in institutesData
-        let filtered = institutesData.filter((inst) =>
-          allowedInstituteIds.includes(inst.id)
-        );
+          // Check if role is President or Vice President
+          const isHighRank =
+            String(r.role_name || "").toLowerCase() === "president" ||
+            String(r.role_name || "").toLowerCase() === "vice president";
 
-        // If there are institutes referenced by roles but missing from institutesData,
-        // add minimal placeholder entries using the role data so tabs still appear.
-        const existingIds = new Set(filtered.map((i) => i.id));
-        const missingRoleInstituteIds = Array.from(roleInstituteIds).filter(
-          (id) => !existingIds.has(id)
-        );
-        if (missingRoleInstituteIds.length > 0) {
-          missingRoleInstituteIds.forEach((mid) => {
-            const roleEntry = (roles || []).find(
-              (r) => String(r.institute_id) === String(mid)
-            );
-            filtered.push({
-              id: mid,
-              name: roleEntry?.institute_name || `Institute ${mid}`,
-              code: roleEntry?.institute_name
-                ? roleEntry.institute_name.slice(0, 8).toUpperCase()
-                : `INST-${mid}`,
+          return belongsToTenure && isHighRank;
+        });
+
+        let filtered;
+
+        // If user is President or Vice President, show ALL institutes
+        if (isPresidentOrVP) {
+          // Use all institutes from the API
+          filtered = [...institutesData];
+
+          // Add any institutes from roles that aren't in institutesData
+          const existingIds = new Set(filtered.map((i) => i.id));
+          const roleInstituteIds = new Set(
+            (roles || [])
+              .filter((r) => {
+                if (!selectedTenure) return true; // include all tenures when none selected
+                // role.tenure may be a tenure name (string). Compare against selectedTenureName if available.
+                if (selectedTenureName && r.tenure) {
+                  return String(r.tenure) === String(selectedTenureName);
+                }
+                // If role has tenure_id and selectedTenure is set, compare numeric ids if available
+                if (r.tenure_id && selectedTenure) {
+                  return String(r.tenure_id) === String(selectedTenure);
+                }
+                return false;
+              })
+              .map((r) => r.institute_id)
+              .filter((id) => id !== null && id !== undefined)
+          );
+
+          const missingRoleInstituteIds = Array.from(roleInstituteIds).filter(
+            (id) => !existingIds.has(id)
+          );
+
+          if (missingRoleInstituteIds.length > 0) {
+            missingRoleInstituteIds.forEach((mid) => {
+              const roleEntry = (roles || []).find(
+                (r) => String(r.institute_id) === String(mid)
+              );
+              filtered.push({
+                id: mid,
+                name: roleEntry?.institute_name || `Institute ${mid}`,
+                code: roleEntry?.institute_name
+                  ? roleEntry.institute_name.slice(0, 8).toUpperCase()
+                  : `INST-${mid}`,
+              });
             });
-          });
+          }
+        } else {
+          // Regular user: only show institutes where they have roles
+          const roleInstituteIds = new Set(
+            (roles || [])
+              .filter((r) => {
+                if (!selectedTenure) return true; // include all tenures when none selected
+                // role.tenure may be a tenure name (string). Compare against selectedTenureName if available.
+                if (selectedTenureName && r.tenure) {
+                  return String(r.tenure) === String(selectedTenureName);
+                }
+                // If role has tenure_id and selectedTenure is set, compare numeric ids if available
+                if (r.tenure_id && selectedTenure) {
+                  return String(r.tenure_id) === String(selectedTenure);
+                }
+                return false;
+              })
+              .map((r) => r.institute_id)
+              .filter((id) => id !== null && id !== undefined)
+          );
+
+          filtered = institutesData.filter((inst) =>
+            roleInstituteIds.has(inst.id)
+          );
+
+          // Add any institutes from roles that aren't in institutesData
+          const existingIds = new Set(filtered.map((i) => i.id));
+          const missingRoleInstituteIds = Array.from(roleInstituteIds).filter(
+            (id) => !existingIds.has(id)
+          );
+
+          if (missingRoleInstituteIds.length > 0) {
+            missingRoleInstituteIds.forEach((mid) => {
+              const roleEntry = (roles || []).find(
+                (r) => String(r.institute_id) === String(mid)
+              );
+              filtered.push({
+                id: mid,
+                name: roleEntry?.institute_name || `Institute ${mid}`,
+                code: roleEntry?.institute_name
+                  ? roleEntry.institute_name.slice(0, 8).toUpperCase()
+                  : `INST-${mid}`,
+              });
+            });
+          }
         }
+
         setFilteredInstitutes(filtered);
 
         if (filtered.length > 0) {
@@ -630,24 +685,26 @@ const GCResolutionPage = () => {
         </div>
 
         <div className="mx-auto max-w-7xl">
-          {!isLoading && filteredInstitutes.length > 0 && (
+          {!isLoading && (
             <div className="mb-6">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap gap-2">
-                  {filteredInstitutes.map((inst) => (
-                    <button
-                      key={inst.id}
-                      className={`px-4 py-2 rounded-lg font-medium border transition-colors ${
-                        selectedInstitute === String(inst.id)
-                          ? "bg-indigo-600 text-white border-indigo-600"
-                          : "bg-white text-indigo-700 border-gray-300 hover:bg-indigo-50"
-                      }`}
-                      onClick={() => setSelectedInstitute(String(inst.id))}
-                    >
-                      {inst.code}
-                    </button>
-                  ))}
-                </div>
+                {filteredInstitutes.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {filteredInstitutes.map((inst) => (
+                      <button
+                        key={inst.id}
+                        className={`px-4 py-2 rounded-lg font-medium border transition-colors ${
+                          selectedInstitute === String(inst.id)
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "bg-white text-indigo-700 border-gray-300 hover:bg-indigo-50"
+                        }`}
+                        onClick={() => setSelectedInstitute(String(inst.id))}
+                      >
+                        {inst.code}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 <div className="ml-4">
                   <label
