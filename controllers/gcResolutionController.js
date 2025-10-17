@@ -67,12 +67,25 @@ exports.getAllGCResolutions = async (req, res) => {
         include: [{ model: Role, as: "role" }],
       });
 
-      const hasSpecialRole = memberRoles.some(
-        (mr) =>
-          mr.role &&
-          (mr.role.role_name === "President" ||
-            mr.role.role_name === "Vice President")
-      );
+      // Determine if member has President/Vice President role for the requested tenure (if any)
+      let hasSpecialRole = false;
+      if (memberRoles && memberRoles.length > 0) {
+        // If a tenure_id was provided in query, only consider roles for that tenure
+        if (tenure_id) {
+          hasSpecialRole = memberRoles.some((mr) => {
+            if (!mr.role) return false;
+            const rn = String(mr.role.role_name).toLowerCase();
+            const mrTenureId = mr.tenure_id || mr.tenure || null;
+            return (
+              (rn === "president" || rn === "vice president") &&
+              String(mr.tenure_id) === String(tenure_id)
+            );
+          });
+        } else {
+          // If no tenure requested, don't grant global access by default; require explicit tenure to be safe
+          hasSpecialRole = false;
+        }
+      }
 
       if (hasSpecialRole) {
         const resolutions = await GCResolution.findAll({
@@ -545,21 +558,26 @@ exports.searchPDFContent = async (req, res) => {
         include: [{ model: Role, as: "role" }],
       });
 
-      // Check if any role is President or Vice President
-      const hasSpecialRole = memberRoles.some((mr) => {
-        if (!mr.role) return false;
-        const rn = String(mr.role.role_name).toLowerCase();
-        return (
-          rn === "president" ||
-          rn === "vice president" ||
-          rn === "chairman" ||
-          rn === "secretary" ||
-          rn === "member"
-        );
-      });
+      // Check if any role is President or Vice President for the requested tenure
+      let hasSpecialRoleForTenure = false;
+      if (memberRoles && memberRoles.length > 0) {
+        // Only grant global search access if member has a special role for the requested tenure
+        // If no tenure filter provided, do not grant global search access
+        const requestedTenure = req.query.tenure_id || null;
+        if (requestedTenure) {
+          hasSpecialRoleForTenure = memberRoles.some((mr) => {
+            if (!mr.role) return false;
+            const rn = String(mr.role.role_name).toLowerCase();
+            return (
+              (rn === "president" || rn === "vice president") &&
+              String(mr.tenure_id) === String(requestedTenure)
+            );
+          });
+        }
+      }
 
-      if (hasSpecialRole) {
-        // President or Vice President: view all resolutions
+      if (hasSpecialRoleForTenure) {
+        // President/Vice President for the requested tenure: view all resolutions (subject to optional tenure filter)
         resolutions = await GCResolution.findAll({
           include: [
             {
@@ -567,6 +585,7 @@ exports.searchPDFContent = async (req, res) => {
               attributes: ["id", "name"],
             },
           ],
+          where: req.query.tenure_id ? { tenure_id: req.query.tenure_id } : {},
           order: [["id", "DESC"]],
         });
       } else {

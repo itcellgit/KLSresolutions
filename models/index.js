@@ -32,11 +32,7 @@ GCResolution.belongsTo(Institute, { foreignKey: "institute_id" });
 Institute.hasMany(User, { foreignKey: "institute_id" });
 User.belongsTo(Institute, { foreignKey: "institute_id" });
 Institute.hasMany(MemberRole, { foreignKey: "institute_id" });
-MemberRole.belongsTo(
-  ManagementTenure,
-  { foreignKey: "tenure_id" },
-  { as: "managementTenure" }
-);
+MemberRole.belongsTo(ManagementTenure, { foreignKey: "tenure_id" });
 
 ManagementTenure.hasMany(MemberRole, { foreignKey: "tenure_id" });
 // Simple many-to-one relationships (no through table needed)

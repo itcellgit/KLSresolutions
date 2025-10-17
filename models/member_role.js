@@ -122,7 +122,8 @@ module.exports = (sequelize, DataTypes) => {
     MemberRole.belongsTo(models.ManagementTenure, {
       foreignKey: "tenure_id",
       targetKey: "id",
-      as: "tenure",
+      // Keep legacy alias used by frontend to avoid breaking changes
+      as: "managementTenure",
     });
   };
 

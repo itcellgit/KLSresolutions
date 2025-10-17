@@ -29,6 +29,7 @@ exports.getAllMemberRoles = async (req, res) => {
         },
         {
           model: ManagementTenure,
+          as: "managementTenure",
         },
       ],
       order: [["id", "DESC"]],
@@ -264,12 +265,6 @@ exports.createMemberRole = async (req, res) => {
         };
       }
 
-      const updateResult = await MemberRole.update(
-        { status: "inactive" },
-        {
-          where: whereConditionForUpdate,
-        }
-      );
       console.log(
         `Made ${activeMemberRoles.length} previous roles with different tenure_id inactive for member_id: ${member_id}. Updated rows: ${updateResult[0]}`
       );
