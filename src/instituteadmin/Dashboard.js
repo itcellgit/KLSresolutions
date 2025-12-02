@@ -7,7 +7,8 @@ const cardConfig = [
   {
     label: "GC",
     route: "/instituteadmin/add-gc-resolution",
-    color: "from-indigo-500 to-indigo-700",
+    color: "bg-gradient-to-br from-indigo-300 via-indigo-400 to-indigo-600",
+    text: "text-indigo-900",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -29,7 +30,9 @@ const cardConfig = [
   {
     label: "BOM",
     route: "/instituteadmin/bom-resolutions",
-    color: "from-purple-500 to-purple-700",
+    color:
+      "relative group block bg-orange-800 shadow-xl rounded-2xl p-3 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-orange-700",
+    text: "text-white-500",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -51,7 +54,8 @@ const cardConfig = [
   {
     label: "AGM",
     route: "/instituteadmin/add-agm",
-    color: "from-green-500 to-green-700",
+    color: "bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500",
+    text: "text-yellow-900",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -73,7 +77,8 @@ const cardConfig = [
   {
     label: "MEMBERS",
     route: "/instituteadmin/members",
-    color: "from-pink-500 to-pink-700",
+    color: "bg-gradient-to-br from-blue-300 via-blue-400 to-blue-600",
+    text: "text-blue-900",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -121,7 +126,9 @@ const Dashboard = () => {
               {cardConfig.map((card, index) => (
                 <div
                   key={card.label}
-                  className={`group relative rounded-2xl shadow-lg overflow-hidden cursor-pointer transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl bg-gradient-to-br ${card.color} text-white`}
+                  className={`group relative rounded-2xl shadow-lg overflow-hidden cursor-pointer transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl ${
+                    card.color
+                  } ${card.text || "text-white"}`}
                   onClick={() => navigate(card.route)}
                   style={{ transitionDelay: `${index * 50}ms` }}
                 >

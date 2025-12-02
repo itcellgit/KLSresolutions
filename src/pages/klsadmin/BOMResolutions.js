@@ -773,7 +773,7 @@ const BOMResolutionsPage = () => {
             {/* Add New Button */}
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center justify-center w-full px-6 py-3 font-medium text-white transition-all duration-300 transform rounded-lg shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:-translate-y-1 hover:scale-105 sm:w-auto"
+              className="flex items-center justify-center w-full px-6 py-3 font-medium text-white transition-all duration-300 transform rounded-lg shadow-lg bg-blue-500 hover:bg-blue-700 hover:-translate-y-1 hover:scale-105 sm:w-auto"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -1009,10 +1009,16 @@ const BOMResolutionsPage = () => {
                             {/* Resolution Button */}
                             <button
                               onClick={() => handleTabClick("resolution")}
-                              className={`relative group block bg-gradient-to-br from-green-300 via-green-400 to-green-600 shadow-xl rounded-2xl p-4 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-green-300 ${
+                              // className={`relative group block bg-gradient-to-br from-green-300 via-green-400 to-green-600 shadow-xl rounded-2xl p-4 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-green-300 ${
+                              //   activeTab === "resolution" ||
+                              //   viewingPDF === "resolution"
+                              //     ? "scale-105 shadow-2xl ring-4 ring-green-300"
+                              //     : ""
+                              // }`}
+                              className={`relative group block bg-orange-800 shadow-xl rounded-2xl p-3 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-orange-700 ${
                                 activeTab === "resolution" ||
                                 viewingPDF === "resolution"
-                                  ? "scale-105 shadow-2xl ring-4 ring-green-300"
+                                  ? "scale-105 shadow-2xl ring-4 ring-orange-700"
                                   : ""
                               }`}
                               style={{ minHeight: 120 }}
@@ -1032,7 +1038,7 @@ const BOMResolutionsPage = () => {
                                 >
                                   📄
                                 </span>
-                                <h2 className="mb-1 font-serif text-lg font-bold text-center text-green-900 transition-colors group-hover:text-white">
+                                <h2 className="mb-1 font-serif text-base font-bold text-center text-white">
                                   Resolution
                                 </h2>
                               </div>
@@ -1041,10 +1047,16 @@ const BOMResolutionsPage = () => {
                             {/* Compliance Button */}
                             <button
                               onClick={() => handleTabClick("compliance")}
-                              className={`relative group block bg-gradient-to-br from-purple-300 via-purple-400 to-purple-600 shadow-xl rounded-2xl p-4 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-purple-300 ${
+                              // className={`relative group block bg-gradient-to-br from-purple-300 via-purple-400 to-purple-600 shadow-xl rounded-2xl p-4 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-purple-300 ${
+                              //   activeTab === "compliance" ||
+                              //   viewingPDF === "compliance"
+                              //     ? "scale-105 shadow-2xl ring-4 ring-purple-300"
+                              //     : ""
+                              // }`}
+                              className={`relative group block bg-gradient-to-br from-gray-800 via-gray-900 to-black shadow-xl rounded-2xl p-3 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-gray-700 ${
                                 activeTab === "compliance" ||
                                 viewingPDF === "compliance"
-                                  ? "scale-105 shadow-2xl ring-4 ring-purple-300"
+                                  ? "scale-105 shadow-2xl ring-4 ring-gray-700"
                                   : ""
                               }`}
                               style={{ minHeight: 120 }}
@@ -1064,7 +1076,7 @@ const BOMResolutionsPage = () => {
                                 >
                                   ✅
                                 </span>
-                                <h2 className="mb-1 font-serif text-lg font-bold text-center text-purple-900 transition-colors group-hover:text-white">
+                                <h2 className="mb-1 font-serif text-base font-bold text-center text-white">
                                   Compliance
                                 </h2>
                               </div>
@@ -1135,7 +1147,7 @@ const BOMResolutionsPage = () => {
               ></div>
               {/* Modal container */}
               <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-                <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600">
+                <div className="px-6 py-4 bg-blue-500">
                   <div className="flex items-center justify-between">
                     <h3
                       className="text-lg font-medium leading-6 text-white"
@@ -1230,10 +1242,10 @@ const BOMResolutionsPage = () => {
                         name="agenda"
                         onChange={(e) => handleFileUpload(e, "agenda")}
                         className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        accept=".pdf,.doc,.docx,.txt"
+                        accept="application/pdf"
                       />
                       <p className="mt-1 text-xs text-gray-500">
-                        Accepted formats: PDF, DOC, DOCX, TXT (Max size: 50MB)
+                        Accepted formats: PDF
                       </p>
                       {/* Debug info */}
                       {formData.agenda && (
@@ -1259,11 +1271,11 @@ const BOMResolutionsPage = () => {
                         name="resolution"
                         onChange={(e) => handleFileUpload(e, "resolution")}
                         className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        accept=".pdf,.doc,.docx,.txt"
+                        accept="application/pdf"
                         required={!editingId}
                       />
                       <p className="mt-1 text-xs text-gray-500">
-                        Accepted formats: PDF, DOC, DOCX, TXT (Max size: 50MB)
+                        Accepted formats: PDF
                       </p>
                       {/* Debug info */}
                       {formData.resolution && (
@@ -1289,10 +1301,10 @@ const BOMResolutionsPage = () => {
                         name="compliance"
                         onChange={(e) => handleFileUpload(e, "compliance")}
                         className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        accept=".pdf,.doc,.docx,.txt"
+                        accept="application/pdf"
                       />
                       <p className="mt-1 text-xs text-gray-500">
-                        Accepted formats: PDF, DOC, DOCX, TXT (Max size: 50MB)
+                        Accepted formats: PDF,
                       </p>
                       {/* Debug info */}
                       {formData.compliance && (
@@ -1315,7 +1327,7 @@ const BOMResolutionsPage = () => {
                       </button>
                       <button
                         type="submit"
-                        className="inline-flex justify-center px-6 py-3 text-sm font-medium text-white border border-transparent rounded-lg shadow-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        className="inline-flex justify-center px-6 py-3 text-sm font-medium text-white border border-transparent rounded-lg shadow-sm bg-blue-500 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                       >
                         {editingId ? "Update Resolution" : "Add Resolution"}
                       </button>

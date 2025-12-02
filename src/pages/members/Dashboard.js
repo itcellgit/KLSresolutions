@@ -17,8 +17,8 @@ const cardData = [
     color: "#43A047",
     // icon: "ðŸ“‘",
     link: "/member/bom-resolutions",
-    bg: "bg-gradient-to-br from-green-300 via-green-400 to-green-600",
-    text: "text-green-900",
+    bg: "relative group block bg-orange-800 shadow-xl rounded-2xl p-3 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-orange-700",
+    text: "text-white-500",
   },
   {
     title: "Governing Council",

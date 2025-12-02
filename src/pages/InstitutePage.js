@@ -212,7 +212,8 @@ const InstitutePage = () => {
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center w-full px-6 py-3 font-medium text-white transition-all duration-300 transform rounded-lg shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:-translate-y-1 hover:scale-105 sm:w-auto"
+            // className="flex items-center justify-center w-full px-6 py-3 font-medium text-white transition-all duration-300 transform rounded-lg shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:-translate-y-1 hover:scale-105 sm:w-auto"
+            className="flex items-center justify-center w-full px-6 py-3 font-medium text-white transition-all duration-300 transform rounded-lg shadow-lg bg-blue-500 hover:bg-blue-700 hover:-translate-y-1 hover:scale-105 sm:w-auto"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -430,7 +431,8 @@ const InstitutePage = () => {
               ></div>
               {/* Modal container */}
               <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600">
+                {/* <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600"> */}
+                <div className="px-6 py-4 bg-blue-500">
                   <div className="flex items-center justify-between">
                     <h3
                       className="text-lg font-medium leading-6 text-white"
@@ -620,7 +622,7 @@ const InstitutePage = () => {
                       </button>
                       <button
                         type="submit"
-                        className="inline-flex justify-center px-6 py-3 text-sm font-medium text-white border border-transparent rounded-lg shadow-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                        className="inline-flex justify-center px-6 py-3 text-sm font-medium text-white border border-transparent rounded-lg shadow-sm bg-blue-500 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                       >
                         {editingId ? "Update Institute" : "Add Institute"}
                       </button>

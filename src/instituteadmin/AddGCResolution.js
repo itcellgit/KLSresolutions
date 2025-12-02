@@ -160,11 +160,17 @@ const AddGCResolution = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle file uploads
+  // Handle file uploads - only allow PDF files
   const handleFileChange = (e) => {
     const { name, files } = e.target;
     if (files && files[0]) {
-      setFileData((prev) => ({ ...prev, [name]: files[0] }));
+      const file = files[0];
+      if (file.type !== "application/pdf") {
+        alert("Only PDF files are allowed.");
+        e.target.value = null;
+        return;
+      }
+      setFileData((prev) => ({ ...prev, [name]: file }));
     }
   };
 
@@ -1043,7 +1049,7 @@ const AddGCResolution = () => {
                   <div className="flex flex-col w-full gap-3 sm:flex-row lg:w-auto">
                     <button
                       onClick={openAddModal}
-                      className="flex items-center justify-center px-8 py-3 font-semibold text-white transition-all duration-300 transform shadow-lg rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      className="flex items-center justify-center w-full px-6 py-3 font-medium text-white transition-all duration-300 transform rounded-lg shadow-lg bg-blue-500 hover:bg-blue-700 hover:-translate-y-1 hover:scale-105 sm:w-auto"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -1324,7 +1330,7 @@ const AddGCResolution = () => {
                       onClick={() => setIsModalOpen(false)}
                     ></div>
                     <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-2xl shadow-2xl sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh] overflow-y-auto">
-                      <div className="px-8 py-6 bg-gradient-to-r from-indigo-600 to-purple-600">
+                      <div className="px-6 py-4 bg-blue-500">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center">
                             <div className="p-3 mr-4 bg-white rounded-full bg-opacity-20">
@@ -1528,11 +1534,11 @@ const AddGCResolution = () => {
                               name="agenda"
                               id="agenda"
                               onChange={handleFileChange}
-                              accept=".pdf,.doc,.docx,.txt"
+                              accept="application/pdf"
                               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                             <p className="mt-2 text-xs text-gray-500">
-                              Upload agenda document (PDF, DOC, DOCX, TXT)
+                              Upload agenda document (PDF)
                             </p>
                             {fileData.agenda && (
                               <p className="mt-1 text-sm text-green-600">
@@ -1567,11 +1573,11 @@ const AddGCResolution = () => {
                               name="resolution"
                               id="resolution"
                               onChange={handleFileChange}
-                              accept=".pdf,.doc,.docx,.txt"
+                              accept="application/pdf"
                               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                             <p className="mt-2 text-xs text-gray-500">
-                              Upload resolution document (PDF, DOC, DOCX, TXT)
+                              Upload resolution document (PDF,)
                             </p>
                             {fileData.resolution && (
                               <p className="mt-1 text-sm text-green-600">
@@ -1609,11 +1615,11 @@ const AddGCResolution = () => {
                               name="compliance"
                               id="compliance"
                               onChange={handleFileChange}
-                              accept=".pdf,.doc,.docx,.txt"
+                              accept="application/pdf"
                               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                             <p className="mt-2 text-xs text-gray-500">
-                              Upload compliance document (PDF, DOC, DOCX, TXT)
+                              Upload compliance document (PDF)
                             </p>
                             {fileData.compliance && (
                               <p className="mt-1 text-sm text-green-600">
@@ -1652,12 +1658,11 @@ const AddGCResolution = () => {
                               name="meeting_notes"
                               id="meeting_notes"
                               onChange={handleFileChange}
-                              accept=".pdf,.doc,.docx,.txt"
+                              accept="application/pdf"
                               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                             <p className="mt-2 text-xs text-gray-500">
-                              Upload meeting notes document (PDF, DOC, DOCX,
-                              TXT)
+                              Upload meeting notes document (PDF)
                             </p>
                             {fileData.meeting_notes && (
                               <p className="mt-1 text-sm text-green-600">
@@ -1677,7 +1682,7 @@ const AddGCResolution = () => {
                             <button
                               type="submit"
                               disabled={isSubmitting}
-                              className="inline-flex justify-center px-8 py-3 text-sm font-semibold text-white transition-all duration-200 border border-transparent shadow-lg rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="inline-flex justify-center px-6 py-3 text-sm font-medium text-white border border-transparent rounded-lg shadow-sm bg-blue-500 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                             >
                               {isSubmitting ? (
                                 <span className="flex items-center">

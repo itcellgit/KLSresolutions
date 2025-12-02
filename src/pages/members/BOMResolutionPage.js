@@ -551,16 +551,15 @@ const BOMResolutionPage = () => {
             <div className="space-y-8">
               {sortedMonthYearKeys.length > 0 ? (
                 <div className="overflow-hidden bg-white border border-gray-200 shadow-lg rounded-xl">
-                  {/* Table Header */}
-                  <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-700">
+                  {/* <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-700"> */}
+                  <div className="px-6 py-4 bg-blue-500 text-white">
+                    {" "}
                     <h2 className="text-xl font-bold text-white">
                       {pdfSearchTerm.trim()
                         ? `Search Results (${searchResults.length} meetings found)`
                         : "Meeting Schedule"}
                     </h2>
                   </div>
-
-                  {/* Table Content */}
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead className="bg-gray-50">
@@ -609,14 +608,11 @@ const BOMResolutionPage = () => {
                                   </div>
                                 </td>
                               </tr>
-
-                              {/* Expanded Content Row */}
                               {hasSelectedDate && selectedDate && (
                                 <tr className="bg-gradient-to-r from-indigo-50 to-purple-50">
                                   <td colSpan="2" className="px-0 py-0">
                                     <div className="border-l-4 border-indigo-500">
-                                      {/* Header */}
-                                      <div className="px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-600">
+                                      <div className="px-6 py-4 bg-blue-500 text-white">
                                         <div className="flex items-center justify-between">
                                           <h3 className="text-xl font-bold text-white">
                                             Meeting Details -{" "}
@@ -691,7 +687,7 @@ const BOMResolutionPage = () => {
                                                 >
                                                   📋
                                                 </span>
-                                                <h2 className="mb-1 font-serif text-base font-bold text-center text-blue-900 transition-colors group-hover:text-white">
+                                                <h2 className="mb-1 font-serif text-base font-bold text-center text-white">
                                                   Agenda
                                                 </h2>
                                               </div>
@@ -705,10 +701,16 @@ const BOMResolutionPage = () => {
                                                 );
                                                 handleTabClick("resolution");
                                               }}
-                                              className={`relative group block bg-gradient-to-br from-purple-300 via-purple-400 to-purple-600 shadow-xl rounded-2xl p-3 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-purple-300 ${
+                                              // className={`relative group block bg-gradient-to-br from-purple-300 via-purple-400 to-purple-600 shadow-xl rounded-2xl p-3 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-purple-300 ${
+                                              //   activeTab === "resolution" ||
+                                              //   viewingPDF === "resolution"
+                                              //     ? "scale-105 shadow-2xl ring-4 ring-purple-300"
+                                              //     : ""
+                                              // }`}
+                                              className={`relative group block bg-orange-800 shadow-xl rounded-2xl p-3 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-orange-700 ${
                                                 activeTab === "resolution" ||
                                                 viewingPDF === "resolution"
-                                                  ? "scale-105 shadow-2xl ring-4 ring-purple-300"
+                                                  ? "scale-105 shadow-2xl ring-4 ring-orange-700"
                                                   : ""
                                               }`}
                                               style={{ minHeight: 110 }}
@@ -737,7 +739,10 @@ const BOMResolutionPage = () => {
                                                 >
                                                   ⚖️
                                                 </span>
-                                                <h2 className="mb-1 font-serif text-base font-bold text-center text-purple-900 transition-colors group-hover:text-white">
+                                                {/* <h2 className="mb-1 font-serif text-base font-bold text-center text-purple-900 transition-colors group-hover:text-white">
+                                                  Resolution
+                                                </h2> */}
+                                                <h2 className="mb-1 font-serif text-base font-bold text-center text-white">
                                                   Resolution
                                                 </h2>
                                               </div>
@@ -751,10 +756,16 @@ const BOMResolutionPage = () => {
                                                 );
                                                 handleTabClick("compliance");
                                               }}
-                                              className={`relative group block bg-gradient-to-br from-green-300 via-green-400 to-green-600 shadow-xl rounded-2xl p-3 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-green-300 ${
+                                              // className={`relative group block bg-gradient-to-br from-green-300 via-green-400 to-green-600 shadow-xl rounded-2xl p-3 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-green-300 ${
+                                              //   activeTab === "compliance" ||
+                                              //   viewingPDF === "compliance"
+                                              //     ? "scale-105 shadow-2xl ring-4 ring-green-300"
+                                              //     : ""
+                                              // }`}
+                                              className={`relative group block bg-gradient-to-br from-gray-800 via-gray-900 to-black shadow-xl rounded-2xl p-3 border-4 border-white hover:scale-105 hover:shadow-2xl transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-gray-700 ${
                                                 activeTab === "compliance" ||
                                                 viewingPDF === "compliance"
-                                                  ? "scale-105 shadow-2xl ring-4 ring-green-300"
+                                                  ? "scale-105 shadow-2xl ring-4 ring-gray-700"
                                                   : ""
                                               }`}
                                               style={{ minHeight: 110 }}
@@ -783,7 +794,7 @@ const BOMResolutionPage = () => {
                                                 >
                                                   ✅
                                                 </span>
-                                                <h2 className="mb-1 font-serif text-base font-bold text-center text-green-900 transition-colors group-hover:text-white">
+                                                <h2 className="mb-1 font-serif text-base font-bold text-center text-white">
                                                   Compliance
                                                 </h2>
                                               </div>
