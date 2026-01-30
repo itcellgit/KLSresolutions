@@ -46,7 +46,7 @@ const GCResolutionPage = () => {
   // Handle PDF viewing for buttons
   const handlePDFView = async (type, filename) => {
     console.log(
-      `handlePDFView called with type: ${type}, filename: ${filename}`
+      `handlePDFView called with type: ${type}, filename: ${filename}`,
     );
 
     // Clear any existing error
@@ -61,7 +61,7 @@ const GCResolutionPage = () => {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          }
+          },
         );
 
         if (response.ok) {
@@ -80,8 +80,8 @@ const GCResolutionPage = () => {
           setFileError(
             `Failed to load ${type.replace(
               "-",
-              " "
-            )} file. The file may not exist or there was an error accessing it.`
+              " ",
+            )} file. The file may not exist or there was an error accessing it.`,
           );
           // activeTab remains set to show which button was clicked
         }
@@ -93,8 +93,8 @@ const GCResolutionPage = () => {
         setFileError(
           `Error loading ${type.replace(
             "-",
-            " "
-          )} file. Please check your connection and try again.`
+            " ",
+          )} file. Please check your connection and try again.`,
         );
         // activeTab remains set to show which button was clicked
       }
@@ -104,7 +104,7 @@ const GCResolutionPage = () => {
       setViewingPDF(null);
       setPdfUrl("");
       setFileError(
-        `No ${type.replace("-", " ")} file available for this meeting.`
+        `No ${type.replace("-", " ")} file available for this meeting.`,
       );
       // activeTab remains set to show which button was clicked
     }
@@ -113,7 +113,7 @@ const GCResolutionPage = () => {
   // Enhanced button click handler
   const handleTabClick = async (tab) => {
     console.log(
-      `Button clicked: ${tab}, current viewingPDF: ${viewingPDF}, current activeTab: ${activeTab}`
+      `Button clicked: ${tab}, current viewingPDF: ${viewingPDF}, current activeTab: ${activeTab}`,
     );
 
     if (!selectedDate || !groupedByDate[selectedDate]) {
@@ -155,7 +155,7 @@ const GCResolutionPage = () => {
       setViewingPDF(null);
       setPdfUrl("");
       setFileError(
-        `No ${tab.replace("-", " ")} file available for this meeting.`
+        `No ${tab.replace("-", " ")} file available for this meeting.`,
       );
     }
   };
@@ -280,17 +280,17 @@ const GCResolutionPage = () => {
                 return false;
               })
               .map((r) => r.institute_id)
-              .filter((id) => id !== null && id !== undefined)
+              .filter((id) => id !== null && id !== undefined),
           );
 
           const missingRoleInstituteIds = Array.from(roleInstituteIds).filter(
-            (id) => !existingIds.has(id)
+            (id) => !existingIds.has(id),
           );
 
           if (missingRoleInstituteIds.length > 0) {
             missingRoleInstituteIds.forEach((mid) => {
               const roleEntry = (roles || []).find(
-                (r) => String(r.institute_id) === String(mid)
+                (r) => String(r.institute_id) === String(mid),
               );
               filtered.push({
                 id: mid,
@@ -318,23 +318,23 @@ const GCResolutionPage = () => {
                 return false;
               })
               .map((r) => r.institute_id)
-              .filter((id) => id !== null && id !== undefined)
+              .filter((id) => id !== null && id !== undefined),
           );
 
           filtered = institutesData.filter((inst) =>
-            roleInstituteIds.has(inst.id)
+            roleInstituteIds.has(inst.id),
           );
 
           // Add any institutes from roles that aren't in institutesData
           const existingIds = new Set(filtered.map((i) => i.id));
           const missingRoleInstituteIds = Array.from(roleInstituteIds).filter(
-            (id) => !existingIds.has(id)
+            (id) => !existingIds.has(id),
           );
 
           if (missingRoleInstituteIds.length > 0) {
             missingRoleInstituteIds.forEach((mid) => {
               const roleEntry = (roles || []).find(
-                (r) => String(r.institute_id) === String(mid)
+                (r) => String(r.institute_id) === String(mid),
               );
               filtered.push({
                 id: mid,
@@ -456,7 +456,7 @@ const GCResolutionPage = () => {
     if (isNaN(date.getTime())) return;
 
     const monthYearKey = `${date.getFullYear()}-${String(
-      date.getMonth() + 1
+      date.getMonth() + 1,
     ).padStart(2, "0")}`;
 
     if (!groupedByMonthYear[monthYearKey]) {
@@ -511,9 +511,12 @@ const GCResolutionPage = () => {
   };
 
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      window.location.reload();
-    }, 5 * 60 * 1000);
+    const intervalId = setInterval(
+      () => {
+        window.location.reload();
+      },
+      5 * 60 * 1000,
+    );
 
     return () => clearInterval(intervalId);
   }, []);
@@ -829,7 +832,7 @@ const GCResolutionPage = () => {
               {sortedMonthYearKeys.length > 0 ? (
                 <div className="overflow-hidden bg-white border border-gray-200 shadow-lg rounded-xl">
                   {/* <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-700"> */}
-                  <div className="px-6 py-4 bg-blue-500 text-white">
+                  <div className="px-6 py-4 text-white bg-blue-500">
                     <h2 className="text-xl font-bold text-white">
                       {pdfSearchTerm.trim()
                         ? `Search Results (${searchResults.length} meetings found)`
@@ -854,7 +857,7 @@ const GCResolutionPage = () => {
                         {sortedMonthYearKeys.map((monthYearKey) => {
                           const datesInMonth = groupedByMonthYear[monthYearKey];
                           const sortedDateKeys = Object.keys(datesInMonth).sort(
-                            (a, b) => new Date(a) - new Date(b)
+                            (a, b) => new Date(a) - new Date(b),
                           );
 
                           // Check if any date in this month is selected
@@ -894,7 +897,7 @@ const GCResolutionPage = () => {
                                     <div className="border-l-4 border-indigo-500">
                                       {/* Header */}
                                       {/* <div className="px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-600"> */}
-                                      <div className="px-6 py-4 bg-blue-500 text-white">
+                                      <div className="px-6 py-4 text-white bg-blue-500">
                                         <div className="flex items-center justify-between">
                                           <h3 className="text-xl font-bold text-white">
                                             Meeting Details -{" "}
@@ -933,7 +936,7 @@ const GCResolutionPage = () => {
                                             <button
                                               onClick={() => {
                                                 console.log(
-                                                  "Agenda button clicked"
+                                                  "Agenda button clicked",
                                                 );
                                                 handleTabClick("agenda");
                                               }}
@@ -950,7 +953,7 @@ const GCResolutionPage = () => {
                                                   dataToGroup.find(
                                                     (item) =>
                                                       item.gc_date ===
-                                                      selectedDate
+                                                      selectedDate,
                                                   );
                                                 return (
                                                   pdfSearchTerm.trim() &&
@@ -979,7 +982,7 @@ const GCResolutionPage = () => {
                                             <button
                                               onClick={() => {
                                                 console.log(
-                                                  "Meeting Notes button clicked"
+                                                  "Meeting Notes button clicked",
                                                 );
                                                 handleTabClick("meeting-notes");
                                               }}
@@ -996,7 +999,7 @@ const GCResolutionPage = () => {
                                                   dataToGroup.find(
                                                     (item) =>
                                                       item.gc_date ===
-                                                      selectedDate
+                                                      selectedDate,
                                                   );
                                                 return (
                                                   pdfSearchTerm.trim() &&
@@ -1025,7 +1028,7 @@ const GCResolutionPage = () => {
                                             <button
                                               onClick={() => {
                                                 console.log(
-                                                  "Resolution button clicked"
+                                                  "Resolution button clicked",
                                                 );
                                                 handleTabClick("resolution");
                                               }}
@@ -1048,7 +1051,7 @@ const GCResolutionPage = () => {
                                                   dataToGroup.find(
                                                     (item) =>
                                                       item.gc_date ===
-                                                      selectedDate
+                                                      selectedDate,
                                                   );
                                                 return (
                                                   pdfSearchTerm.trim() &&
@@ -1077,7 +1080,7 @@ const GCResolutionPage = () => {
                                             <button
                                               onClick={() => {
                                                 console.log(
-                                                  "Compliance button clicked"
+                                                  "Compliance button clicked",
                                                 );
                                                 handleTabClick("compliance");
                                               }}
@@ -1100,7 +1103,7 @@ const GCResolutionPage = () => {
                                                   dataToGroup.find(
                                                     (item) =>
                                                       item.gc_date ===
-                                                      selectedDate
+                                                      selectedDate,
                                                   );
                                                 return (
                                                   pdfSearchTerm.trim() &&
@@ -1141,7 +1144,7 @@ const GCResolutionPage = () => {
                                               <button
                                                 onClick={() => {
                                                   console.log(
-                                                    "Closing PDF viewer, keeping buttons visible"
+                                                    "Closing PDF viewer, keeping buttons visible",
                                                   );
                                                   setViewingPDF(null);
                                                   setPdfUrl("");
@@ -1291,8 +1294,8 @@ const GCResolutionPage = () => {
                     {apiError
                       ? "Data unavailable"
                       : pdfSearchTerm.trim()
-                      ? `No meetings found matching "${pdfSearchTerm}"`
-                      : "No Resolutions Found For Selected Tenure"}
+                        ? `No meetings found matching "${pdfSearchTerm}"`
+                        : "No Resolutions Found For Selected Tenure"}
                   </h3>
                 </div>
               )}
