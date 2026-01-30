@@ -11,11 +11,27 @@ app.use((req, res, next) => {
 
 // Add this line before your routes!
 app.use(express.json());
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+const corsOptions = {
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "Range",
+    "Accept",
+    "Origin",
+    "X-Requested-With",
+  ],
+  exposedHeaders: [
+    "Content-Length",
+    "Content-Range",
+    "Accept-Ranges",
+    "Content-Disposition",
+  ],
+  optionsSuccessStatus: 204,
+};
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 const userRoutes = require("./routes/users");
 const instituteRoutes = require("./routes/institute");
@@ -34,7 +50,9 @@ app.use("/api/agm", require("./routes/agm"));
 // Error logging middleware (should be after all routes)
 app.use((err, req, res, next) => {
   console.error(`[API ERROR] ${req.method} ${req.originalUrl}:`, err);
-  res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+  res
+    .status(err.status || 500)
+    .json({ error: err.message || "Internal Server Error" });
 });
 
 app.get("/", (req, res) => {
